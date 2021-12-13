@@ -231,6 +231,10 @@ export const runDoubleOp: Runner<
                   ? success(segments.join('/') === rightSegments.data.segments.join('/'))
                   : rightSegments
               },
+              enum: ({ variant }) => {
+                const rightEnum = expectValueType(rightAt, right, 'enum')
+                return rightEnum.ok === true ? success(variant === rightEnum.data.variant) : rightEnum
+              },
             },
             () => err(op.at, `internal error: cannot apply this operator on internal type "${left.type}"`)
           )
