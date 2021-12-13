@@ -1,5 +1,5 @@
 import { UNICODE_LETTER } from '../../parsers/lib/littles'
-import { Block, ClosureBody, ClosureCallArg, CmdArg, FnDeclArg, FnType, ValueType } from '../../shared/ast'
+import { Block, ClosureBody, ClosureCallArg, CmdArg, FnCall, FnDeclArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { FnCallGeneric, FnCallPrecompArg } from '../../shared/precomp'
 import { matchUnion } from '../../shared/utils'
@@ -14,7 +14,8 @@ import {
 } from '../base'
 import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
-import { getResolvedGenericInSingleScope } from '../scope/search'
+import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
+import { isTypeCompatible } from '../types/compat'
 import { resolveExprType } from './expr'
 import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
@@ -240,6 +241,86 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
   }
 
   return success(void 0)
+}
+
+export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generics, args }, ctx) => {
+  let fnType: FnType
+
+  const entity = getEntityInScope(name, ctx)
+
+  if (!entity.ok || entity.data.type === 'generic') {
+    return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
+  }
+
+  if (entity.data.type === 'fn') {
+    fnType = entity.data.content
+  } else {
+    let type = entity.data.varType
+
+    if (type.type === 'aliasRef') {
+      const alias = ctx.typeAliases.get(type.typeAliasName.parsed)
+
+      if (!alias) {
+        return err(type.typeAliasName.at, 'internal error: type alias reference not found during value type resolution')
+      }
+
+      type = alias.content
+    }
+
+    if (type.type !== 'fn') {
+      return err(
+        name.at,
+        `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type, true)}\`)`
+      )
+    }
+
+    fnType = type.fnType
+  }
+
+  let resolvedGenerics: GenericResolutionScope = []
+
+  if (ctx.typeExpectation && fnType.generics.length > 0) {
+    resolvedGenerics = fnType.generics.map((g) => ({ name: g, orig: g.at, mapped: null }))
+
+    const compat = isTypeCompatible(
+      {
+        at: name.at,
+        candidate: fnType.returnType?.parsed ?? { type: 'void' },
+        typeExpectation: ctx.typeExpectation,
+        fillKnownGenerics: resolvedGenerics,
+      },
+      ctx
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  const fnCallCheck = validateAndRegisterFnCall(
+    { at: name.at, nameAt: name.at, fnType, generics, args, resolvedGenerics },
+    ctx
+  )
+
+  if (!fnCallCheck.ok) return fnCallCheck
+
+  const [returnType, gScope] = fnCallCheck.data
+
+  if (ctx.typeExpectation) {
+    const compat = isTypeCompatible(
+      {
+        at: name.at,
+        candidate: returnType,
+        typeExpectation: {
+          from: ctx.typeExpectation.from,
+          type: resolveGenerics(ctx.typeExpectation.type, ctx.resolvedGenerics.concat([gScope])),
+        },
+      },
+      ctx
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  return success(returnType)
 }
 
 export const validateAndRegisterFnCall: Typechecker<
