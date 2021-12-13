@@ -25,6 +25,7 @@ import { mappedCases, mappedCasesComposed, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { literalValue, rawString } from './literals'
+import { enumMatchingExpr } from './matching'
 import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
@@ -169,6 +170,8 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     ),
     ([_, enumName, __, variant]) => ({ enumName: flattenMaybeToken(enumName), variant })
   ),
+
+  match: enumMatchingExpr,
 
   // closure: map(
   //   combine(

@@ -16,7 +16,7 @@ import { identifier } from './tokens'
 
 export const enumMatching: <T>(
   bodyParser: Parser<T>
-) => Parser<{ subject: Token<Expr>; arms: { variant: Token<string>; matchWith: Token<T> }[] }> = (bodyParser) =>
+) => Parser<{ subject: Token<Expr>; arms: Token<{ variant: Token<string>; matchWith: Token<T> }[]> }> = (bodyParser) =>
   map(
     combine(
       exact('match'),
@@ -50,7 +50,7 @@ export const enumMatching: <T>(
       maybe_s_nl,
       exact('}', "expected a closing brace (}) after the match's body")
     ),
-    ([_, __, subject, ___, ____, _____, { parsed: arms }]) => ({ subject, arms })
+    ([_, __, subject, ___, ____, _____, arms]) => ({ subject, arms })
   )
 
 export const enumMatchingExpr = enumMatching(withLatelyDeclared(() => expr))

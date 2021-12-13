@@ -56,7 +56,7 @@ export type Statement =
   | {
       type: 'match'
       subject: Token<Expr>
-      arms: { variant: Token<string>; matchWith: Token<Token<StatementChain>[]> }[]
+      arms: Token<{ variant: Token<string>; matchWith: Token<Token<StatementChain>[]> }[]>
     }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'return'; expr: Token<Expr> | null }
@@ -164,6 +164,7 @@ export type Value =
   | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
   | { type: 'enumVariant'; enumName: Token<string> | null; variant: Token<string> }
+  | { type: 'match'; subject: Token<Expr>; arms: Token<{ variant: Token<string>; matchWith: Token<Expr> }[]> }
   // | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }

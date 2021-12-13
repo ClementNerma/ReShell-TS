@@ -5,6 +5,7 @@ import { matchUnion } from '../shared/utils'
 import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
+import { enumMatchingTypechecker } from './matching'
 import { flattenStatementChains, scopeFirstPass } from './scope/first-pass'
 import { getTypedEntityInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
@@ -387,76 +388,19 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
       enumDecl: () => success({ neverEnds: false }),
 
       match: ({ subject, arms }) => {
-        const matchOn = resolveExprType(subject, ctx)
-        if (!matchOn.ok) return matchOn
-
-        while (matchOn.data.type === 'aliasRef') {
-          const typeAlias = ctx.typeAliases.get(matchOn.data.typeAliasName.parsed)
-          if (!typeAlias) {
-            return err(subject.at, 'internal error: type alias was not found during development in matching')
-          }
-
-          matchOn.data = typeAlias.content
-        }
-
-        if (matchOn.data.type !== 'enum') {
-          return err(
-            subject.at,
-            `matching can only be performed on enums, found \`${rebuildType(matchOn.data, true)}\``
-          )
-        }
-
-        const toMatch = [...matchOn.data.variants]
-
         let neverEnds = true
-        let usedFallback: CodeSection | false = false
-        const usedVariants: Token<string>[] = []
 
-        for (const { variant, matchWith } of arms) {
-          const check = statementChainChecker(matchWith.parsed, ctx)
-          if (!check.ok) return check
-
-          if (variant.parsed === '_') {
-            if (usedFallback) {
-              return err(variant.at, {
-                message: 'cannot use the fallback pattern twice',
-                also: [{ at: usedFallback, message: 'fallback pattern already used here' }],
-              })
-            }
-
-            usedFallback = variant.at
-            continue
+        const check = enumMatchingTypechecker(
+          subject,
+          arms,
+          ctx,
+          (matchWith) => statementChainChecker(matchWith.parsed, ctx),
+          (block) => {
+            neverEnds &&= block.neverEnds
           }
+        )
 
-          const firstMatch = usedVariants.find((v) => v.parsed === variant.parsed)
-
-          if (firstMatch) {
-            return err(variant.at, {
-              message: 'cannot match the same variant twice',
-              also: [{ at: firstMatch.at, message: 'matched here previously' }],
-            })
-          }
-
-          const relevant = toMatch.findIndex((v) => v.parsed === variant.parsed)
-
-          if (relevant === -1) {
-            return err(variant.at, {
-              message: `unknown variant \`${variant.parsed}\``,
-              complements: [['valid variants', matchOn.data.variants.map((v) => v.parsed).join(', ')]],
-            })
-          }
-
-          usedVariants.push(variant)
-
-          toMatch.splice(relevant, 1)
-          neverEnds &&= check.data.neverEnds
-        }
-
-        if (toMatch.length > 0 && !usedFallback) {
-          return err(stmt.at, `missing arms for variants: ${toMatch.map((v) => v.parsed).join(', ')}`)
-        }
-
-        return success({ neverEnds })
+        return check.ok ? success({ neverEnds }) : check
       },
 
       fnDecl: ({ fnType, body }) => {

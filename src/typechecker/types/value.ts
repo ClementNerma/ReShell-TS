@@ -3,6 +3,7 @@ import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
+import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
@@ -434,6 +435,30 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       }
 
       return success({ type: 'enum', variants })
+    },
+
+    match: ({ subject, arms }) => {
+      let exprType: { from: CodeSection; type: ValueType } | null = null
+
+      const check = enumMatchingTypechecker(
+        subject,
+        arms,
+        ctx,
+        (matchWith) =>
+          resolveExprType(matchWith, {
+            ...ctx,
+            typeExpectation: ctx.typeExpectation || !exprType ? ctx.typeExpectation : exprType,
+          }),
+        (type, matchWith) => {
+          if (!exprType) {
+            exprType = { from: matchWith.at, type }
+          }
+        }
+      )
+
+      if (!check.ok) return check
+
+      return success(exprType!.type)
     },
 
     // closure: ({ fnType, body }) => {
