@@ -1,5 +1,6 @@
 import { FormatableErrInput, FormatableError, formattableErr } from '../../shared/errors'
 import { CodeLoc, Token } from '../../shared/parsed'
+import { StrView } from './strview'
 
 export type ParserResult<T> = ParserSucess<T> | ParserErr
 
@@ -23,7 +24,7 @@ export type ParserErr = {
 export type ParserErrStackEntry = { context: ParsingContext; content: FormatableError }
 
 export type ParsingContext = Readonly<{
-  source: { ref: string }
+  source: StrView
   failureWillBePhantomSuccess?: boolean
   loopData?: LoopContext
   combinationData?: LoopContext
@@ -43,7 +44,7 @@ export type LoopContext = Readonly<{
   }>
 }>
 
-export type Parser<T> = (start: CodeLoc, input: string, ctx: ParsingContext) => ParserResult<T>
+export type Parser<T> = (start: CodeLoc, input: StrView, ctx: ParsingContext) => ParserResult<T>
 
 export function success<T>(
   start: CodeLoc,
@@ -114,18 +115,8 @@ export function addCols(start: CodeLoc, cols: number): CodeLoc {
   return { line: start.line, col: start.col + cols }
 }
 
-export function sliceInput(input: string, started: CodeLoc, ended: CodeLoc): string {
-  return ended.line === started.line
-    ? input.substr(ended.col - started.col)
-    : input
-        .split('\n')
-        .slice(ended.line - started.line)
-        .join('\n')
-        .substr(ended.col)
-}
-
-export function parseSource<T>(source: string, parser: Parser<T>, $custom: unknown): ParserResult<T> {
-  const context: ParsingContext = { source: { ref: source }, $custom, self: () => context }
+export function parseSource<T>(source: StrView, parser: Parser<T>, $custom: unknown): ParserResult<T> {
+  const context: ParsingContext = { source, $custom, self: () => context }
   return parser({ line: 0, col: 0 }, source, context)
 }
 

@@ -1,14 +1,5 @@
 import { CodeLoc, Token } from '../../shared/parsed'
-import {
-  Parser,
-  ParserResult,
-  ParserSuccessInfos,
-  ParsingContext,
-  sliceInput,
-  success,
-  withErr,
-  WithErrData,
-} from './base'
+import { Parser, ParserResult, ParserSuccessInfos, ParsingContext, success, withErr, WithErrData } from './base'
 
 type CombineOptions = {
   error?: WithErrData
@@ -70,20 +61,11 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
 
       previousInfos = infos
 
-      input = sliceInput(input, next, data.at.next)
+      input = input.offset(data.matched.length)
       next = data.at.next
 
       parsed.push(data)
       matched.push(data.matched)
-
-      if (infos.phantomSuccess && i === parsers.length - 1) {
-        if (beforeInterMatching) {
-          next = beforeInterMatching
-          matched.pop()
-        }
-
-        break
-      }
 
       if (!infos.skipInter && options?.inter && i < parsers.length - 1) {
         const interResult = options.inter(next, input, combinationContext)
@@ -95,7 +77,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
         const { data: interData } = interResult
 
         beforeInterMatching = next
-        input = sliceInput(input, next, interData.at.next)
+        input = input.offset(interData.matched.length)
         next = interData.at.next
 
         matched.push(interData.matched)

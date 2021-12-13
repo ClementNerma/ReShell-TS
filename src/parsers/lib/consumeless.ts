@@ -8,10 +8,10 @@ import {
   ParserSucess,
   ParsingContext,
   phantomSuccess,
-  sliceInput,
   withErr,
   WithErrData,
 } from './base'
+import { StrView } from './strview'
 
 export function inspectOk<T>(parser: Parser<T>, inspector: (result: ParserSucess<T>) => void): Parser<T> {
   return (start, input, context) => {
@@ -37,7 +37,7 @@ export function fail<T>(error?: ErrInputData): Parser<T> {
   return (start, _, context) => err(start, start, context, error)
 }
 
-export function failWith<T>(error: (input: string, context: ParsingContext, loc: CodeLoc) => ErrInputData): Parser<T> {
+export function failWith<T>(error: (input: StrView, context: ParsingContext, loc: CodeLoc) => ErrInputData): Parser<T> {
   return (start, input, context) => err(start, start, context, error(input, context, start))
 }
 
@@ -79,7 +79,7 @@ export function notFollowedBy<T>(parser: Parser<T>, by: Parser<T>, options?: Loo
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const following = lookahead(parser)(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
+    const following = lookahead(parser)(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
     return following.ok || following.precedence === options?.precedencePassthrough
       ? err(start, start, context, options?.error)
       : parsed
@@ -91,7 +91,7 @@ export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<T
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const following = lookahead(parser)(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
+    const following = lookahead(parser)(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
     return following.ok ? parsed : err(start, start, context, error)
   }
 }

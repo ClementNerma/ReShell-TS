@@ -9,6 +9,7 @@ import { install } from 'source-map-support'
 import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
+import { StrView } from './parsers/lib/strview'
 import { program } from './parsers/program'
 import { ErrorParsingFormatters, formatErr } from './shared/errors'
 import { typecheckProgram } from './typechecker/program'
@@ -55,13 +56,13 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
   return [elapsed, out]
 }
 
-const [parsedDuration, parsed] = measurePerf(() => parseSource(iterSrc, program, initContext()))
+const [parsedDuration, parsed] = measurePerf(() => parseSource(StrView.create(iterSrc), program, initContext()))
 
 if (!parsed.ok) {
   console.error(
     parsed.stack.length === 0
       ? '<no error provided>'
-      : formatErr(parsed.stack[0].content, parsed.context.source.ref, errorFormatters)
+      : formatErr(parsed.stack[0].content, parsed.context.source.toFullStringSlow(), errorFormatters)
   )
   process.exit(1)
 }

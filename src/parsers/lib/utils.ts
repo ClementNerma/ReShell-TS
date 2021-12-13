@@ -1,5 +1,5 @@
 import { Token } from '../../shared/parsed'
-import { Parser, ParserErr, sliceInput } from './base'
+import { Parser, ParserErr } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
   const parser = producer((start, input, context) => parser(start, input, context))
@@ -15,7 +15,7 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
   const trimStr = (str: string) => (str.length < 80 ? str : str.substr(0, 80) + '...').replace(/\n/g, '\\n')
 
   return (start, input, context) => {
-    console.log(`${parserName} Called at line ${start.line} col ${start.col} | ${trimStr(input)}`)
+    console.log(`${parserName} Called at line ${start.line} col ${start.col} | ${trimStr(input.littleView())}`)
 
     const result = parser(start, input, context)
 
@@ -48,7 +48,12 @@ export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>
 }
 
 export function withNormalizedNewlines<T>(parser: Parser<T>): Parser<T> {
-  return (start, input, context) => parser(start, input.replace(/\r\n|\r/g, '\n'), context)
+  return (start, input, context) =>
+    parser(
+      start,
+      input.withSlowMapper((str) => str.replace(/\r\n|\r/g, '\n')),
+      context
+    )
 }
 
 export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<T>) => U): Token<U> {
@@ -59,6 +64,14 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
   return token.parsed !== null ? { ...token, parsed: token.parsed } : null
 }
 
+// TODO: SLOW
 export function getErrorInput(err: ParserErr): string {
-  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.start)
+  return err.next.line === err.start.line
+    ? err.context.source.toFullStringSlow().substr(err.next.col - err.start.col)
+    : err.context.source
+        .toFullStringSlow()
+        .split('\n')
+        .slice(err.next.line - err.start.line)
+        .join('\n')
+        .substr(err.next.col)
 }

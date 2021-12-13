@@ -8,8 +8,8 @@ import {
   ParserSucess,
   ParsingContext,
   phantomSuccess,
-  sliceInput,
 } from './base'
+import { StrView } from './strview'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
@@ -29,7 +29,7 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
 }
 
 export function failIf(
-  cond: (input: string, context: ParsingContext, start: CodeLoc) => boolean,
+  cond: (input: StrView, context: ParsingContext, start: CodeLoc) => boolean,
   error?: ErrInputData
 ): Parser<void> {
   return (start, input, context) =>
@@ -74,7 +74,7 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const not = notFollowedBy(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
+    const not = notFollowedBy(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
     return not.ok ? err(start, parsed.data.at.next, context, error) : parsed
   }
 }

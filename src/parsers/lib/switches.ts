@@ -1,8 +1,9 @@
 import { CodeLoc } from '../../shared/parsed'
 import { err, ErrInputData, Parser, ParserErr, ParsingContext, withErr, WithErrData } from './base'
+import { StrView } from './strview'
 import { map } from './transform'
 
-export type OrErrorFn<R> = (input: string, errors: Array<ParserErr>, context: ParsingContext, start: CodeLoc) => R
+export type OrErrorFn<R> = (input: StrView, errors: Array<ParserErr>, context: ParsingContext, start: CodeLoc) => R
 
 export enum OrErrorStrategy {
   DoNothing,

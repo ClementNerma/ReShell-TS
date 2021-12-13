@@ -16,7 +16,7 @@ export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputDa
 
     if (match === undefined) return err(start, start, context, error)
 
-    return matches(input.substr(match.length), unicodeAlphanumericUnderscore, null)
+    return matches(input.offset(match.length), unicodeAlphanumericUnderscore, null)
       ? err(start, start, context, error)
       : success(start, addCols(start, match.length), match, match)
   }
@@ -26,7 +26,7 @@ export function word<S extends string>(candidate: S, error?: ErrInputData): Pars
   return (start, input, context) => {
     if (!input.startsWith(candidate)) return err(start, start, context, error)
 
-    return matches(input.substr(candidate.length), unicodeAlphanumericUnderscore, null)
+    return matches(input.offset(candidate.length), unicodeAlphanumericUnderscore, null)
       ? err(start, start, context, error)
       : success(start, addCols(start, candidate.length), candidate, candidate)
   }
@@ -34,18 +34,18 @@ export function word<S extends string>(candidate: S, error?: ErrInputData): Pars
 
 export function char(regex: RegExp, error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
-    input.charAt(0).match(regex)
-      ? success(start, addCols(start, 1), input.charAt(0), input.charAt(0))
+    input.matchFirstChar(regex)
+      ? success(start, addCols(start, 1), input.firstChar(), input.firstChar())
       : err(start, start, context, error)
 }
 
 export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
   return (start, input, context) => {
-    const match = input.match(regex)
+    const match = input.matchShort(regex) // TODO
     if (!match || match.index !== 0) return err(start, start, context, error)
 
     const parsed = match[0]
-    const matched = input.substr(0, parsed.length)
+    const matched = match[0]
 
     if (!parsed.includes('\n')) {
       return success(start, addCols(start, parsed.length), parsed, matched)
@@ -64,18 +64,18 @@ export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
 
 export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
-    const match = input.match(regex)
+    const match = input.matchShort(regex) // TODO
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), mapper(match), input.substr(0, match[0].length))
+      ? success(start, addCols(start, match[0].length), mapper(match), match[0])
       : err(start, start, context, error)
   }
 }
 
 export function regexRaw(regex: RegExp, error?: ErrInputData): Parser<RegExpMatchArray> {
   return (start, input, context) => {
-    const match = input.match(regex)
+    const match = input.matchShort(regex) // TODO
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), match, input.substr(0, match[0].length))
+      ? success(start, addCols(start, match[0].length), match, match[0])
       : err(start, start, context, error)
   }
 }
@@ -110,9 +110,9 @@ export function bol(error?: ErrInputData): Parser<void> {
 
 export function eol(error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
-    input.length === 0
+    input.empty()
       ? success(start, start, '', '')
-      : input.charAt(0) === '\n'
+      : input.startsWithChar('\n')
       ? success(start, addLoc(start, { line: 1, col: 0 }), '\n', '\n')
       : err(start, start, context, error)
 }
@@ -123,7 +123,7 @@ export function bos(error?: ErrInputData): Parser<void> {
 }
 
 export function eos(error?: ErrInputData): Parser<void> {
-  return (start, input, context) => (input.length === 0 ? phantomSuccess(start) : err(start, start, context, error))
+  return (start, input, context) => (input.empty() ? phantomSuccess(start) : err(start, start, context, error))
 }
 
 /**

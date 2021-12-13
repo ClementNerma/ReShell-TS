@@ -1,4 +1,4 @@
-import { err, ErrInputData, Parser, sliceInput, withErr, WithErrData } from './base'
+import { err, ErrInputData, Parser, withErr, WithErrData } from './base'
 import { combine } from './combinations'
 import { failureMaybe } from './errors'
 import { maybe_s } from './littles'
@@ -35,9 +35,9 @@ export function fullSource<T>(
     const parsed = parser(start, input, context)
     if (!parsed.ok) return withErr(parsed, context, errors?.error)
 
-    const remaining = sliceInput(input, start, parsed.data.at.next)
+    const remaining = input.offset(parsed.data.matched.length)
 
-    if (remaining.length > 0) return err(parsed.data.at.next, parsed.data.at.next, context, errors?.eos)
+    if (!remaining.empty()) return err(parsed.data.at.next, parsed.data.at.next, context, errors?.eos)
 
     return parsed
   }

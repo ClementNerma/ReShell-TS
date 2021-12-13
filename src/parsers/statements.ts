@@ -38,9 +38,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             maybe(exact('mut')),
             failIfMatches(keyword, 'Cannot use reserved keyword as a variable name'),
             failure(identifier, 'Expected an identifier'),
-            {
-              inter: s,
-            }
+            { inter: s }
           ),
           ([_, mutable, __, varname]) => ({ mutable, varname })
         ),

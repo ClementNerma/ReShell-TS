@@ -1,15 +1,5 @@
 import { CodeLoc, Token } from '../../shared/parsed'
-import {
-  err,
-  ErrInputData,
-  Parser,
-  ParserSuccessInfos,
-  ParsingContext,
-  sliceInput,
-  success,
-  withErr,
-  WithErrData,
-} from './base'
+import { err, ErrInputData, Parser, ParserSuccessInfos, ParsingContext, success, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
@@ -59,13 +49,13 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
       previousInfos = infos
 
-      input = sliceInput(input, next, data.at.next)
+      input = input.offset(data.matched.length)
       next = data.at.next
 
       parsed.push(data)
       matched.push(data.matched)
 
-      if (input.length === 0) {
+      if (input.empty()) {
         break
       }
 
@@ -79,7 +69,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         const { data: interData } = interResult
 
         beforeInterMatching = next
-        input = sliceInput(input, next, interData.at.next)
+        input = input.offset(interData.matched.length)
         next = interData.at.next
 
         matched.push(interData.matched)
