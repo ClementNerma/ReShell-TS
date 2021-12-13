@@ -23,10 +23,19 @@ export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { sco
     : success(void 0)
 }
 
-export const getEntityInScope: Typechecker<Token<string>, ScopeEntity> = (name, { scopes }) => {
+export const getEntityInScope: Typechecker<{ name: Token<string>; gettingValue: boolean }, ScopeEntity> = (
+  { name, gettingValue },
+  { scopes }
+) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const entity = scopes[s].entities.get(name.parsed)
-    if (entity) return success(entity)
+    if (entity) {
+      if (gettingValue && s === 0 && entity.type === 'fn') {
+        return err(name.at, 'cannot use builtin functions as values')
+      }
+
+      return success(entity)
+    }
   }
 
   return err(name.at, 'entity not found')

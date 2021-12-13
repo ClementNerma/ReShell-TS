@@ -543,17 +543,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     },
 
     reference: ({ varname }) => {
-      const referenced = getEntityInScope(varname, ctx)
+      const referenced = getEntityInScope({ name: varname, gettingValue: true }, ctx)
+      if (!referenced.ok) return referenced
 
-      let foundType: ValueType
-
-      if (referenced.ok && referenced.data.type === 'var') {
-        foundType = referenced.data.varType
-      } else if (referenced.ok && referenced.data.type === 'fn') {
-        foundType = { type: 'fn', fnType: referenced.data.content }
-      } else {
-        return err(value.at, `variable \`${varname.parsed}\` was not found in this scope`)
-      }
+      const foundType: ValueType = matchUnion(referenced.data, 'type', {
+        var: ({ varType }) => varType,
+        fn: ({ content }) => ({ type: 'fn', fnType: content }),
+      })
 
       if (!typeExpectation) {
         return success(foundType)

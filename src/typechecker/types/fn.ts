@@ -250,7 +250,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
 
 export const resolveFnCallType: Typechecker<FnCall, ValueType> = (call, ctx) => {
   const name = call.name
-  const entity = getEntityInScope(name, ctx)
+  const entity = getEntityInScope({ name, gettingValue: false }, ctx)
 
   if (!entity.ok) {
     return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
