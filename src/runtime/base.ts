@@ -1,6 +1,7 @@
 import { Block, ClosureBody, FnType, Value, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection } from '../shared/parsed'
+import { PrecompData } from '../shared/precomp'
 
 export type Runner<T, RetType = void> = (token: T, ctx: RunnerContext) => RunnerResult<RetType>
 
@@ -17,15 +18,11 @@ export type RunnerContext = {
   fnCallGenerics: Map<CodeSection, Map<string, ValueType>>
 }
 
-export const createRunnerContext = (
-  typeAliases: RunnerContext['typeAliases'],
-  callbackTypes: RunnerContext['callbackTypes'],
-  fnCallGenerics: RunnerContext['fnCallGenerics']
-): RunnerContext => ({
+export const createRunnerContext = (precompData: PrecompData): RunnerContext => ({
   scopes: [],
-  typeAliases,
-  callbackTypes,
-  fnCallGenerics,
+  typeAliases: precompData.typeAliases,
+  callbackTypes: precompData.callbackTypes,
+  fnCallGenerics: precompData.fnCallGenerics,
 })
 
 export type Scope = {

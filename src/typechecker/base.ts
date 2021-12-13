@@ -1,13 +1,14 @@
-import { CmdDeclSubCommand, FnType, Value, ValueType } from '../shared/ast'
+import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
+import { PrecompData } from '../shared/precomp'
 import { nativeLibraryScope } from './scope/native-lib'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
 export type TypecheckerContext = {
   scopes: Scope[]
-  typeAliases: Map<string, { at: CodeSection; content: ValueType }>
+  typeAliases: PrecompData['typeAliases']
   resolvedGenerics: GenericResolutionScope[]
   inLoop: boolean
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
@@ -17,8 +18,8 @@ export type TypecheckerContext = {
   }
   restArgs: string[]
   commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
-  callbackTypes: Map<Value, FnType>
-  fnCallGenerics: Map<CodeSection, Map<string, ValueType>>
+  callbackTypes: PrecompData['callbackTypes']
+  fnCallGenerics: PrecompData['fnCallGenerics']
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }

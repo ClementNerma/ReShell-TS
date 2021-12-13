@@ -1,13 +1,18 @@
 import { AST } from '../shared/ast'
 import { Token } from '../shared/parsed'
-import { success, Typechecker, TypecheckerContext } from './base'
+import { PrecompData } from '../shared/precomp'
+import { success, Typechecker } from './base'
 import { programChecker } from './program'
 
-export type TypecheckerOutput = Pick<TypecheckerContext, 'typeAliases' | 'callbackTypes' | 'fnCallGenerics'>
+export type TypecheckerOutput = PrecompData
 
 export const langTypechecker: Typechecker<Token<AST>, TypecheckerOutput> = (ast, ctx) => {
   const check = programChecker(ast.parsed, ctx)
   if (!check.ok) return check
 
-  return success({ typeAliases: ctx.typeAliases, callbackTypes: ctx.callbackTypes, fnCallGenerics: ctx.fnCallGenerics })
+  return success({
+    typeAliases: ctx.typeAliases,
+    callbackTypes: ctx.callbackTypes,
+    fnCallGenerics: ctx.fnCallGenerics,
+  })
 }
