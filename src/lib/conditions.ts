@@ -1,9 +1,19 @@
-import { err, ErrFnData, Parser, ParserErr, ParserResult, ParserSucess, ParsingContext, success, Token } from './base'
+import {
+  err,
+  ErrFnData,
+  neutralError,
+  Parser,
+  ParserErr,
+  ParserResult,
+  ParserSucess,
+  ParsingContext,
+  Token,
+} from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
     const parsed = cond(start, input, { ...context, failureWillBeNeutral: true })
-    if (!parsed.ok) return success(start, start, null, '', true)
+    if (!parsed.ok) return neutralError(start, null)
 
     return then(start, input, context)
   }
@@ -20,7 +30,7 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
 export function failIf(failIf: Parser<unknown>, error?: ErrFnData): Parser<unknown> {
   return (start, input, context) => {
     const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
-    return parsed.ok ? err(start, context, error) : success(start, start, void 0, '', true)
+    return parsed.ok ? err(start, context, error) : neutralError(start)
   }
 }
 
@@ -34,7 +44,7 @@ export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T
 export function maybe<T>(parser: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
     const parsed = parser(start, input, { ...context, failureWillBeNeutral: true })
-    return parsed.ok || parsed.precedence ? parsed : success(start, start, null, '', true)
+    return parsed.ok || parsed.precedence ? parsed : neutralError(start, null)
   }
 }
 
@@ -45,7 +55,7 @@ export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
       ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
       : parsed.precedence
       ? parsed
-      : success(start, start, null, '', true)
+      : neutralError(start, null)
   }
 }
 

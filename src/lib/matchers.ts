@@ -1,4 +1,4 @@
-import { addCols, addLoc, err, Parser, success } from './base'
+import { addCols, addLoc, err, neutralError, Parser, success } from './base'
 import { unicodeAlphanumericUnderscore } from './littles'
 import { matches } from './raw'
 
@@ -100,26 +100,24 @@ export function oneOfMap<T>(candidates: [string, T][], error?: string): Parser<T
 }
 
 export function bol(error?: string): Parser<void> {
-  return (start, _, context) => (start.col === 0 ? success(start, start, void 0, '') : err(start, context, error))
+  return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, context, error))
 }
 
 export function eol(error?: string): Parser<void> {
   return (start, input, context) =>
     input.length === 0
-      ? success(start, start, void 0, '')
+      ? neutralError(start)
       : input.charAt(0) === '\n'
       ? success(start, addLoc(start, { line: 1, col: 0 }), void 0, '\n')
       : err(start, context, error)
 }
 
 export function bos(error?: string): Parser<void> {
-  return (start, _, context) =>
-    start.col === 0 && start.line === 0 ? success(start, start, void 0, '') : err(start, context, error)
+  return (start, _, context) => (start.col === 0 && start.line === 0 ? neutralError(start) : err(start, context, error))
 }
 
 export function eos(error?: string): Parser<void> {
-  return (start, input, context) =>
-    input.length === 0 ? success(start, start, void 0, '') : err(start, context, error)
+  return (start, input, context) => (input.length === 0 ? neutralError(start) : err(start, context, error))
 }
 
 /**

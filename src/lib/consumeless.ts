@@ -1,8 +1,8 @@
-import { err, ErrorMapping, Parser, ParserErr, ParserResult, ParserSucess, success, withErr } from './base'
+import { err, ErrorMapping, neutralError, Parser, ParserErr, ParserResult, ParserSucess, withErr } from './base'
 import { NotOptions } from './errors'
 
 export function nothing(): Parser<void> {
-  return (start, _, __) => success(start, start, void 0, '')
+  return (start, _, __) => neutralError(start)
 }
 
 export function fail<T>(error?: string): Parser<T> {
@@ -38,13 +38,13 @@ export function not<T>(parser: Parser<T>, options?: NotOptions): Parser<void> {
     const parsed = parser(start, input, context)
     return parsed.ok || parsed.precedence === options?.precedencePassthrough
       ? err(start, context, options?.error)
-      : success(start, start, void 0, '')
+      : neutralError(start)
   }
 }
 
 export function lookahead<T>(parser: Parser<T>, error?: ErrorMapping): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? success(start, start, void 0, '') : withErr(parsed, context, error)
+    return parsed.ok ? neutralError(start) : withErr(parsed, context, error)
   }
 }

@@ -56,6 +56,21 @@ export function success<T>(
   }
 }
 
+export function neutralError(start: ParserLoc): Extract<ParserResult<void>, { ok: true }>
+export function neutralError<T>(start: ParserLoc, neutralValue: T): Extract<ParserResult<T>, { ok: true }>
+export function neutralError<T>(start: ParserLoc, neutralValue?: T): Extract<ParserResult<T>, { ok: true }> {
+  return {
+    ok: true,
+    data: {
+      matched: '',
+      parsed: (neutralValue ?? void 0)!,
+      neutralError: true,
+      start,
+      next: start,
+    },
+  }
+}
+
 export type ErrFnData = string | ParserErrStackEntryMessage | ParserErr['stack']
 
 export function err(loc: ParserLoc, context: ParsingContext, errData?: ErrFnData, precedence?: boolean): ParserErr {
