@@ -36,7 +36,14 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           map(match(/([^\\"\$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
           map(
             combine(
-              exact('${'),
+              exact('$'),
+              exact('{', {
+                message: 'Expecting an expression after the "$" symbol',
+                complements: [
+                  ['Tip', 'If you want to write an expression, write "${" to open it and "}" to close it'],
+                  ['Tip', 'If you want to write the "$" symbol alone, you can escape it with a backslash "\\"'],
+                ],
+              }),
               failure(
                 withLatelyDeclared(() => expr),
                 'Failed to parse the inner expression'
@@ -44,7 +51,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               exact('}', 'Expected a closing brace (}) to close the inner expression'),
               { inter: maybe_s_nl }
             ),
-            ([_, expr, __]) => ({ type: 'expr', expr })
+            ([_, __, expr]) => ({ type: 'expr', expr })
           ),
         ])
       ),
