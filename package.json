@@ -14,7 +14,7 @@
     "build": "tsc -p tsconfig.json --outDir dist/",
     "start": "npm-run-all build \"start-built {@}\" --",
     "start-built": "node dist/bin.js",
-    "postinstall": "build"
+    "prepare": "npm run build"
   },
   "main": "dist/bin.js",
   "bin": "dist/bin.js",
