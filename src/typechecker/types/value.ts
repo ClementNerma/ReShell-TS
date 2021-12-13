@@ -174,13 +174,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       for (const item of items.slice(1)) {
         const itemType = resolveExprType(item, {
           ...ctx,
-          typeExpectation: expectedItemType
-            ? {
-                type: referenceType.data,
-                from: typeExpectation?.from ?? null,
-              }
-            : null,
+          typeExpectation: {
+            type: referenceType.data,
+            from: items[0].at ?? null,
+          },
         })
+
         if (!itemType.ok) return itemType
       }
 
@@ -230,13 +229,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         const itemType = resolveExprType(value, {
           ...ctx,
-          typeExpectation: expectedItemType
-            ? {
-                type: referenceType.data,
-                from: typeExpectation?.from ?? null,
-              }
-            : null,
+          typeExpectation: {
+            type: referenceType.data,
+            from: entries[0].value.at ?? null,
+          },
         })
+
         if (!itemType.ok) return itemType
       }
 
