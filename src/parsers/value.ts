@@ -174,7 +174,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   callback: map(
     combine(
-      combine(exact('('), maybe_s_nl),
+      combine(exact('cb'), maybe_s, exact('('), maybe_s_nl),
       takeWhile(
         mappedCases<ClosureArg>()('type', {
           flag: withLatelyDeclared(() => cmdFlag),
