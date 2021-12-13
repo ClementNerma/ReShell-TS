@@ -59,7 +59,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         break
       }
 
-      if (options?.inter) {
+      if (!data.neutralError && options?.inter) {
         const interResult = options.inter(next, input, iterContext)
 
         if (!interResult.ok) {
