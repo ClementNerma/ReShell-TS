@@ -155,10 +155,10 @@ export const resolveDoubleOpType: Typechecker<
       switch (op.parsed.op.parsed) {
         case 'Eq':
         case 'NotEq': {
-          const type = leftExprType.type
+          const compatibleTypes: ValueType['type'][] = ['bool', 'number', 'string', 'path', 'enum']
 
-          if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path' && type !== 'enum') {
-            return errCannotApplyOperator(op.at, 'number', leftExprType, leftExprAt)
+          if (!compatibleTypes.includes(leftExprType.type)) {
+            return errCannotApplyOperator(op.at, compatibleTypes.join(', '), leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
