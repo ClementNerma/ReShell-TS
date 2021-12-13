@@ -1,5 +1,5 @@
 import { FormatableError, FormatableExtract, FormatableExtractsInput, formattableExtract } from '../shared/errors'
-import { CodeLoc, FnType, Token, ValueType } from '../shared/parsed'
+import { CodeLoc, CodeSection, FnType, ValueType } from '../shared/parsed'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
@@ -24,7 +24,7 @@ export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (
   err: FormatableExtractsInput | { error: FormatableExtractsInput; also: FormatableExtract[] },
-  at: Token<unknown>
+  at: CodeSection
 ): TypecheckerErr =>
   typeof err === 'object' && 'also' in err
     ? { ok: false, error: formattableExtract(at, err.error), also: err.also }
