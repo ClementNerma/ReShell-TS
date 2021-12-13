@@ -10,7 +10,7 @@ import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
-import { flattenMaybeToken, getErrorInput, withLatelyDeclared } from './lib/utils'
+import { getErrorInput, withLatelyDeclared } from './lib/utils'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { valueType } from './types'
@@ -18,7 +18,15 @@ import { valueType } from './types'
 const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>
   map(
     combine(
-      map(combine(exact('fn'), s, requireName ? identifier : maybe(identifier)), ([_, __, name]) => name),
+      map(
+        combine(
+          exact('fn'),
+          requireName
+            ? map(combine(s, identifier), ([_, name]) => name)
+            : maybe(map(combine(s, identifier), ([_, name]) => name))
+        ),
+        ([_, { parsed: name }]) => name
+      ),
       combine(maybe_s, exact('(', "Expected an open paren '('"), maybe_s_nl),
       takeWhile<FnArg>(
         map(
@@ -131,7 +139,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
       )
     ),
     ([{ parsed: named }, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
-      named: flattenMaybeToken(named),
+      named,
       args,
       returnType,
       failureType,
