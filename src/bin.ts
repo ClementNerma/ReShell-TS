@@ -67,21 +67,32 @@ if (!parsed.ok) {
   process.exit(1)
 }
 
-const jsonStr = JSON.stringify(parsed.data)
+const [jsonStrDuration, jsonStr] = measurePerf(() => JSON.stringify(parsed.data))
 
-const [compressDuration, compressed] = measurePerf(() => deflateSync(jsonStr, { level: 9 }))
-const [decompressDuration, decompressed] = measurePerf(() => inflateSync(compressed))
+const [compress1Duration, compressed1] = measurePerf(() => deflateSync(jsonStr, { level: 1 }))
+const [decompress1Duration, decompressed1] = measurePerf(() => inflateSync(compressed1))
 
-if (decompressed.toString('utf-8') !== jsonStr) {
+const [compress9Duration, compressed9] = measurePerf(() => deflateSync(jsonStr, { level: 9 }))
+const [decompress9Duration, decompressed9] = measurePerf(() => inflateSync(compressed9))
+
+if (decompressed1.toString('utf-8') !== jsonStr || decompressed9.toString('utf-8') !== jsonStr) {
   fail('Decompressed data is not the same as the source!')
+}
+
+const [parseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
+
+if (JSON.stringify(reparsed) !== jsonStr) {
+  fail('Reparsed data is not the same as the source!')
 }
 
 const infos = [
   `Parsed              | ${ms(parsedDuration)} | ${kb(source.length * iter)}`,
-  `Full       AST JSON |          | ${kb(JSON.stringify(parsed.data, null, 4).length)}`,
-  `Minimified AST JSON |          | ${kb(JSON.stringify(parsed.data).length)}`,
-  `Compressed (max)    | ${ms(compressDuration)} | ${kb(compressed.byteLength)}`,
-  `Decompressed (max)  | ${ms(decompressDuration)} |`,
+  `Minimified AST JSON | ${ms(jsonStrDuration)} | ${kb(JSON.stringify(parsed.data).length)}`,
+  `Compressed (min)    | ${ms(compress1Duration)} | ${kb(compressed1.byteLength)}`,
+  `Decompressed (min)  | ${ms(decompress1Duration)} |`,
+  `Compressed (max)    | ${ms(compress9Duration)} | ${kb(compressed9.byteLength)}`,
+  `Decompressed (max)  | ${ms(decompress9Duration)} |`,
+  `JSON AST parsing    | ${ms(parseDuration)} |`,
 ]
 
 if (argv.includes('--ast-perf')) {
