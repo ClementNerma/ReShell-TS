@@ -10,11 +10,11 @@ import {
   success,
   Typechecker,
   TypecheckerContext,
-  TypecheckerResult
+  TypecheckerResult,
 } from '../base'
 import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
-import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
+import { getContextuallyResolvedGeneric, getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from '../types/compat'
 import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
@@ -311,6 +311,20 @@ export const validateAndRegisterFnCall: Typechecker<
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
   )
+
+  for (const generic of fnType.generics) {
+    if (getContextuallyResolvedGeneric(ctx.resolvedGenerics, generic.parsed, generic.at)) {
+      return err(nameAt, {
+        message: 'generic-based function was called twice in expression',
+        complements: [
+          [
+            'details',
+            'due to a current limitation of the typesystem, you cannot call the same generic-based function twice in the same expression',
+          ],
+        ],
+      })
+    }
+  }
 
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
     name,
