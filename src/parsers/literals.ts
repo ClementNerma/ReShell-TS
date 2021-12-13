@@ -1,15 +1,12 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { notFollowedBy } from '../lib/conditions'
-import { failure } from '../lib/errors'
-import { digit, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
-import { takeWhile, takeWhile1N, takeWhileMN } from '../lib/loops'
+import { digit, unicodeAlphanumericUnderscore } from '../lib/littles'
+import { takeWhile1N, takeWhileMN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
-import { withLatelyDeclared } from '../lib/utils'
-import { ComputedStringSegment, LiteralString, LiteralValue } from './data'
-import { expr } from './expr'
+import { LiteralValue } from './data'
 
 export const literalPath: Parser<Token<string>[]> = takeWhileMN(
   unify(takeWhile1N(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
@@ -19,41 +16,10 @@ export const literalPath: Parser<Token<string>[]> = takeWhileMN(
   }
 )
 
-export const literalString: Parser<LiteralString> = mappedCases<LiteralString>()('type', {
-  raw: map(
-    combine(
-      exact('r"'),
-      match(/([^\\"\n]|\\[^\n])*/),
-      exact('"', 'Opened string has not been closed with a quote (")')
-    ),
-    ([_, content, __]) => ({ content })
-  ),
-
-  computed: map(
-    combine(
-      exact('"'),
-      takeWhile(
-        or<ComputedStringSegment>([
-          map(match(/([^\\"\$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
-          map(
-            combine(
-              exact('${'),
-              failure(
-                withLatelyDeclared(() => expr),
-                'Failed to parse the inner expression'
-              ),
-              exact('}', 'Expected a closing brace (}) to close the inner expression'),
-              { inter: maybe_s_nl }
-            ),
-            ([_, expr, __]) => ({ type: 'expr', expr })
-          ),
-        ])
-      ),
-      exact('"', 'Opened string has not been closed with a quote (")')
-    ),
-    ([_, { parsed: segments }, __]) => ({ segments })
-  ),
-})
+export const rawString: Parser<string> = map(
+  combine(exact('r"'), match(/([^\\"\n]|\\[^\n])*/), exact('"', 'Opened string has not been closed with a quote (")')),
+  ([_, { parsed: content }, __]) => content
+)
 
 export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('type', {
   null: map(exact('null'), () => ({})),
@@ -80,7 +46,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
     'value'
   ),
 
-  string: toOneProp(literalString, 'value'),
+  string: toOneProp(rawString, 'value'),
 
   path: toOneProp(literalPath, 'segments'),
 })

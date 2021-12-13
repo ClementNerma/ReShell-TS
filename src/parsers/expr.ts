@@ -5,7 +5,7 @@ import { lookahead, not } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
-import { exact, oneOf, oneOfMap } from '../lib/matchers'
+import { exact, match, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
@@ -13,6 +13,7 @@ import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClose } from './context'
 import {
+  ComputedStringSegment,
   DoubleArithOp,
   DoubleLogicOp,
   DoubleOp,
@@ -26,7 +27,7 @@ import {
   SingleOp,
   Value,
 } from './data'
-import { literalString, literalValue } from './literals'
+import { literalValue, rawString } from './literals'
 import { propertyAccess } from './propaccess'
 import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
@@ -34,6 +35,31 @@ import { identifier, keyword } from './tokens'
 import { fnType, valueType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
+  computedString: map(
+    combine(
+      exact('"'),
+      takeWhile(
+        or<ComputedStringSegment>([
+          map(match(/([^\\"\$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
+          map(
+            combine(
+              exact('${'),
+              failure(
+                withLatelyDeclared(() => expr),
+                'Failed to parse the inner expression'
+              ),
+              exact('}', 'Expected a closing brace (}) to close the inner expression'),
+              { inter: maybe_s_nl }
+            ),
+            ([_, expr, __]) => ({ type: 'expr', expr })
+          ),
+        ])
+      ),
+      exact('"', 'Opened string has not been closed with a quote (")')
+    ),
+    ([_, { parsed: segments }, __]) => ({ segments })
+  ),
+
   list: map(
     combine(
       exact('['),
@@ -60,7 +86,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 message: "Expected either an identifier or the end of the map's content",
                 tip: 'Key names in map values must be written between quotes',
               }),
-              contextualFailure(literalString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
+              contextualFailure(rawString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
               exact(':'),
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }

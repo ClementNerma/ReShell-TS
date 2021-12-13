@@ -130,12 +130,8 @@ export type LiteralValue =
   | { type: 'null' }
   | { type: 'bool'; value: Token<boolean> }
   | { type: 'number'; value: Token<number> }
-  | { type: 'string'; value: Token<LiteralString> }
+  | { type: 'string'; value: Token<string> }
   | { type: 'path'; segments: Token<Token<string>[]> }
-
-export type LiteralString =
-  | { type: 'raw'; content: Token<string> }
-  | { type: 'computed'; segments: Token<ComputedStringSegment>[] }
 
 export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
 
@@ -153,8 +149,9 @@ export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Tok
 
 export type Value =
   | LiteralValue
+  | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
   | { type: 'list'; items: Token<Token<Expr>[]> }
-  | { type: 'map'; entries: Token<{ key: Token<LiteralString>; expr: Token<Expr> }[]> }
+  | { type: 'map'; entries: Token<{ key: Token<string>; expr: Token<Expr> }[]> }
   | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
