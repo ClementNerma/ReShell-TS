@@ -62,6 +62,9 @@ const started = Date.now()
 const parsed = engine.parse(iterSrc, initContext())
 const elapsed = Date.now() - started
 
-if (parsed.ok) console.dir(parsed, { depth: null })
+if (parsed.ok) {
+  console.dir(parsed, { depth: null })
+  console.log(`Output JSON weights ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`)
+}
 
 console.log(`Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`)
