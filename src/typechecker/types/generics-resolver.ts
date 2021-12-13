@@ -166,7 +166,7 @@ export function isResolvedGenericDifferent(
   return (
     resolved.type !== 'generic' ||
     resolved.name.parsed !== original.name.parsed ||
-    !isLocEq(resolved.name.at.start, original.name.at.start) ||
+    // !isLocEq(resolved.name.at.start, original.name.at.start) ||
     !isLocEq(resolved.orig.start, original.orig.start)
   )
 }

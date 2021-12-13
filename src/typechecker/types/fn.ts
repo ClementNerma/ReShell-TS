@@ -18,7 +18,7 @@ import { getContextuallyResolvedGeneric, getEntityInScope } from '../scope/searc
 import { isTypeCompatible } from '../types/compat'
 import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
-import { resolveGenerics } from './generics-resolver'
+import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
 import { resolveValueType } from './value'
@@ -572,8 +572,11 @@ export const validateAndRegisterFnCall: Typechecker<
 
   const resolvedGScope: FnCallGeneric[] = []
 
-  for (const { name, orig, mapped } of gScope) {
-    if (mapped === null) {
+  for (const { name, orig, mapped, inFnCallAt } of gScope) {
+    if (
+      mapped === null ||
+      !isResolvedGenericDifferent(mapped, { type: 'generic', name, orig, fromFnCallAt: inFnCallAt })
+    ) {
       return err(at, {
         message: `failed to determine the type of generic \`${name.parsed}\``,
         also: [{ at: name.at, message: 'generic is defined here' }],
