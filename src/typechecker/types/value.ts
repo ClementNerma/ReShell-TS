@@ -364,15 +364,16 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         if (expectedMembers) {
           const expectedMemberType = expectedMembers.get(name.parsed)
+          const expectation = typeExpectation!
 
           if (!expectedMemberType) {
             return err(name.at, {
               message: `unknown member \`${name.parsed}\``,
-              complements: [['expected', rebuildType(typeExpectation!.type)]],
-              also: typeExpectation!.from
+              complements: [['expected', rebuildType(expectation.type)]],
+              also: expectation.from
                 ? [
                     {
-                      at: typeExpectation!.from,
+                      at: expectation.from,
                       message: 'type expectation originates here',
                     },
                   ]
