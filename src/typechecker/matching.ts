@@ -65,7 +65,7 @@ export function enumMatchingTypechecker<T, X>(
   }
 
   if (toMatch.length > 0 && usedFallback === false) {
-    return err(arms.at, `missing arms for variants: ${toMatch.map((v) => v.parsed).join(', ')}`)
+    return err(subject.at, `missing arms for variants: ${toMatch.map((v) => v.parsed).join(', ')}`)
   }
 
   return success(void 0)
