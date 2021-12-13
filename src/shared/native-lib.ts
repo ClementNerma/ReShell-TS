@@ -66,6 +66,22 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'string',
   }),
 
+  split: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'subject', type: 'string' },
+      { name: 'delimiter', type: 'string' },
+    ],
+    returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
+  }),
+
+  join: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'subject', type: { type: 'list', itemsType: { type: 'string' } } },
+      { name: 'glue', type: 'string' },
+    ],
+    returnType: () => ({ type: 'string' }),
+  }),
+
   echo: _buildNativeLibraryFn({
     args: () => [
       { name: 'message', type: 'string' },

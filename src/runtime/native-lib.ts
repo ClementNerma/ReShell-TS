@@ -59,6 +59,27 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       success({ type: 'string', value: str.value.repeat(repeat.value) })
     ),
 
+  split: ({ at }, map) =>
+    withArguments(at, map, { subject: 'string', delimiter: 'string' }, ({ subject, delimiter }) =>
+      success({
+        type: 'list',
+        items: subject.value.split(delimiter.value).map((str) => ({ type: 'string', value: str })),
+      })
+    ),
+
+  join: ({ at }, map) =>
+    withArguments(at, map, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
+      const pieces: string[] = []
+
+      for (const value of subject.items) {
+        const str = expectValueType(at, value, 'string')
+        if (str.ok !== true) return str
+        pieces.push(str.data.value)
+      }
+
+      return success({ type: 'string', value: pieces.join(glue.value) })
+    }),
+
   echo: ({ at, pipeTo }, map) =>
     withArguments(at, map, { message: 'string', n: 'bool' }, ({ message, n }) => {
       pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
@@ -252,4 +273,17 @@ function withArguments<A extends { [name: string]: ValueType['type'] | { nullabl
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
   return callback(out)
+}
+
+export function expectValueType<T extends ExecValue['type']>(
+  at: CodeSection,
+  value: ExecValue,
+  type: T
+): RunnerResult<Extract<ExecValue, { type: T }>> {
+  return value.type === type
+    ? success(value as Extract<ExecValue, { type: T }>)
+    : err(
+        at,
+        `internal error in native library executor: type mismatch (expected internal type "${type}", found "${value.type}")`
+      )
 }
