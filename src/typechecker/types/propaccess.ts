@@ -1,15 +1,32 @@
 import { CodeSection, PropertyAccess, Token, ValueType } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
+import { getTypeAliasInScope } from '../scope/search'
 import { rebuildType } from './rebuilder'
 
 export const resolvePropAccessType: Typechecker<
   { leftType: ValueType; leftAt: CodeSection; propAccesses: Token<PropertyAccess>[]; noNullabilityTip?: boolean },
   ValueType
-> = ({ leftType, leftAt, propAccesses, noNullabilityTip }) => {
+> = ({ leftType, leftAt, propAccesses, noNullabilityTip }, ctx) => {
   let previousIterType = leftType
   let upToPrevPropAccessSection: CodeSection = leftAt
 
   for (const propAccess of propAccesses) {
+    if (previousIterType.inner.type === 'aliasRef') {
+      const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
+
+      if (!alias.ok) {
+        return err(
+          leftAt,
+          'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+        )
+      }
+
+      previousIterType = {
+        nullable: previousIterType.nullable || alias.data.content.nullable,
+        inner: alias.data.content.inner,
+      }
+    }
+
     switch (propAccess.parsed.access.type) {
       case 'refIndex':
         if (previousIterType.inner.type !== 'list') {
