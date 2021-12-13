@@ -234,7 +234,10 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   fnCall: map(fnCall, (content) => ({ content })),
 
-  inlineCmdCall: map(inlineCmdCall, (content) => ({ content })),
+  inlineCmdCall: map(
+    withLatelyDeclared(() => inlineCmdCall),
+    (content) => ({ content })
+  ),
 
   // FIX: TypeScript compiler produced an error because of the produced union being too complex
   // with "toOneProp('varname', identifier)"
