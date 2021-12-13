@@ -229,10 +229,16 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<Sta
   return success(void 0)
 }
 
-export const validateFnCallArgs: Typechecker<
-  { at: CodeSection; fnType: FnType; args: Token<CmdArg>[]; declaredCommand?: true },
+export const validateFnCall: Typechecker<
+  {
+    at: CodeSection
+    fnType: FnType
+    generics: Token<Token<ValueType | null>[]> | null
+    args: Token<CmdArg>[]
+    declaredCommand?: true
+  },
   ValueType
-> = ({ at, fnType, args, declaredCommand }, ctx) => {
+> = ({ at, fnType, generics, args, declaredCommand }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
@@ -240,6 +246,30 @@ export const validateFnCallArgs: Typechecker<
 
   const gScope: GenericResolutionScope = new Map(fnType.generics.map((generic) => [generic.parsed, null]))
   ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat(gScope) }
+
+  if (generics) {
+    if (generics.parsed.length < fnType.generics.length) {
+      return err(
+        generics.at,
+        `some generics have not been supplied (expected ${fnType.generics.length}, found ${generics.parsed.length})`
+      )
+    }
+
+    if (generics.parsed.length > fnType.generics.length) {
+      return err(
+        generics.at,
+        `too many generics supplied (expected ${fnType.generics.length}, found ${generics.parsed.length})`
+      )
+    }
+
+    for (let g = 0; g < generics.parsed.length; g++) {
+      const supplied = generics.parsed[g].parsed
+
+      if (supplied) {
+        gScope.set(fnType.generics[g].parsed, supplied)
+      }
+    }
+  }
 
   let buildingRest = false
 

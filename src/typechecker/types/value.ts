@@ -6,7 +6,7 @@ import { cmdCallTypechecker } from '../cmdcall'
 import { getEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { closureTypeValidator, validateFnCallArgs } from './fn'
+import { closureTypeValidator, validateFnCall } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -472,7 +472,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return check.ok ? success({ type: 'fn', fnType: expected }) : check
     },
 
-    fnCall: ({ name, args }) => {
+    fnCall: ({ name, generics, args }) => {
       let fnType: FnType
 
       const entity = getEntityInScope(name, ctx)
@@ -513,7 +513,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         )
       }
 
-      const returnType = validateFnCallArgs({ at: name.at, fnType, args }, ctx)
+      const returnType = validateFnCall({ at: name.at, fnType, generics, args }, ctx)
 
       if (!returnType.ok) return returnType
 

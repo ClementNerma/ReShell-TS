@@ -160,7 +160,7 @@ export type Value =
   | { type: 'enumVariant'; enumName: Token<string> | null; variant: Token<string> }
   // | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
-  | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
+  | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'
       start: Token<InlineCmdCall>

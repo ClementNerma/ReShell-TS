@@ -7,6 +7,7 @@ import {
   InlineChainedCmdCall,
   InlineCmdCallCapture,
   Value,
+  ValueType,
 } from '../shared/ast'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
@@ -27,6 +28,7 @@ import { literalValue, rawString } from './literals'
 import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
+import { valueType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   computedString: map(
@@ -240,6 +242,19 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     combine(
       failure(not(keyword), 'cannot use reserved keyword alone'),
       identifier,
+      maybe(
+        map(
+          combine(
+            exact('::<'),
+            takeWhile1<ValueType | null>(or([map(exact('_'), () => null), valueType]), {
+              inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+              interExpect: 'expected another generic',
+            }),
+            exact('>', 'expecting a closing (>) symbol after the generics')
+          ),
+          ([_, generics]) => generics
+        )
+      ),
       combine(maybe_s, exact('('), maybe_s_nl),
       withStatementClosingChar(
         ')',
@@ -262,7 +277,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       ),
       combine(maybe_s_nl, exact(')', 'expected a closing parenthesis to end the list of arguments'))
     ),
-    ([_, name, __, { parsed: args }]) => ({ name, args })
+    ([_, name, { parsed: generics }, __, { parsed: args }]) => ({ name, generics, args })
   ),
 
   inlineCmdCallSequence: map(
