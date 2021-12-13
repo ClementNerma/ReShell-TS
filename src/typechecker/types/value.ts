@@ -4,10 +4,9 @@ import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
 import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
-import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { closureTypeValidator, fnScopeCreator, fnTypeValidator, validateFnCallArgs } from './fn'
+import { closureTypeValidator, validateFnCallArgs } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -353,30 +352,30 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success<ValueType>(typeExpectation?.type ?? { type: 'struct', members: outputTypes })
     },
 
-    closure: ({ fnType, body }) => {
-      const assert = assertExpectedNonPrimitiveType('fn')
-      if (!assert.ok) return assert
+    // closure: ({ fnType, body }) => {
+    //   const assert = assertExpectedNonPrimitiveType('fn')
+    //   if (!assert.ok) return assert
 
-      const check = fnTypeValidator(fnType, ctx)
-      if (!check.ok) return check
+    //   const check = fnTypeValidator(fnType, ctx)
+    //   if (!check.ok) return check
 
-      const stmtCheck = statementChainChecker(body.parsed, {
-        ...ctx,
-        scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
-        fnExpectation: {
-          failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
-          returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
-        },
-      })
+    //   const stmtCheck = statementChainChecker(body.parsed, {
+    //     ...ctx,
+    //     scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
+    //     fnExpectation: {
+    //       failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
+    //       returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
+    //     },
+    //   })
 
-      if (!stmtCheck.ok) return stmtCheck
+    //   if (!stmtCheck.ok) return stmtCheck
 
-      if (fnType.returnType !== null && !stmtCheck.data.neverEnds) {
-        return err(body.at, 'not all code paths return a value')
-      }
+    //   if (fnType.returnType !== null && !stmtCheck.data.neverEnds) {
+    //     return err(body.at, 'not all code paths return a value')
+    //   }
 
-      return success({ type: 'fn', fnType })
-    },
+    //   return success({ type: 'fn', fnType })
+    // },
 
     callback: ({ args, body }) => {
       const assert = assertExpectedNonPrimitiveType('fn')

@@ -6,13 +6,12 @@ import {
   FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
-  Value,
+  Value
 } from '../shared/ast'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClosingChar } from './context'
 import { expr } from './expr'
-import { fnType } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse } from './lib/conditions'
@@ -159,22 +158,22 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     ([_, { parsed: members }, __]) => ({ members })
   ),
 
-  closure: map(
-    combine(
-      withLatelyDeclared(() => fnType),
-      combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-      withStatementClosingChar(
-        '}',
-        withLatelyDeclared(() => blockBody)
-      ),
-      combine(maybe_s_nl, exact('}', "expected a closing brace (}) after the closure's content"))
-    ),
-    ([{ parsed: fnType }, __, body, ___]) => ({ fnType, body })
-  ),
+  // closure: map(
+  //   combine(
+  //     withLatelyDeclared(() => fnType),
+  //     combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
+  //     withStatementClosingChar(
+  //       '}',
+  //       withLatelyDeclared(() => blockBody)
+  //     ),
+  //     combine(maybe_s_nl, exact('}', "expected a closing brace (}) after the closure's content"))
+  //   ),
+  //   ([{ parsed: fnType }, __, body, ___]) => ({ fnType, body })
+  // ),
 
   callback: map(
     combine(
-      combine(exact('cb'), maybe_s, exact('('), maybe_s_nl),
+      combine(exact('fn'), maybe_s, exact('('), maybe_s_nl),
       takeWhile(
         mappedCases<ClosureArg>()('type', {
           flag: withLatelyDeclared(() => cmdFlag),
