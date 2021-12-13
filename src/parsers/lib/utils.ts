@@ -101,8 +101,8 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
 // TODO: SLOW
 export function getErrorInput(err: ParserErr): string {
   return err.next.line === err.start.line
-    ? err.context.currentFile.toFullStringSlow().substr(err.next.col - err.start.col)
-    : err.context.currentFile
+    ? err.context.currentFileContent.toFullStringSlow().substr(err.next.col - err.start.col)
+    : err.context.currentFileContent
         .toFullStringSlow()
         .split('\n')
         .slice(err.next.line - err.start.line)

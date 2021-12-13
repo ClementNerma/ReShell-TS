@@ -22,7 +22,7 @@ export type ParserErr = {
 export type ParsingContext = Readonly<{
   sourceServer: SourceFilesServer
   currentFilePath: string
-  currentFile: StrView
+  currentFileContent: StrView
   $custom: unknown
   self: () => ParsingContext
 }>
@@ -94,7 +94,7 @@ export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T
   const context: ParsingContext = {
     sourceServer,
     currentFilePath: sourceServer.entrypointPath,
-    currentFile: sourceServer.entrypoint(),
+    currentFileContent: sourceServer.entrypoint(),
     $custom,
     self: () => context,
   }
@@ -111,7 +111,7 @@ export function parseFile<T>(
   const context: ParsingContext = {
     sourceServer,
     currentFilePath: filePath,
-    currentFile: content,
+    currentFileContent: content,
     $custom,
     self: () => context,
   }
