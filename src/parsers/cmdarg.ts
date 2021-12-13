@@ -35,7 +35,7 @@ export const cmdFlag: Parser<CmdFlag> = map(
       )
     )
   ),
-  ([short, name, directValue]) => ({ short, name, directValue: directValue.parsed })
+  ([short, name, { parsed: directValue }]) => ({ short, name, directValue })
 )
 
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {

@@ -90,7 +90,10 @@ export const valueType: Parser<ValueType> = selfRef((typeParser) =>
 const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>
   map(
     combine(
-      map(combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }), ([_, name]) => name.parsed),
+      map(
+        combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }),
+        ([_, { parsed: name }]) => name
+      ),
       exact('(', "Syntax error: expected an open paren '('"),
       takeWhile(
         map(
@@ -132,9 +135,9 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
       ),
       { inter: maybe_s_nl }
     ),
-    ([named, _, args, __, returnType]) => ({
+    ([named, _, { parsed: args }, __, returnType]) => ({
       named: flattenMaybeToken(named),
-      args: args.parsed,
+      args,
       returnType: flattenMaybeToken(returnType),
     })
   )

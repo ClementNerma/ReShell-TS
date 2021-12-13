@@ -56,9 +56,9 @@ export const literalString: Parser<LiteralString> = or<LiteralString>([
       ),
       exact('"', 'Syntax error: opened string has not been closed with a quote (")')
     ),
-    ([_, segments, __]) => ({
+    ([_, { parsed: segments }, __]) => ({
       type: 'computed',
-      segments: segments.parsed,
+      segments,
     })
   ),
 ])
@@ -106,6 +106,6 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
       exact('}', "Syntax error: expected a closing brace (}) after the closure's content"),
       { inter: maybe_s_nl }
     ),
-    ([fnType, __, body, ___]) => ({ fnType: fnType.parsed, body: body.parsed })
+    ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
   ),
 })

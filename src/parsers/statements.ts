@@ -32,7 +32,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           combine(exact('let'), maybe(exact('mut')), failure(identifier, 'Syntax error: expected an identifier'), {
             inter: s,
           }),
-          ([_, mut, varname]) => [mut, varname] as const
+          ([_, mutable, varname]) => ({ mutable, varname })
         ),
         maybeFlatten(
           map(
@@ -45,14 +45,12 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         { inter: maybe_s }
       ),
 
-      ([mutAndVarname, vartype, _, expr]) => {
-        return {
-          mutable: mapToken(mutAndVarname.parsed[0], (str) => !!str),
-          varname: mutAndVarname.parsed[1],
-          vartype: flattenMaybeToken(vartype),
-          expr,
-        }
-      }
+      ([mv, vartype, _, expr]) => ({
+        mutable: mapToken(mv.parsed.mutable, (str) => !!str),
+        varname: mv.parsed.varname,
+        vartype: flattenMaybeToken(vartype),
+        expr,
+      })
     ),
 
     ifBlock: map(
@@ -123,10 +121,10 @@ export const statementChainFree: Parser<StatementChain> = map(
     endOfStatementChain,
     { inter: maybe_s }
   ),
-  ([start, sequence]): StatementChain => ({
+  ([start, { parsed: sequence }]): StatementChain => ({
     type: 'chain',
     start,
-    sequence: sequence.parsed,
+    sequence,
   })
 )
 

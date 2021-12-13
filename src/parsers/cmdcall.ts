@@ -32,18 +32,11 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
                   'Syntax error: invalid argument provided'
                 )
               ),
-              {
-                inter: s,
-              }
+              { inter: s }
             ),
-            {
-              inter: s,
-            }
+            { inter: s }
           ),
-          ([name, args]) => ({
-            name,
-            args: args.parsed ?? [],
-          })
+          ([name, { parsed: args }]) => ({ name, args })
         ),
       ]),
       maybe(
@@ -61,5 +54,5 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
       ),
       { inter: maybe_s }
     ),
-    ([nameAndArgs, redir]) => ({ ...nameAndArgs.parsed, redir: flattenMaybeToken(redir) })
+    ([{ parsed: nameAndArgs }, redir]) => ({ ...nameAndArgs, redir: flattenMaybeToken(redir) })
   )

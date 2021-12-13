@@ -174,11 +174,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact(')', "Syntax error: expected closing paren ')' after inline command call"),
       { inter: maybe_s_nl }
     ),
-    ([capture, start, sequenceRest]) => ({
-      start,
-      sequence: sequenceRest.parsed,
-      capture,
-    })
+    ([capture, start, { parsed: sequence }]) => ({ start, sequence, capture })
   ),
 
   reference: toOneProp(identifier, 'varname'),
@@ -197,7 +193,7 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
     ]),
     failure(not(_opSym), 'Syntax error: unknown operator')
   ),
-  ([sym]) => sym.parsed
+  ([{ parsed: sym }]) => sym
 )
 
 export const doubleLogicOp: Parser<DoubleLogicOp> = map(
@@ -208,7 +204,7 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
     ]),
     failure(not(_opSym), 'Syntax error: unknown operator')
   ),
-  ([sym]) => sym.parsed
+  ([{ parsed: sym }]) => sym
 )
 
 export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
@@ -218,7 +214,7 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
   combine(oneOfMap([['!', SingleLogicOp.Not]]), failure(not(_opSym), 'Syntax error: unknown operator')),
-  ([sym]) => sym.parsed
+  ([{ parsed: sym }]) => sym
 )
 
 export const singleOp: Parser<SingleOp> = mappedCases<SingleOp>()('type', {
