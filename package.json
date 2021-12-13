@@ -1,0 +1,32 @@
+{
+  "name": "reshell",
+  "version": "0.0.1",
+  "description": "A modern shell for the future",
+  "keywords": [
+    "shell",
+    "modern",
+    "types",
+    "typing",
+    "strict"
+  ],
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json --outDir dist/",
+    "start": "npm-run-all build \"start-built {@}\" --",
+    "start-built": "node dist/bin.js",
+    "postinstall": "build"
+  },
+  "main": "dist/bin.js",
+  "bin": "dist/bin.js",
+  "dependencies": {
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "@types/node": "^16.10.2",
+    "@types/source-map-support": "^0.5.4",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^3.0.2",
+    "source-map-support": "^0.5.20",
+    "typescript": "^4.4.3"
+  }
+}
