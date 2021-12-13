@@ -10,7 +10,7 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
     list: ({ itemsType }) => (noDepth ? 'list' : `[${rebuildType(itemsType)}]`),
     map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
     struct: ({ members }) =>
-      noDepth ? 'struct' : `struct { ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
+      noDepth ? 'struct' : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
     fn: ({ fnType: { args, returnType, failureType } }) =>
       noDepth
         ? 'fn'
