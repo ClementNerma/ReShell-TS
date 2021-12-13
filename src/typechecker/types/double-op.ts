@@ -128,7 +128,7 @@ export const resolveDoubleOpType: Typechecker<
             })
           }
 
-          checkRightOperandType = null
+          checkRightOperandType = leftExprType
           producedType = (rightExprType) => rightExprType
           break
       }
