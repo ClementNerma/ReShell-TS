@@ -269,18 +269,19 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
   assignment: map(
     combine(
       identifier,
-      takeWhile(propertyAccess),
-      combine(maybe(doubleArithOp), exact('=')),
-      failure(expr, 'Expected an expression to assign'),
-      { inter: maybe_s }
+      combine(
+        takeWhile(propertyAccess),
+        maybe(doubleArithOp),
+        exact('='),
+        failure(expr, 'Expected an expression to assign'),
+        { inter: maybe_s }
+      )
     ),
     ([
       varname,
-      { parsed: propAccess },
       {
-        parsed: [prefixOp],
+        parsed: [{ parsed: propAccess }, prefixOp, _, expr],
       },
-      expr,
     ]) => ({
       varname,
       propAccess,
