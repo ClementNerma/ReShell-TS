@@ -108,7 +108,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
 
   ls: _buildNativeLibraryFn({
     args: () => [{ name: 'path', type: 'path' }],
-    returnType: () => ({ type: 'aliasRef', typeAliasName: _forgeToken('LsItem') }),
+    returnType: () => ({ type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } }),
   }),
 })
 
