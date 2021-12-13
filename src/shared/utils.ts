@@ -8,3 +8,8 @@ export const matchUnion = <U extends { [key in D]: string }, D extends keyof U>(
         })
   ): T => (callbacks[subject[prop]] ?? (callbacks as { _: any })._)(subject as any)
 }
+
+export const matchStr =
+  <S extends string>(str: S) =>
+  <T>(callbacks: { [variant in S]: () => T }): T =>
+    callbacks[str]()

@@ -1,6 +1,6 @@
 import { Expr, ExprElement, Token, ValueType } from '../../shared/parsed'
-import { matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
+import { matchStr, matchUnion } from '../../shared/utils'
+import { success, Typechecker, TypecheckerResult } from '../base'
 import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, context) => {
@@ -18,27 +18,11 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
   matchUnion(element.parsed)<TypecheckerResult<ValueType>>('type', {
     paren: ({ inner }) => resolveExprType(inner, ctx),
 
-    singleOp: ({ op, right }) => {
-      const rightType = resolveExprElementType(right, ctx)
-      if (!rightType.ok) return rightType
-
-      const opType = op.parsed.op.parsed
-
-      switch (opType) {
-        case 'Not':
-          if (rightType.data.nullable) return err('Cannot apply negative operator to nullable value', element.start)
-          if (rightType.data.inner.type !== 'bool')
-            return err(
-              `Cannot apply negative operator on non-boolean values (found type category: ${rightType.data.inner.type})`,
-              element.start
-            )
-
-          return success({ nullable: false, inner: { type: 'bool' } })
-
-        default:
-          return ensureCoverage(opType)
-      }
-    },
+    singleOp: ({ op, right }) =>
+      matchStr(op.parsed.op.parsed)({
+        Not: () =>
+          resolveExprElementType(right, { ...ctx, expectedType: { nullable: false, inner: { type: 'bool' } } }),
+      }),
 
     ternary: ({ cond, then, elif, els }) => {
       const condType = resolveExprType(cond, {
