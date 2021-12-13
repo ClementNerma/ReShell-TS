@@ -1,6 +1,6 @@
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatches } from './lib/conditions'
+import { failIfMatches, notStartingWith } from './lib/conditions'
 import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore, unicodeDigit } from './lib/littles'
 import { oneOfWords } from './lib/matchers'
 import { map } from './lib/transform'
@@ -35,4 +35,7 @@ export const identifier: Parser<string> = map(
 
 export const cmdName: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
 
-export const cmdAction: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
+export const cmdAction: Parser<string> = notStartingWith(
+  unicodeDigit,
+  buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
+)
