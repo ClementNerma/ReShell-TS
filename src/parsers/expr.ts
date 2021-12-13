@@ -4,7 +4,7 @@ import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
-import { exact, oneOf } from '../lib/matchers'
+import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, mapFull, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
@@ -61,12 +61,29 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
 export const _opSym: Parser<void> = silence(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!']))
 
-export const doubleArithOp: Parser<DoubleArithOp> = or<DoubleArithOp>(
-  (['+', '-', '*', '/', '%'] as const).map((sym) => map(combine(exact(sym), not(_opSym)), (_) => sym))
+export const doubleArithOp: Parser<DoubleArithOp> = map(
+  combine(
+    oneOfMap([
+      ['+', DoubleArithOp.Add],
+      ['-', DoubleArithOp.Sub],
+      ['*', DoubleArithOp.Mul],
+      ['/', DoubleArithOp.Div],
+      ['%', DoubleArithOp.Rem],
+    ]),
+    failure(not(_opSym), 'Syntax error: unknown operator')
+  ),
+  ([sym]) => sym.parsed
 )
 
-export const doubleLogicOp: Parser<DoubleLogicOp> = or<DoubleLogicOp>(
-  (['&&', '||'] as const).map((sym) => map(combine(exact(sym), not(_opSym)), (_) => sym))
+export const doubleLogicOp: Parser<DoubleLogicOp> = map(
+  combine(
+    oneOfMap([
+      ['&&', DoubleLogicOp.And],
+      ['||', DoubleLogicOp.Or],
+    ]),
+    failure(not(_opSym), 'Syntax error: unknown operator')
+  ),
+  ([sym]) => sym.parsed
 )
 
 export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
@@ -74,8 +91,9 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
   logic: toOneProp(doubleLogicOp, 'op'),
 })
 
-export const singleLogicOp: Parser<SingleLogicOp> = or<SingleLogicOp>(
-  (['!'] as const).map((sym) => map(combine(exact(sym), not(_opSym)), (_) => sym))
+export const singleLogicOp: Parser<SingleLogicOp> = map(
+  combine(oneOfMap([['!', SingleLogicOp.Not]]), failure(not(_opSym), 'Syntax error: unknown operator')),
+  ([sym]) => sym.parsed
 )
 
 export const singleOp: Parser<SingleOp> = mappedCases<SingleOp>()('type', {

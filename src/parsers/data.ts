@@ -135,9 +135,21 @@ export type Expr =
 
 export type DoubleOp = { type: 'arith'; op: Token<DoubleArithOp> } | { type: 'logic'; op: Token<DoubleLogicOp> }
 
-export type DoubleArithOp = '+' | '-' | '*' | '/' | '%'
-export type DoubleLogicOp = '&&' | '||'
+export enum DoubleArithOp {
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Rem,
+}
+
+export enum DoubleLogicOp {
+  And,
+  Or,
+}
 
 export type SingleOp = { type: 'logic'; op: Token<SingleLogicOp> }
 
-export type SingleLogicOp = '!'
+export enum SingleLogicOp {
+  Not,
+}
