@@ -9,13 +9,16 @@ export type PrecompData = {
 }
 
 export type FnCallPrecomp = {
-  generics: Map<string, ValueType>
+  generics: FnCallGeneric[]
   args: Map<string, FnCallPrecompArg>
   restArg: {
     name: string
     content: Token<CmdArg>[]
   } | null
+  hasReturnType: boolean
 }
+
+export type FnCallGeneric = { name: string; orig: CodeSection; resolved: ValueType }
 
 export type FnCallPrecompArg =
   | { type: 'null' }

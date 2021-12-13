@@ -4,7 +4,7 @@
 
 import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
-import { delimiter, dirname, join, relative } from 'path'
+import { delimiter, dirname, join, relative, sep } from 'path'
 import { install } from 'source-map-support'
 import { deflateSync, inflateSync } from 'zlib'
 import { langParser } from './parsers'
@@ -153,7 +153,7 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
 
-  const runnerContext = createRunnerContext(typechecked.data)
+  const runnerContext = createRunnerContext(typechecked.data, sep)
 
   const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 

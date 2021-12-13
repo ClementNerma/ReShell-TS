@@ -185,7 +185,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
 
       if (iterateOn.ok !== true) return iterateOn
 
-      const scope: Scope = { generics: [], functions: [], entities: new Map() }
+      const scope: Scope = { generics: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const value of iterateOn.data) {
@@ -209,7 +209,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
 
       const iterateOn = [...map.data.entries.entries()]
 
-      const scope: Scope = { generics: [], functions: [], entities: new Map() }
+      const scope: Scope = { generics: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const [key, value] of iterateOn) {
@@ -278,18 +278,9 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       return runBlock(relevantArm.matchWith.parsed, ctx)
     },
 
-    fnDecl: ({ name, fnType, body }) => {
+    fnDecl: ({ name, body }) => {
       const scope = ctx.scopes[ctx.scopes.length - 1]
-
-      scope.entities.set(name.parsed, {
-        type: 'fn',
-        def: { args: fnType.args.map((arg) => arg.parsed.name.parsed), restArg: fnType.restArg?.parsed ?? null },
-        fnType,
-        body: body.parsed,
-      })
-
-      scope.functions.push(name.parsed)
-
+      scope.entities.set(name.parsed, { type: 'fn', body })
       return success(void 0)
     },
 

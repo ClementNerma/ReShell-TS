@@ -1,6 +1,6 @@
-import { Block, ClosureBody, FnType, ValueType } from '../shared/ast'
+import { Block, ClosureBody, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
-import { CodeSection } from '../shared/parsed'
+import { CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
 
 export type Runner<T, RetType = void> = (token: T, ctx: RunnerContext) => RunnerResult<RetType>
@@ -16,18 +16,19 @@ export type RunnerContext = {
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
+  platformPathSeparator: string
 }
 
-export const createRunnerContext = (precompData: PrecompData): RunnerContext => ({
+export const createRunnerContext = (precompData: PrecompData, platformPathSeparator: string): RunnerContext => ({
   scopes: [],
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
+  platformPathSeparator,
 })
 
 export type Scope = {
   generics: { name: string; orig: CodeSection; resolved: ValueType }[]
-  functions: string[]
   entities: Map<string, ExecValue>
 }
 
@@ -41,9 +42,10 @@ export type ExecValue =
   | { type: 'map'; entries: Map<string, ExecValue> }
   | { type: 'struct'; members: Map<string, ExecValue> }
   | { type: 'enum'; variant: string }
-  | { type: 'fn'; def: { args: string[]; restArg: string | null }; fnType: FnType; body: Block }
-  | { type: 'callback'; def: { args: string[]; restArg: string | null }; fnType: FnType; body: ClosureBody }
+  | { type: 'fn'; body: Token<Block> }
+  | { type: 'callback'; body: ClosureBody }
   | { type: 'failable'; success: boolean; value: ExecValue }
+  | { type: 'rest'; content: string[] }
 
 export function success<T>(data: T): RunnerResult<T> {
   return { ok: true, data }

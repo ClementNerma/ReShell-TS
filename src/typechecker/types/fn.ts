@@ -1,6 +1,6 @@
 import { Block, ClosureArg, ClosureBody, CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
-import { FnCallPrecompArg } from '../../shared/precomp'
+import { FnCallGeneric, FnCallPrecompArg } from '../../shared/precomp'
 import { matchUnion } from '../../shared/utils'
 import {
   err,
@@ -400,9 +400,9 @@ export const validateFnCall: Typechecker<
     })
   }
 
-  const resolvedGScope = new Map<string, ValueType>()
+  const resolvedGScope: FnCallGeneric[] = []
 
-  for (const { name, mapped } of gScope) {
+  for (const { name, orig, mapped } of gScope) {
     if (mapped === null) {
       return err(at, {
         message: `failed to determine the type of generic \`${name.parsed}\``,
@@ -410,7 +410,7 @@ export const validateFnCall: Typechecker<
       })
     }
 
-    resolvedGScope.set(name.parsed, mapped)
+    resolvedGScope.push({ name: name.parsed, orig, resolved: mapped })
   }
 
   ctx.fnCalls.push({
@@ -424,6 +424,7 @@ export const validateFnCall: Typechecker<
             content: suppliedRestArgument,
           }
         : null,
+      hasReturnType: fnType.returnType !== null,
     },
   })
 

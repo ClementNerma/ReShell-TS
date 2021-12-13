@@ -4,16 +4,7 @@ import { Runner, success } from './base'
 import { runStatement } from './statement'
 
 export const runBlock: Runner<Block> = (block, ctx) => {
-  ctx = {
-    ...ctx,
-    scopes: ctx.scopes.concat([
-      {
-        generics: [],
-        functions: [],
-        entities: new Map(),
-      },
-    ]),
-  }
+  ctx = { ...ctx, scopes: ctx.scopes.concat([{ generics: [], entities: new Map() }]) }
 
   for (const { parsed: chain } of block) {
     if (chain.type === 'empty') continue
