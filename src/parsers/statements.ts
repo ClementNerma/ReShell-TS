@@ -269,7 +269,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         identifier,
         maybe_s_nl,
-        takeWhile(nonNullablePropertyAccess),
+        takeWhile(failIfMatchesElse(exact('[]'), nonNullablePropertyAccess)),
+        maybe(exact('[]')),
         maybe_s_nl,
         combine(maybe(doubleOpForAssignment), maybe_s_nl, exact('='), maybe_s_nl),
         failure(expr, 'expected an expression to assign')
@@ -278,6 +279,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         varname,
         _,
         { parsed: propAccesses },
+        listPush,
         __,
         {
           parsed: [prefixOp],
@@ -287,6 +289,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         varname,
         propAccesses,
         prefixOp: flattenMaybeToken(prefixOp),
+        listPush: listPush !== null,
         expr,
       })
     ),

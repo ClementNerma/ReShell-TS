@@ -84,7 +84,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           return success({ neverEnds: false })
         },
 
-        assignment: ({ varname, propAccesses, prefixOp, expr }) => {
+        assignment: ({ varname, propAccesses, prefixOp, listPush, expr }) => {
+          if (prefixOp && listPush) {
+            return err(prefixOp.at, 'cannot use an arithmetic operator when pushing to a list')
+          }
+
           const tryScopedVar = getVariableInScope(varname, ctx)
           if (!tryScopedVar.ok) return tryScopedVar
 
@@ -122,6 +126,18 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             expectedType = check.data
           }
 
+          let listPushType: ValueType | null
+
+          if (listPush) {
+            if (expectedType.type !== 'list') {
+              return err(varname.at, 'cannot use the push syntax ([]) as this variable is not a list')
+            }
+
+            listPushType = expectedType.itemsType
+          } else {
+            listPushType = null
+          }
+
           const check: TypecheckerResult<unknown> = prefixOp
             ? resolveDoubleOpType(
                 {
@@ -134,7 +150,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             : resolveExprType(expr, {
                 ...ctx,
                 typeExpectation: {
-                  type: expectedType,
+                  type: listPushType ?? expectedType,
                   from: varname.at,
                 },
               })
