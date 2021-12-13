@@ -101,7 +101,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
 
       if (listPush) {
         if (expectedType.type !== 'list') {
-          return err(varname.at, 'cannot use the push syntax ([]) as this variable is not a list')
+          return err(listPush.at, 'cannot use the push syntax ([]) on a non-list value')
         }
 
         listPushType = expectedType.itemsType

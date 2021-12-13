@@ -27,7 +27,7 @@ export type Statement =
       varname: Token<string>
       propAccesses: Token<NonNullablePropertyAccess>[]
       prefixOp: Token<DoubleOp> | null
-      listPush: boolean
+      listPush: Token<void> | null
       expr: Token<Expr>
     }
   | {
