@@ -10,6 +10,7 @@ export type TypecheckerContext = {
     returnType: { type: ValueType; from: CodeSection } | null
     failureType: { type: ValueType; from: CodeSection } | null
   }
+  expectedFailureWriter: null | { ref: null | Located<ValueType> }
   checkIfCommandExists: (name: string) => boolean
 }
 
@@ -18,6 +19,7 @@ export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIf
     scopes: [],
     typeExpectation: null,
     fnExpectation: null,
+    expectedFailureWriter: null,
     checkIfCommandExists: cmdChecker,
   }
 }

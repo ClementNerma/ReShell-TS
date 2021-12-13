@@ -1,6 +1,6 @@
 import { Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, Scope, success, Typechecker } from '../base'
+import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerContext } from '../base'
 import { getVariableInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
@@ -183,9 +183,35 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       return success(ctx.typeExpectation?.type ?? thenType.data)
     },
 
-    try: () => {
-      // TODO: check that the <try> and <catch> body have the same type
-      throw new Error('// TODO: inline try/catch expressions')
+    try: ({ trying, catchVarname, catchExpr }) => {
+      const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
+
+      const tryingType = resolveExprType(trying, { ...ctx, expectedFailureWriter: wrapper })
+      if (!tryingType.ok) return tryingType
+
+      if (wrapper.ref === null) {
+        return err(catchVarname.at, {
+          message: "failed to determine the catch clause's variable type",
+          complements: [['Tip', "you must use a failable function call inside the try's body"]],
+        })
+      }
+
+      return resolveExprType(catchExpr, {
+        ...ctx,
+        scopes: ctx.scopes.concat([
+          {
+            typeAliases: new Map(),
+            functions: new Map(),
+            variables: new Map([
+              [catchVarname.parsed, { at: catchVarname.at, content: { mutable: false, type: wrapper.ref.content } }],
+            ]),
+          },
+        ]),
+        typeExpectation: {
+          from: trying.at,
+          type: tryingType.data,
+        },
+      })
     },
 
     value: ({ content }) => resolveValueType(content, ctx),

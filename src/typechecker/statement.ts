@@ -1,6 +1,6 @@
 import { StatementChain, Token, ValueType } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, located, Scope, success, Typechecker, TypecheckerResult } from './base'
+import { err, located, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
@@ -120,6 +120,41 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           return success(void 0)
         },
 
+        tryBlock: ({ body, catchVarname, catchBody }) => {
+          const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
+
+          const bodyChecker = statementChainChecker(body, { ...ctx, expectedFailureWriter: wrapper })
+          if (!bodyChecker.ok) return bodyChecker
+
+          if (wrapper.ref === null) {
+            return err(catchVarname.at, {
+              message: "failed to determine the catch clause's variable type",
+              complements: [
+                [
+                  'Tip',
+                  "you must use a failable instruction like a function call or a throw instruction inside the try's body",
+                ],
+              ],
+            })
+          }
+
+          return statementChainChecker(catchBody, {
+            ...ctx,
+            scopes: ctx.scopes.concat([
+              {
+                typeAliases: new Map(),
+                functions: new Map(),
+                variables: new Map([
+                  [
+                    catchVarname.parsed,
+                    { at: catchVarname.at, content: { mutable: false, type: wrapper.ref.content } },
+                  ],
+                ]),
+              },
+            ]),
+          })
+        },
+
         // Nothing to do here, already handled in first pass
         typeAlias: () => success(void 0),
 
@@ -162,6 +197,26 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
         },
 
         throw: ({ expr }) => {
+          if (ctx.expectedFailureWriter) {
+            if (ctx.expectedFailureWriter.ref !== null) {
+              const resolved = resolveExprType(expr, {
+                ...ctx,
+                typeExpectation: {
+                  type: ctx.expectedFailureWriter.ref.content,
+                  from: ctx.expectedFailureWriter.ref.at,
+                },
+              })
+
+              return resolved.ok ? success(void 0) : resolved
+            } else {
+              const resolved = resolveExprType(expr, { ...ctx, typeExpectation: null })
+              if (!resolved.ok) return resolved
+
+              ctx.expectedFailureWriter.ref = { at: expr.at, content: resolved.data }
+              return success(void 0)
+            }
+          }
+
           if (!ctx.fnExpectation) {
             return err(stmt.at, '`throw` statements are only allowed inside functions')
           }
