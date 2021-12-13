@@ -10,7 +10,7 @@ import {
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract } from './lib/conditions'
+import { extract, failIfMatches } from './lib/conditions'
 import { never } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
@@ -191,8 +191,13 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
       or<ValueType | null>([
         map(combine(exact('is'), s, exact('null')), (_) => null),
         map(
-          combine(exact('isnt'), s, failure(valueType, 'expected a type after the "isnt" type assertion operator')),
-          ([_, __, { parsed: type }]) => type
+          combine(
+            exact('isnt'),
+            s,
+            failIfMatches(exact('null')),
+            failure(valueType, 'expected a type after the "isnt" type assertion operator')
+          ),
+          ([_, __, ___, { parsed: type }]) => type
         ),
       ])
     ),
