@@ -88,7 +88,7 @@ export const resolveValueChainings: Typechecker<
           })
         }
 
-        const resolved = resolveRawFnCallType({ call, fnType: method.fnType }, ctx)
+        const resolved = resolveRawFnCallType({ call, fnType: method.fnType }, { ...ctx, typeExpectation: null })
         if (!resolved.ok) return resolved
 
         return success(nullable ? { type: 'nullable', inner: resolved.data } : resolved.data)
