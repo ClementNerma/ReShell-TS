@@ -1,7 +1,7 @@
 import { LiteralValue, ValueType } from '../../shared/ast'
 import { matchUnion } from '../../shared/utils'
 
-export function rebuildType(type: ValueType, options?: { noDepth?: boolean; replaceUnknownGenerics?: string }): string {
+export function rebuildType(type: ValueType, options?: { noDepth?: boolean }): string {
   function _subroutine(type: ValueType): string {
     return matchUnion(type, 'type', {
       bool: () => 'bool',
@@ -36,14 +36,14 @@ export function rebuildType(type: ValueType, options?: { noDepth?: boolean; repl
           ? 'failable'
           : `failable<${_subroutine(successType.parsed)}, ${_subroutine(failureType.parsed)}>`,
       unknown: () => 'unknown',
-      generic: ({ name }) => replaceGenerics ?? `:${name.parsed}`,
+      generic: ({ name }) => `:${name.parsed}`,
 
       // Internal types
       void: () => 'void',
     })
   }
 
-  const { noDepth, replaceUnknownGenerics: replaceGenerics } = options ?? {}
+  const { noDepth } = options ?? {}
 
   return _subroutine(type)
 }

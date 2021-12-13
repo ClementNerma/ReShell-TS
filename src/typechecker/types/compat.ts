@@ -27,10 +27,8 @@ export const isTypeCompatible: Typechecker<
     const developedReferent = developTypeAliases(originalReferent, ctx)
     if (!developedReferent.ok) return developedReferent
 
-    const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true, replaceUnknownGenerics: '?' })
-    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx.resolvedGenerics), {
-      replaceUnknownGenerics: '?',
-    })
+    const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true })
+    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx.resolvedGenerics))
 
     const ctxForCandidate = fillKnownGenerics
       ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) }
@@ -38,13 +36,12 @@ export const isTypeCompatible: Typechecker<
     const developedCandidate = developTypeAliases(originalCandidate, ctxForCandidate)
     if (!developedCandidate.ok) return developedCandidate
 
-    const foundNoDepth = rebuildType(candidate, { noDepth: true, replaceUnknownGenerics: '?' })
+    const foundNoDepth = rebuildType(candidate, { noDepth: true })
     const found = rebuildType(
       resolveGenerics(
         developedCandidate.data,
         fillKnownGenerics ? ctx.resolvedGenerics.concat([fillKnownGenerics]) : ctx.resolvedGenerics
-      ),
-      { replaceUnknownGenerics: '?' }
+      )
     )
 
     const messageWithFallback =
