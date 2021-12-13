@@ -5,7 +5,6 @@ import { then } from './conditions'
 export type TakeWhileOptions = {
   inter?: Parser<unknown>
   interExpect: false | WithErrData
-  dontPropagateInterSkipping?: boolean
 }
 
 export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Parser<Token<T>[]> {
