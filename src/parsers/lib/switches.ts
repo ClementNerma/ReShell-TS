@@ -72,7 +72,7 @@ export function mappedCasesComposed<S extends object>(): <DN extends keyof S, E 
     : never,
   error?: OrErrorStrategyData
 ) => Parser<S> {
-  return (discriminant, firstResolver, cases, error) => or<S>([firstResolver, mappedCases<any>()(discriminant, cases)])
+  return (discriminant, firstResolver, cases, error) => or<S>([firstResolver, mappedCases<any>()(discriminant, cases)], error)
 }
 
 export function mappedCases<S extends object>(): <DN extends keyof S>(
