@@ -205,15 +205,15 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
       }
     } else {
       const compat = isTypeCompatible(
-        { at, candidate: fnType.failureType.parsed },
         {
-          ...ctx,
+          at,
+          candidate: fnType.failureType.parsed,
           typeExpectation: {
             type: ctx.expectedFailureWriter.ref.content,
             from: ctx.expectedFailureWriter.ref.at,
           },
-          typeExpectationNature: 'failure type',
-        }
+        },
+        { ...ctx, typeExpectationNature: 'failure type' }
       )
 
       if (!compat.ok) return compat

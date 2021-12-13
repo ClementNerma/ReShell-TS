@@ -385,7 +385,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       }
 
       if (ctx.typeExpectation) {
-        const compat = isTypeCompatible({ at: name.at, candidate: fnType.returnType.parsed }, ctx)
+        const compat = isTypeCompatible(
+          { at: name.at, candidate: fnType.returnType.parsed, typeExpectation: ctx.typeExpectation },
+          ctx
+        )
         if (!compat.ok) return compat
       }
 
@@ -428,7 +431,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return success(foundType)
       }
 
-      const compat = isTypeCompatible({ candidate: foundType, at: varname.at }, ctx)
+      const compat = isTypeCompatible({ candidate: foundType, at: varname.at, typeExpectation }, ctx)
       if (!compat.ok) return compat
 
       return success(typeExpectation.type)

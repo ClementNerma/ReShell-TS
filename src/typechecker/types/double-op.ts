@@ -198,6 +198,7 @@ export const resolveDoubleOpType: Typechecker<
           next: right.at.next,
         },
         candidate: resultType,
+        typeExpectation: ctx.typeExpectation,
       },
       ctx
     )

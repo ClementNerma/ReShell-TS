@@ -114,7 +114,10 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
   if (!withPropAccesses.ok) return withPropAccesses
 
   if (ctx.typeExpectation) {
-    const compat = isTypeCompatible({ at: element.at, candidate: withPropAccesses.data }, ctx)
+    const compat = isTypeCompatible(
+      { at: element.at, candidate: withPropAccesses.data, typeExpectation: ctx.typeExpectation },
+      ctx
+    )
     if (!compat.ok) return compat
   }
 
