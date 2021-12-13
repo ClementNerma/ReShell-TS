@@ -132,7 +132,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                   failure(
                     withLatelyDeclared(() => literalValue),
                     (err) => ({
-                      message: 'Expected a literal default value',
+                      message: 'Expected a literal value',
                       complements: [
                         [
                           'Tip',

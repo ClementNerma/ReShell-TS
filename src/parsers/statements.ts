@@ -270,7 +270,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
       identifier,
       takeWhile(propertyAccess),
       combine(maybe(doubleArithOp), exact('=')),
-      failure(expr, 'Expected an expression'),
+      failure(expr, 'Expected an expression to assign'),
       { inter: maybe_s }
     ),
     ([

@@ -26,7 +26,7 @@ import {
   InlineCmdCallCapture,
   SingleLogicOp,
   SingleOp,
-  Value
+  Value,
 } from './data'
 import { literalValue, rawString } from './literals'
 import { propertyAccess } from './propaccess'
@@ -302,118 +302,122 @@ export const singleOp: Parser<SingleOp> = mappedCases<SingleOp>()('type', {
 })
 
 export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
-  mappedCases<ExprElement>()('type', {
-    // <single operator> s expr
-    singleOp: map(
-      combine(
-        singleOp,
-        failure(
-          withLatelyDeclared(() => simpleExpr),
-          'Expected an expression after the operator'
+  mappedCases<ExprElement>()(
+    'type',
+    {
+      // <single operator> s expr
+      singleOp: map(
+        combine(
+          singleOp,
+          failure(
+            withLatelyDeclared(() => simpleExpr),
+            'Expected an expression after the operator'
+          ),
+          { inter: maybe_s }
         ),
-        { inter: maybe_s }
+        ([op, right]) => ({ op, right })
       ),
-      ([op, right]) => ({ op, right })
-    ),
 
-    // "(" expr ")"
-    paren: map(
-      combine(
-        exact('('),
-        failure(
-          withLatelyDeclared(() => expr),
-          'Expected an expression after an opening parenthesis'
+      // "(" expr ")"
+      paren: map(
+        combine(
+          exact('('),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Expected an expression after an opening parenthesis'
+          ),
+          exact(')'),
+          {
+            inter: maybe_s_nl,
+          }
         ),
-        exact(')'),
-        {
-          inter: maybe_s_nl,
-        }
+        ([_, inner, __]) => ({
+          inner,
+        })
       ),
-      ([_, inner, __]) => ({
-        inner,
-      })
-    ),
 
-    // if <cond> { <then> } else { <else> }
-    ternary: map(
-      combine(
-        exact('if'),
-        failure(
-          withLatelyDeclared(() => expr),
-          'Expected a condition'
+      // if <cond> { <then> } else { <else> }
+      ternary: map(
+        combine(
+          exact('if'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Expected a condition'
+          ),
+          exact('{', 'Expected an opening brace ({) after the condition'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Expected an expression in the "if" body'
+          ),
+          exact('}', 'Expected a closing brace (}) to close the "if" body'),
+          exact('else', 'Expected an "else" counterpart'),
+          exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Expected an expression in the "else" body'
+          ),
+          exact('}', 'Expected a closing brace (}) to close the "else" body'),
+          { inter: maybe_s_nl }
         ),
-        exact('{', 'Expected an opening brace ({) after the condition'),
-        failure(
-          withLatelyDeclared(() => expr),
-          'Expected an expression in the "if" body'
-        ),
-        exact('}', 'Expected a closing brace (}) to close the "if" body'),
-        exact('else', 'Expected an "else" counterpart'),
-        exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
-        failure(
-          withLatelyDeclared(() => expr),
-          'Expected an expression in the "else" body'
-        ),
-        exact('}', 'Expected a closing brace (}) to close the "else" body'),
-        { inter: maybe_s_nl }
+        ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
       ),
-      ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
-    ),
 
-    try: map(
-      combine(
-        exact('try'),
-        map(
-          combine(
-            exact('{', "Expected an opening brace ({) for the try's expression"),
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => expr)
+      try: map(
+        combine(
+          exact('try'),
+          map(
+            combine(
+              exact('{', "Expected an opening brace ({) for the try's expression"),
+              withStatementClosingChar(
+                '}',
+                withLatelyDeclared(() => expr)
+              ),
+              exact('}', "Expected a closing brace (}) to close the block's content"),
+              { inter: maybe_s_nl }
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            ([_, { parsed: expr }, __]) => expr
           ),
-          ([_, { parsed: expr }, __]) => expr
-        ),
-        map(
-          combine(
-            exact('catch', 'Expected a "catch" clause'),
-            failure(identifier, 'Expected an identifier for the "catch" clause'),
-            { inter: s }
-          ),
-          ([_, catchVarname]) => catchVarname
-        ),
-        map(
-          combine(
-            exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => expr)
+          map(
+            combine(
+              exact('catch', 'Expected a "catch" clause'),
+              failure(identifier, 'Expected an identifier for the "catch" clause'),
+              { inter: s }
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            ([_, catchVarname]) => catchVarname
           ),
-          ([_, { parsed: expr }, __]) => expr
+          map(
+            combine(
+              exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
+              withStatementClosingChar(
+                '}',
+                withLatelyDeclared(() => expr)
+              ),
+              exact('}', "Expected a closing brace (}) to close the block's content"),
+              { inter: maybe_s_nl }
+            ),
+            ([_, { parsed: expr }, __]) => expr
+          ),
+          { inter: maybe_s_nl }
         ),
-        { inter: maybe_s_nl }
+        ([_, trying, { parsed: catchVarname }, catchExpr]) => ({
+          trying,
+          catchVarname,
+          catchExpr,
+        })
       ),
-      ([_, trying, { parsed: catchVarname }, catchExpr]) => ({
-        trying,
-        catchVarname,
-        catchExpr,
-      })
-    ),
 
-    assertion: map(
-      combine(identifier, exact('is'), failure(valueType, 'Expected a type after the "is" type assertion operator'), {
-        inter: maybe_s,
-      }),
-      ([varname, _, minimum]) => ({ varname, minimum })
-    ),
+      assertion: map(
+        combine(identifier, exact('is'), failure(valueType, 'Expected a type after the "is" type assertion operator'), {
+          inter: maybe_s,
+        }),
+        ([varname, _, minimum]) => ({ varname, minimum })
+      ),
 
-    // value
-    value: map(value, (_, content) => ({ content })),
-  })
+      // value
+      value: map(value, (_, content) => ({ content })),
+    },
+    'Failed to parse expression'
+  )
 )
 
 export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSequenceAction>()('type', {

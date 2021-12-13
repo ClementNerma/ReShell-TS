@@ -115,13 +115,13 @@ export function err(
   precedence?: boolean
 ): ParserErr {
   return errData === undefined || errData === null
-    ? { ok: false, stack: [], precedence: !!precedence, loc, context }
+    ? { ok: false, stack: [], precedence: precedence ?? false, loc, context }
     : {
         ok: false,
         stack: Array.isArray(errData)
           ? errData
           : [{ loc, context, error: buildFormatableExtract(loc, errData), also: also ?? [] }],
-        precedence: !!precedence,
+        precedence: precedence ?? true,
         loc,
         context,
       }
