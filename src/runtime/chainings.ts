@@ -217,5 +217,8 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
     }
   }
 
-  return executePrecompFnBody({ nameAt: call.name.at, fn, precomp, scopeMapping: null }, ctx)
+  return executePrecompFnBody(
+    { nameAt: call.name.at, fn, precomp, scopeMapping: null, methodCallNullabilityCheck: true },
+    ctx
+  )
 }

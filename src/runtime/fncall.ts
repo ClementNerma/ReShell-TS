@@ -70,12 +70,18 @@ export const executePrecompFnBody: Runner<
     precomp: PrecompFnCall
     fn: RunnableFnContent
     scopeMapping: Map<string, string | null> | null
+    methodCallNullabilityCheck?: boolean
   },
   ExecValue
-> = ({ nameAt, precomp, fn, scopeMapping }, ctx) => {
+> = ({ nameAt, precomp, fn, scopeMapping, methodCallNullabilityCheck }, ctx) => {
   const fnScope: Scope['entities'] = new Map()
 
+  let outerFirstArg = true
+
   for (const [argName, content] of precomp.args) {
+    const innerFirstArg = outerFirstArg
+    outerFirstArg = false
+
     const execValue: RunnerResult<ExecValue> = matchUnion(content, 'type', {
       null: () => success({ type: 'null' }),
       false: () => success({ type: 'bool', value: false }),
@@ -86,6 +92,10 @@ export const executePrecompFnBody: Runner<
     })
 
     if (execValue.ok !== true) return execValue
+
+    if (innerFirstArg && execValue.data.type === 'null' && methodCallNullabilityCheck === true) {
+      return success({ type: 'null' })
+    }
 
     if (scopeMapping) {
       const mapping = scopeMapping.get(argName)
