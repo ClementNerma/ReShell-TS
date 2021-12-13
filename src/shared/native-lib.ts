@@ -47,7 +47,17 @@ export const nativeLibraryTypeAliases = buildWithNativeLibraryTypeAliasNames<Val
   LsItemType: { type: 'enum', variants: _forgeTokens(['File', 'Dir', 'Symlink', 'Unknown']) },
 })
 
-export type NativeLibraryFnNames = 'ok' | 'err' | 'typed' | 'toFixed' | 'listAt' | 'echo' | 'dump' | 'trace' | 'ls'
+export type NativeLibraryFnNames =
+  | 'ok'
+  | 'err'
+  | 'typed'
+  | 'toFixed'
+  | 'listAt'
+  | 'echo'
+  | 'dump'
+  | 'toStr'
+  | 'trace'
+  | 'ls'
 
 export function buildWithNativeLibraryFunctionNames<T>(obj: { [name in NativeLibraryFnNames]: T }): Map<string, T> {
   return new Map(Object.entries(obj))
@@ -199,6 +209,28 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
     ]),
     restArg: null,
     returnType: null,
+  },
+
+  toStr: {
+    generics: [],
+    args: _forgeTokens([
+      {
+        flag: null,
+        name: _forgeToken('value'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'unknown' }),
+      },
+      {
+        flag: _forgeToken('--'),
+        name: _forgeToken('pretty'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'bool' }),
+      },
+    ]),
+    restArg: null,
+    returnType: _forgeToken({ type: 'string' }),
   },
 
   trace: {
