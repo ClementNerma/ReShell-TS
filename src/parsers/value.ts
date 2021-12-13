@@ -274,7 +274,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 flag: map(
                   combine(
                     oneOf(['--', '-']),
-                    identifier,
+                    failure(identifier, 'expected a flag identifier'),
                     exact('='),
                     maybe_s_nl,
                     failure(
