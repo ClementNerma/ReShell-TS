@@ -1,4 +1,5 @@
 import { ValueType } from '../../shared/ast'
+import { DiagnosticExtract } from '../../shared/diagnostics'
 import { CodeSection } from '../../shared/parsed'
 import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { rebuildType } from './rebuilder'
@@ -15,7 +16,7 @@ export const isTypeCompatible: Typechecker<
   },
   void
 > = ({ candidate, at, typeExpectation, fillKnownGenerics, _path, _originalCandidate, _originalReferent }, ctx) => {
-  const expectationErr = (message?: string, atOverride?: CodeSection) => {
+  const expectationErr = (message?: string, atOverride?: CodeSection, also?: DiagnosticExtract[]) => {
     const pathStr = path.length > 0 ? path.join(' > ') + ' > ' : ''
 
     const expectedNoDepth = rebuildType(typeExpectation.type, true)
@@ -39,14 +40,16 @@ export const isTypeCompatible: Typechecker<
               ['found   ', found],
             ]
           : [],
-      also: typeExpectation.from
-        ? [
-            {
-              at: typeExpectation.from,
-              message: 'type expectation originates here',
-            },
-          ]
-        : [],
+      also: (also ?? []).concat(
+        typeExpectation.from
+          ? [
+              {
+                at: typeExpectation.from,
+                message: 'type expectation originates here',
+              },
+            ]
+          : []
+      ),
     })
   }
   // errIncompatibleValueType({
@@ -154,29 +157,29 @@ export const isTypeCompatible: Typechecker<
     }
   }
 
-  if (candidate.type !== referent.type) {
-    if (candidate.type === 'generic' && fillKnownGenerics) {
-      const set = fillKnownGenerics.get(candidate.name.parsed)
+  if (candidate.type === 'generic' && fillKnownGenerics) {
+    const set = fillKnownGenerics.get(candidate.name.parsed)
 
-      if (set === undefined) {
-        return expectationErr('internal error: candidate generic is unknown although filling map was provided')
-      }
-
-      if (set === null) {
-        fillKnownGenerics.set(candidate.name.parsed, referent)
-        return success(void 0)
-      } else {
-        const compat = subCheck({
-          candidate: referent,
-          candidateAt: from ?? undefined,
-          referent: set,
-          referentAt: at,
-        })
-
-        if (!compat.ok) return compat
-      }
+    if (set === undefined) {
+      return expectationErr('internal error: candidate generic is unknown although filling map was provided')
     }
 
+    if (set === null) {
+      fillKnownGenerics.set(candidate.name.parsed, referent)
+      return success(void 0)
+    } else {
+      const compat = subCheck({
+        candidate: referent,
+        candidateAt: from ?? undefined,
+        referent: set,
+        referentAt: at,
+      })
+
+      if (!compat.ok) return compat
+    }
+  }
+
+  if (candidate.type !== referent.type) {
     return expectationErr()
   }
 
@@ -326,10 +329,21 @@ export const isTypeCompatible: Typechecker<
       return success(void 0)
     },
 
-    generic: (c, r) =>
-      c.name.parsed === r.name.parsed
-        ? success(void 0)
-        : expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``),
+    generic: (c, r) => {
+      return c.name.parsed !== r.name.parsed
+        ? expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
+        : success(void 0)
+      // : isLocEq(c.name.at.start, r.name.at.start)
+      // ? success(void 0)
+      // : expectationErr(
+      //     `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+      //     undefined,
+      //     [
+      //       { at: r.name.at, message: 'expected this generic' },
+      //       { at: c.name.at, message: 'found this generic' },
+      //     ]
+      //   )
+    },
 
     aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),
     unknown: () => expectationErr('internal error: unreachable "unknown" type comparison'),
