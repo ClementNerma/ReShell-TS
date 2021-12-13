@@ -348,6 +348,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (!stmtCheck.ok) return stmtCheck
 
+      if (fnType.returnType !== null && !stmtCheck.data.neverEnds) {
+        return err(fnType.returnType.at, 'not all code paths return a value')
+      }
+
       return success(fnType.returnType?.parsed ?? { nullable: false, inner: { type: 'void' } })
     },
 
