@@ -610,7 +610,7 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
     ...ctx,
     scopes: ctx.scopes.concat([
       {
-        generics: new Map(fnType.generics.map((name) => [name.parsed, name.at])),
+        generics: new Map(fnType.generics.concat(fnType.method?.generics ?? []).map((name) => [name.parsed, name.at])),
         methods: [],
         entities: new Map(
           fnType.args
