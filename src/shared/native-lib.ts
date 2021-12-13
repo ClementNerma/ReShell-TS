@@ -30,6 +30,11 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'string',
   }),
 
+  rand: _buildNativeLibraryFn({
+    args: () => [{ optional: true, name: 'max', type: 'number' }],
+    returnType: () => 'number',
+  }),
+
   // Strings
   len: _buildNativeLibraryFn({
     methodFor: () => 'string',

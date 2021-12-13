@@ -39,6 +39,11 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       })
     ),
 
+  rand: ({ at }, args) =>
+    withArguments(at, args, { max: { nullable: 'number' } }, ({ max }) =>
+      success({ type: 'number', value: max.type === 'null' ? Math.random() : Math.floor(Math.random() * max.value) })
+    ),
+
   // Strings
   len: ({ at }, args) =>
     withArguments(at, args, { self: 'string' }, ({ self }) => success({ type: 'number', value: self.value.length })),
