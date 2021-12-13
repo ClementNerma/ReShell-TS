@@ -1,4 +1,4 @@
-import { FormatableErrInput, FormatableError, formattableErr } from '../../shared/errors'
+import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../../shared/diagnostics'
 import { SourceFilesServer } from '../../shared/files-server'
 import { CodeLoc, Token } from '../../shared/parsed'
 import { StrView } from '../../shared/strview'
@@ -12,7 +12,7 @@ export type ParserSucess<T> = {
 
 export type ParserErr = {
   ok: false
-  history: FormatableError[]
+  history: Diagnostic[]
   precedence: boolean
   start: CodeLoc
   next: CodeLoc
@@ -54,7 +54,7 @@ export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<Par
   }
 }
 
-export type ErrInputData = null | FormatableErrInput | ParserErr['history']
+export type ErrInputData = null | DiagnosticInput | ParserErr['history']
 
 export function err(
   start: CodeLoc,
@@ -70,7 +70,7 @@ export function err(
         ? []
         : Array.isArray(errData)
         ? errData
-        : [formattableErr({ start, next }, errData)],
+        : [diagnostic({ start, next }, errData, DiagnosticLevel.Error)],
     precedence: precedence ?? (errData !== undefined && errData !== null),
     start,
     next,
@@ -119,12 +119,12 @@ export function parseFile<T>(
   return parser({ file: { type: 'file', path: filePath }, line: 0, col: 0 }, content, context)
 }
 
-export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)
+export type WithErrData = undefined | DiagnosticInput | ((err: ParserErr) => DiagnosticInput)
 
 export function withErr(error: ParserErr, mapping: WithErrData): ParserErr {
   if (mapping !== undefined) {
     const errData = typeof mapping === 'function' ? mapping(error) : mapping
-    error.history.push(formattableErr({ start: error.start, next: error.next }, errData))
+    error.history.push(diagnostic({ start: error.start, next: error.next }, errData, DiagnosticLevel.Error))
     error.precedence = true
   }
 

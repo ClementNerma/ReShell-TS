@@ -1,5 +1,5 @@
 import { FnType, ValueType } from '../shared/ast'
-import { FormatableErrInput, FormatableError, formattableErr } from '../shared/errors'
+import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection } from '../shared/parsed'
 import { nativeLibraryScope } from './scope/native-lib'
 
@@ -17,9 +17,13 @@ export type TypecheckerContext = {
   restArgs: string[]
   expectedFailureWriter: null | { ref: null | Located<ValueType> }
   checkIfCommandExists: (name: string) => boolean
+  emitDiagnostic: (diagnostic: Diagnostic) => void
 }
 
-export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIfCommandExists']): TypecheckerContext {
+export function createTypecheckerContext(
+  cmdChecker: TypecheckerContext['checkIfCommandExists'],
+  diagnosticHandler: TypecheckerContext['emitDiagnostic']
+): TypecheckerContext {
   return {
     scopes: [nativeLibraryScope()],
     inLoop: false,
@@ -29,6 +33,7 @@ export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIf
     restArgs: [],
     expectedFailureWriter: null,
     checkIfCommandExists: cmdChecker,
+    emitDiagnostic: diagnosticHandler,
   }
 }
 
@@ -36,7 +41,7 @@ export type TypecheckerResult<O> = TypecheckerSuccess<O> | TypecheckerErr
 
 export type TypecheckerSuccess<O> = { ok: true; data: O }
 
-export type TypecheckerErr = { ok: false } & FormatableError
+export type TypecheckerErr = { ok: false } & Diagnostic
 
 export type Scope = {
   typeAliases: Map<string, ScopeTypeAlias>
@@ -49,9 +54,9 @@ export type ScopeFn = Located<FnType>
 export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
-export const err = (at: CodeSection, err: FormatableErrInput): TypecheckerErr => ({
+export const err = (at: CodeSection, err: DiagnosticInput): TypecheckerErr => ({
   ok: false,
-  ...formattableErr(at, err),
+  ...diagnostic(at, err, DiagnosticLevel.Error),
 })
 
 export type Located<T> = { at: CodeSection; content: T }

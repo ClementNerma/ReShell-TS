@@ -10,7 +10,7 @@ import { takeWhile1 } from './lib/loops'
 import { exact, word } from './lib/matchers'
 import { mappedCases, OrErrorStrategy } from './lib/switches'
 import { map } from './lib/transform'
-import { addComplementsIf, selfRef, withLatelyDeclared } from './lib/utils'
+import { selfRef, withLatelyDeclared } from './lib/utils'
 import { startsWithLetter } from './predicates'
 import { identifier } from './tokens'
 
@@ -97,10 +97,10 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
 
     [
       OrErrorStrategy.FallbackFn,
-      (input, _, __, ___) =>
-        addComplementsIf('invalid type', startsWithLetter(input), [
-          ['tip', 'type aliases must be prefixed by a "@" symbol'],
-        ]),
+      (input, _, __, ___) => ({
+        message: 'invalid type',
+        complements: startsWithLetter(input) ? [['tip', 'type aliases must be prefixed by a "@" symbol']] : undefined,
+      }),
     ]
   )
 )

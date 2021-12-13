@@ -10,7 +10,7 @@ import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
 import { program } from './parsers/program'
-import { ErrorParsingFormatters, formatErr } from './shared/errors'
+import { DiagnosticFormatters, DiagnosticLevel, formatErr } from './shared/diagnostics'
 import { SourceFilesServer } from './shared/files-server'
 import { createTypecheckerContext } from './typechecker/base'
 import { programChecker } from './typechecker/program'
@@ -37,14 +37,14 @@ const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
 
 const iterSrc = iter > 1 ? `if true { ${source} }\n`.repeat(iter) : source
 
-const errorFormatters: ErrorParsingFormatters = {
+const errorFormatters: (level: DiagnosticLevel) => DiagnosticFormatters = (level) => ({
   header: chalk.yellowBright,
   filePath: chalk.cyanBright,
   location: chalk.magentaBright,
   gutter: chalk.cyanBright,
-  locationPointer: chalk.redBright,
-  errorMessage: chalk.redBright,
-}
+  locationPointer: level === DiagnosticLevel.Warning ? chalk.yellowBright : chalk.redBright,
+  message: level === DiagnosticLevel.Warning ? chalk.yellowBright : chalk.redBright,
+})
 
 const kb = (bytes: number) => (bytes / 1024).toFixed(2).padStart(8, ' ') + ' kB'
 const ms = (ms: number) => ms.toString().padStart(5, ' ') + ' ms'
@@ -119,20 +119,23 @@ const PATH = RAW_PATH.split(delimiter).map((entry) =>
   entry.startsWith('"') && entry.endsWith('"') ? entry.substr(1, entry.length - 2) : entry
 )
 
-const typecheckerContext = createTypecheckerContext((cmd) => {
-  for (const entry of PATH) {
-    if (existsSync(join(entry, cmd))) return true
+const typecheckerContext = createTypecheckerContext(
+  (cmd) => {
+    for (const entry of PATH) {
+      if (existsSync(join(entry, cmd))) return true
 
-    if (isWindows) {
-      for (const ext of ['.exe', '.cmd', '.bat', '.com']) {
-        if (existsSync(join(entry, cmd + ext))) return true
-        if (existsSync(join(entry, cmd + ext.toLocaleUpperCase()))) return true
+      if (isWindows) {
+        for (const ext of ['.exe', '.cmd', '.bat', '.com']) {
+          if (existsSync(join(entry, cmd + ext))) return true
+          if (existsSync(join(entry, cmd + ext.toLocaleUpperCase()))) return true
+        }
       }
     }
-  }
 
-  return false
-})
+    return false
+  },
+  (diag) => console.error(formatErr(diag, sourceServer, errorFormatters))
+)
 
 const [typecheckerDuration, typechecked] = measurePerf(() => programChecker(parsed.data, typecheckerContext))
 

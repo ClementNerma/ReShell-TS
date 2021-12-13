@@ -3,31 +3,35 @@ import { CodeSection } from './parsed'
 import { StrView } from './strview'
 import { computeCodeSectionEnd, matchUnion } from './utils'
 
-export type FormatableError = { error: FormatableExtract; also: FormatableExtract[] }
+export type Diagnostic = { error: DiagnosticExtract; also: DiagnosticExtract[]; level: DiagnosticLevel }
 
-export type FormatableExtract = {
+export enum DiagnosticLevel {
+  Error,
+  Warning,
+  Notice,
+}
+
+export type DiagnosticExtract = {
   at: CodeSection
   message: string
   complements?: [string, string][]
 }
 
-export type FormatableErrInput =
-  | string
-  | { message: string; complements?: [string, string][]; also?: FormatableExtract[] }
+export type DiagnosticInput = string | { message: string; complements?: [string, string][]; also?: DiagnosticExtract[] }
 
-export const formattableErr = (at: CodeSection, input: FormatableErrInput): FormatableError => {
+export const diagnostic = (at: CodeSection, input: DiagnosticInput, level: DiagnosticLevel): Diagnostic => {
   const stringInput = typeof input === 'string'
 
-  const error: FormatableExtract = { at, message: stringInput ? input : input.message }
+  const error: DiagnosticExtract = { at, message: stringInput ? input : input.message }
 
   if (!stringInput && input.complements) {
     error.complements = input.complements
   }
 
-  return { error, also: stringInput || !input.also ? [] : input.also }
+  return { error, also: stringInput || !input.also ? [] : input.also, level }
 }
 
-export type ErrorParsingFormatters = {
+export type DiagnosticFormatters = {
   wrapper?: (error: string) => string
   header?: (header: string) => string
   filePath?: (filePath: string) => string
@@ -36,14 +40,20 @@ export type ErrorParsingFormatters = {
   paddingChar?: (char: string) => string
   locationPointer?: (char: string) => string
   failedLine?: (line: string) => string
-  errorMessage?: (message: string) => string
+  message?: (message: string) => string
   complementName?: (name: string) => string
   complement?: (fullText: string) => string
 }
 
-export function formatErr(err: FormatableError, sourceServer: SourceFilesServer, f?: ErrorParsingFormatters): string {
-  const format = (formatterName: keyof ErrorParsingFormatters, text: string) => {
-    const formatter = f?.[formatterName]
+export function formatErr(
+  diag: Diagnostic,
+  sourceServer: SourceFilesServer,
+  f?: (level: DiagnosticLevel) => DiagnosticFormatters
+): string {
+  const formatters = f?.(diag.level)
+
+  const format = (formatterName: keyof DiagnosticFormatters, text: string) => {
+    const formatter = formatters?.[formatterName]
     return formatter ? formatter(text) : text
   }
 
@@ -54,8 +64,8 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
     return count === null ? col : col + count.length * 3 /* 4 - 1 for the already counted col. */
   }
 
-  const text = [err.error]
-    .concat(err.also)
+  const text = [diag.error]
+    .concat(diag.also)
     .map(({ at, message, complements }) => {
       const sourceFile: string = matchUnion(at.start.file, 'type', {
         entrypoint: () => sourceServer.entrypointPath,
@@ -110,9 +120,7 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
           'failedLine',
           formatFaultyLine(failedLine)
         )}`,
-        `${paddingGutter}${addLines ? ' ' : addLinesPadding}${locPtr} ${
-          addLines ? '' : format('errorMessage', message)
-        }`,
+        `${paddingGutter}${addLines ? ' ' : addLinesPadding}${locPtr} ${addLines ? '' : format('message', message)}`,
       ]
 
       if (addLines) {
@@ -139,7 +147,7 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
         )
 
         const rawLocPtr = '|_' + '_'.repeat(addTabsPadding(sourceLines[end.line], end.col)) + '^'
-        upToError.push(`${paddingGutter}${format('locationPointer', rawLocPtr)} ${format('errorMessage', message)}`)
+        upToError.push(`${paddingGutter}${format('locationPointer', rawLocPtr)} ${format('message', message)}`)
       }
 
       for (const [name, text] of complements ?? []) {
@@ -150,5 +158,5 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
     })
     .join('\n\n')
 
-  return f?.wrapper?.(text) ?? text
+  return formatters?.wrapper?.(text) ?? text
 }
