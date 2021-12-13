@@ -1,4 +1,4 @@
-import { Parser, Token } from '../lib/base'
+import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, failIf, failIfElse } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
@@ -7,7 +7,7 @@ import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littl
 import { takeWhile } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
-import { map, mapFull, silence, toOneProp } from '../lib/transform'
+import { map, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
@@ -17,8 +17,8 @@ import {
   DoubleLogicOp,
   DoubleOp,
   Expr,
-  ExprPropAccess,
-  ExprPropAccessSequence,
+  ExprElement,
+  ExprSequenceAction,
   FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
@@ -225,34 +225,25 @@ export const singleOp: Parser<SingleOp> = mappedCases<SingleOp>()('type', {
   logic: toOneProp(singleLogicOp, 'op'),
 })
 
-export const exprNoIndex: Parser<Expr> = selfRef((exprNoIndex) =>
-  or<Expr>(
-    [
-      // "(" s expr s ")" s <op> s expr
-      map(
+export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
+  mappedCases<ExprElement>()(
+    'type',
+    {
+      // <single operator> s expr
+      singleOp: map(
         combine(
-          exact('('),
-          withLatelyDeclared(() => expr),
-          exact(')'),
-          doubleOp,
+          singleOp,
           failure(
-            withLatelyDeclared(() => expr),
+            withLatelyDeclared(() => simpleExpr),
             'Syntax error: expected an expression after the operator'
           ),
-          {
-            inter: maybe_s_nl,
-          }
+          { inter: maybe_s }
         ),
-        ([_, left, __, op, right]) => ({
-          type: 'doubleOp',
-          left,
-          op,
-          right,
-        })
+        ([op, right]) => ({ op, right })
       ),
 
-      // "(" s expr s ")"
-      map(
+      // "(" expr ")"
+      paren: map(
         combine(
           exact('('),
           failure(
@@ -265,77 +256,42 @@ export const exprNoIndex: Parser<Expr> = selfRef((exprNoIndex) =>
           }
         ),
         ([_, inner, __]) => ({
-          type: 'paren',
           inner,
         })
       ),
 
-      // // Catch incomplete paren expressions
-      // failWithPrecedenceIf(exact('('), 'Syntax error: expected an expression after the opening parenthesis', 'after'),
-
-      // <slop> s expr
-      map(
-        combine(
-          singleOp,
-          failure(
-            withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression after the operator'
-          ),
-          { inter: maybe_s }
-        ),
-        ([op, right]) => ({ type: 'singleOp', op, right })
-      ),
-
-      // value s <op> s expr
-      map(
-        combine(
-          value,
-          doubleOp,
-          failure(
-            withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression after the operator'
-          ),
-          {
-            inter: maybe_s_nl,
-          }
-        ),
-        ([left, op, right]) => ({
-          type: 'doubleOp',
-          left: mapToken(left, (_, left) => ({ type: 'value', content: left })),
-          op,
-          right,
-        })
-      ),
-
       // value
-      map(value, (_, content) => ({ type: 'value', content })),
-    ],
-
+      value: map(value, (_, content) => ({ content })),
+    },
     'Syntax error: failed to parse expression'
   )
 )
 
-export const expr: Parser<Expr> = selfRef((expr) =>
-  mapFull(
+export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAction>([
+  map(
     combine(
-      exprNoIndex,
-      takeWhile(
-        or<ExprPropAccess>([
-          map(combine(exact('['), expr, exact(']')), ([_, indexOrKey, __]) => ({ type: 'refIndexOrKey', indexOrKey })),
-          map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
-        ])
-      )
+      exact('['),
+      withLatelyDeclared(() => expr),
+      exact(']')
     ),
-    ([expr, suffixes], complete): Token<Expr> =>
-      suffixes.parsed.length
-        ? mapToken(
-            complete,
-            (_): ExprPropAccessSequence => ({
-              type: 'propAccessSequence',
-              from: expr,
-              sequence: suffixes.parsed,
-            })
-          )
-        : expr
-  )
+    ([_, indexOrKey, __]) => ({ type: 'refIndexOrKey', indexOrKey })
+  ),
+  map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
+  map(
+    combine(maybe_s, doubleOp, failure(exprElement, 'Syntax error: expected an expression after operator'), {
+      inter: maybe_s,
+    }),
+    ([_, op, right]) => ({
+      type: 'doubleOp',
+      op,
+      right,
+    })
+  ),
+])
+
+export const expr: Parser<Expr> = selfRef((expr) =>
+  map(combine(exprElement, takeWhile(exprSequenceAction)), ([from, { parsed: sequence }]) => ({
+    from,
+    sequence,
+  }))
 )

@@ -133,22 +133,17 @@ export type Value =
     }
   | { type: 'reference'; varname: Token<string> }
 
-export type ExprPropAccess =
+export type ExprSequenceAction =
   | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }
   | { type: 'refStructMember'; member: Token<string> }
+  | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
 
-export type ExprPropAccessSequence = {
-  type: 'propAccessSequence'
-  from: Token<Expr>
-  sequence: Token<ExprPropAccess>[]
-}
-
-export type Expr =
+export type ExprElement =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
-  | { type: 'doubleOp'; left: Token<Expr>; op: Token<DoubleOp>; right: Token<Expr> }
-  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<Expr> }
-  | ExprPropAccessSequence
+  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElement> }
+
+export type Expr = { from: Token<ExprElement>; sequence: Token<ExprSequenceAction>[] }
 
 export type DoubleOp = { type: 'arith'; op: Token<DoubleArithOp> } | { type: 'logic'; op: Token<DoubleLogicOp> }
 
