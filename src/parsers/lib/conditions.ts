@@ -97,6 +97,19 @@ export function useSeparatorIf<T, U>(
   }
 }
 
+export function notStartingWith<T>(
+  notStartingWith: Parser<unknown>,
+  parser: Parser<T>,
+  error?: ErrInputData
+): Parser<T> {
+  return (start, input, context) => {
+    const not = notStartingWith(start, input, context)
+    if (not.ok) return err(start, not.data.at.next, context, error)
+
+    return parser(start, input, context)
+  }
+}
+
 export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknown>, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
