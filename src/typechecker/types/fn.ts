@@ -218,7 +218,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
   return success(void 0)
 }
 
-export const validateFnCall: Typechecker<
+export const validateAndRegisterFnCall: Typechecker<
   {
     at: CodeSection
     nameAt: CodeSection

@@ -4,7 +4,7 @@ import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
 import { getTypedEntityInScope } from './scope/search'
 import { resolveExprType } from './types/expr'
-import { validateFnCall } from './types/fn'
+import { validateAndRegisterFnCall } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
@@ -12,7 +12,10 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name
   const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {
-    const check = validateFnCall({ at: name.at, nameAt: name.at, generics: null, args, fnType: fn.data.content }, ctx)
+    const check = validateAndRegisterFnCall(
+      { at: name.at, nameAt: name.at, generics: null, args, fnType: fn.data.content },
+      ctx
+    )
     return check.ok ? success(void 0) : check
   } else {
     const decl = ctx.commandDeclarations.get(name.parsed)
@@ -109,7 +112,7 @@ export const cmdSignatureCallValidator: Typechecker<
   matchUnion(signature, 'type', {
     subCmd: ({ content }) => cmdDeclSubCmdCallTypechecker({ at, nameAt, subCmd: content, args: callArgs }, ctx),
     direct: ({ args, rest }) => {
-      const check = validateFnCall(
+      const check = validateAndRegisterFnCall(
         {
           at,
           nameAt,
