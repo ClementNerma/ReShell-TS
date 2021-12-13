@@ -44,7 +44,7 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       items:
         fromInt > toInt
           ? []
-          : new Array(toInt - fromInt).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i })),
+          : new Array(toInt - fromInt + 1).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i })),
     })
   }),
 
