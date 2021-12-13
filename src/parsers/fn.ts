@@ -1,7 +1,7 @@
 import { FnArg, FnType, Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, maybe } from './lib/conditions'
+import { maybe } from './lib/conditions'
 import { notFollowedBy } from './lib/consumeless'
 import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
@@ -19,90 +19,88 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
     combine(
       map(combine(exact('fn'), s, requireName ? identifier : maybe(identifier)), ([_, __, name]) => name),
       combine(maybe_s, exact('(', "Expected an open paren '('"), maybe_s_nl),
-      extract(
-        takeWhile(
-          map(
-            combine(
-              or<Pick<FnArg, 'flag' | 'name'>>([
-                map(
-                  combine(
-                    exact('-'),
-                    notFollowedBy(exact('-')),
-                    failure(unicodeSingleLetter, 'Expected a flag name'),
-                    notFollowedBy(unicodeSingleLetter, {
-                      error: {
-                        message: 'Expected a single-letter flag name',
-                        complements: [['Tip', 'To specify a multi-letters flag name, use a double dash "--"']],
-                      },
-                    })
-                  ),
-                  ([flag, __, name]) => ({ flag, name })
-                ),
-                map(combine(exact('--'), failure(identifier, 'Expected a flag name')), ([flag, name]) => ({
-                  flag,
-                  name,
-                })),
-                map(
-                  contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
-                  (_, name) => ({ flag: null, name })
-                ),
-              ]),
+      takeWhile<FnArg>(
+        map(
+          combine(
+            or<Pick<FnArg, 'flag' | 'name'>>([
               map(
                 combine(
-                  maybe_s,
-                  maybe(exact('?')),
-                  exact(':', "Expected a semicolon (:) separator for the argument's type"),
-                  maybe_s
+                  exact('-'),
+                  notFollowedBy(exact('-')),
+                  failure(unicodeSingleLetter, 'Expected a flag name'),
+                  notFollowedBy(unicodeSingleLetter, {
+                    error: {
+                      message: 'Expected a single-letter flag name',
+                      complements: [['Tip', 'To specify a multi-letters flag name, use a double dash "--"']],
+                    },
+                  })
                 ),
-                ([_, optional, __, ___]) => !!optional.parsed
+                ([flag, __, name]) => ({ flag, name })
               ),
-              failure(
-                withLatelyDeclared(() => valueType),
-                'Expected a type for the argument'
+              map(combine(exact('--'), failure(identifier, 'Expected a flag name')), ([flag, name]) => ({
+                flag,
+                name,
+              })),
+              map(
+                contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
+                (_, name) => ({ flag: null, name })
               ),
-              maybe(
-                map(
-                  combine(
-                    combine(maybe_s_nl, exact('='), maybe_s_nl),
-                    failure(
-                      withLatelyDeclared(() => literalValue),
-                      (err) => ({
-                        message: 'Expected a literal value',
-                        complements: [
-                          [
-                            'Tip',
-                            getErrorInput(err).startsWith('"')
-                              ? "Literal strings must be single-quoted (')"
-                              : 'Lists, maps and structures are not literal values',
-                          ],
-                        ],
-                      })
-                    )
-                  ),
-                  ([_, { parsed: defaultValue }]) => defaultValue
-                )
-              )
+            ]),
+            map(
+              combine(
+                maybe_s,
+                maybe(exact('?')),
+                exact(':', "Expected a semicolon (:) separator for the argument's type"),
+                maybe_s
+              ),
+              ([_, optional, __, ___]) => !!optional.parsed
             ),
-            ([
-              {
-                parsed: { name, flag },
-              },
-              { parsed: optional },
-              { parsed: type },
-              { parsed: defaultValue },
-            ]): FnArg => ({
-              name,
-              flag,
-              optional,
-              type,
-              defaultValue,
-            })
+            failure(
+              withLatelyDeclared(() => valueType),
+              'Expected a type for the argument'
+            ),
+            maybe(
+              map(
+                combine(
+                  combine(maybe_s_nl, exact('='), maybe_s_nl),
+                  failure(
+                    withLatelyDeclared(() => literalValue),
+                    (err) => ({
+                      message: 'Expected a literal value',
+                      complements: [
+                        [
+                          'Tip',
+                          getErrorInput(err).startsWith('"')
+                            ? "Literal strings must be single-quoted (')"
+                            : 'Lists, maps and structures are not literal values',
+                        ],
+                      ],
+                    })
+                  )
+                ),
+                ([_, { parsed: defaultValue }]) => defaultValue
+              )
+            )
           ),
-          {
-            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-            interMatchingMakesExpectation: true,
-          }
-        )
+          ([
+            {
+              parsed: { name, flag },
+            },
+            { parsed: optional },
+            { parsed: type },
+            { parsed: defaultValue },
+          ]): FnArg => ({
+            name,
+            flag,
+            optional,
+            type,
+            defaultValue,
+          })
+        ),
+        {
+          inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+          interMatchingMakesExpectation: true,
+        }
       ),
       combine(maybe_s_nl, exact(')', "Expected a closing paren ')'")),
       maybe(
