@@ -34,7 +34,7 @@ export function createTypecheckerContext(
   return {
     scopes: [nativeLibraryScope()],
     typeAliases: nativeLibraryTypeAliasesMap(),
-    typeAliasesPrelook: new Set(),
+    typeAliasesPrelook: new Set(nativeLibraryTypeAliasesMap().keys()),
     resolvedGenerics: [],
     inLoop: false,
     inFnCallAt: null,
