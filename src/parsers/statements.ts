@@ -12,6 +12,7 @@ import { fnDecl } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
+import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -29,7 +30,18 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
   'type',
   {
     return: map(
-      combine(exact('return'), maybe(map(combine(s, expr), ([_, expr]) => expr))),
+      combine(
+        exact('return'),
+        maybe(
+          map(
+            combine(
+              failIfMatches(lookahead(matchStatementClose)),
+              map(combine(s, expr), ([_, expr]) => expr)
+            ),
+            ([_, { parsed: expr }]) => expr
+          )
+        )
+      ),
       ([_, { parsed: expr }]) => ({
         expr,
       })
