@@ -1,11 +1,11 @@
-import { ChainedStatement, ElIfBlock, PanicType, Statement, StatementChain } from '../shared/ast'
+import { ChainedStatement, ElIfBlock, Statement, StatementChain } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar,
+  withStatementClosingChar
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
@@ -16,7 +16,7 @@ import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
-import { bol, eol, exact, oneOf } from './lib/matchers'
+import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
@@ -261,7 +261,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     })),
 
     panic: map(
-      combine(oneOf<PanicType>(['panic', 'unreachable', 'unimplemented']), s, expr),
+      combine(exact('panic'), s, expr),
       ([{ parsed: category }, _, message]) => ({ category, message })
     ),
 

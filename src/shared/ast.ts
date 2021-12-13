@@ -48,13 +48,11 @@ export type Statement =
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
-  | { type: 'panic'; category: PanicType; message: Token<Expr> }
+  | { type: 'panic'; message: Token<Expr> }
   | ({ type: 'cmdCall' } & CmdCall)
   | { type: 'fileInclusion'; content: Program; imports: Token<string>[] | null }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
-
-export type PanicType = 'panic' | 'unreachable' | 'unimplemented'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
