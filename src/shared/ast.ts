@@ -14,7 +14,7 @@ export type StatementChain =
 
 export type ChainedStatement = { op: Token<StatementChainOp>; chainedStatement: Token<Statement> }
 
-export type StatementChainOp = 'Then' | 'And' | 'Or' | 'Pipe'
+export type StatementChainOp = 'Then' | 'And' | 'Or'
 
 export type Statement =
   | {
@@ -216,7 +216,13 @@ export type FnArg = {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-export type CmdCall = { unaliased: boolean; name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
+export type CmdCall = {
+  base: CmdCallSub
+  pipes: Token<CmdCallSub>[] | null
+  redir: Token<CmdRedir> | null
+}
+
+export type CmdCallSub = { unaliased: boolean; name: Token<string>; args: Token<CmdArg>[] }
 
 export type CmdFlag = { short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
 

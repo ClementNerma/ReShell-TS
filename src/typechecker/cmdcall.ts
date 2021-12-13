@@ -1,4 +1,4 @@
-import { CmdArg, CmdCall, CmdDeclSubCommand, CmdVariantSignature, ValueType } from '../shared/ast'
+import { CmdArg, CmdCall, CmdCallSub, CmdDeclSubCommand, CmdVariantSignature, ValueType } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
@@ -8,7 +8,21 @@ import { validateAndRegisterFnCall } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
-export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name, args }, ctx) => {
+export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ base, pipes }, ctx) => {
+  const baseCheck = cmdCallSubTypechecker(base, ctx)
+  if (!baseCheck.ok) return baseCheck
+
+  if (pipes) {
+    for (const pipe of pipes) {
+      const pipeCheck = cmdCallSubTypechecker(pipe.parsed, ctx)
+      if (!pipeCheck.ok) return pipeCheck
+    }
+  }
+
+  return success(void 0)
+}
+
+export const cmdCallSubTypechecker: Typechecker<CmdCallSub, void> = ({ unaliased, name, args }, ctx) => {
   const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {

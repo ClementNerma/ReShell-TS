@@ -303,7 +303,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    cmdCall: (/*{ content }*/) => {
+    cmdCall: (/*{ content: { base, pipes, redir } }*/) => {
       throw new Error('TODO: command calls')
       // TODO: generics resolution
     },

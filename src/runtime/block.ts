@@ -16,10 +16,6 @@ export const runBlock: Runner<Block> = (block, ctx) => {
         And: () => (result.ok === true ? runStatement(chained.chainedStatement.parsed, ctx) : result),
         Or: () => (result.ok === true ? success(void 0) : runStatement(chained.chainedStatement.parsed, ctx)),
         Then: () => runStatement(chained.chainedStatement.parsed, ctx),
-        Pipe: () => {
-          if (result.ok !== true) return result
-          throw new Error('TODO: implement pipes')
-        },
       })
 
       if (result.ok === null) return result

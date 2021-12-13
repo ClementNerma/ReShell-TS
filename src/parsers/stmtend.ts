@@ -11,7 +11,6 @@ import { silence } from './lib/transform'
 export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
   ['&&', 'And'],
   ['||', 'Or'],
-  ['|', 'Pipe'],
 ])
 
 export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
