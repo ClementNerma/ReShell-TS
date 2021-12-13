@@ -78,6 +78,8 @@ export const cmdCallSubTypechecker: Typechecker<CmdCallSub, { found: 'fn' | 'cmd
       if (!check.ok) return check
     }
 
+    ctx.fnOrCmdCalls.push({ at: name.at, data: null })
+
     return success({ found: 'cmd' })
   }
 }

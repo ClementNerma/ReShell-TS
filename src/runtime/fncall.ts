@@ -1,6 +1,6 @@
 import { Block, Expr } from '../shared/ast'
 import { Token } from '../shared/parsed'
-import { getLocatedPrecomp } from '../shared/precomp'
+import { FnCallPrecomp, getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerContext, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
@@ -16,6 +16,17 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
     return err(name.at, 'internal error: failed to get precomputed function call data')
   }
 
+  if (precomp === null) {
+    return err(name.at, 'internal error: precomputed function call data shows a command call')
+  }
+
+  return executePrecompFnCall({ name, precomp }, ctx)
+}
+
+export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp }, ExecValue> = (
+  { name, precomp },
+  ctx
+) => {
   let fn:
     | { type: 'block'; body: Token<Block> }
     | { type: 'expr'; body: Token<Expr> }

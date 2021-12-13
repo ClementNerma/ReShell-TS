@@ -577,7 +577,7 @@ export const validateAndRegisterFnCall: Typechecker<
     resolvedGScope.push({ name: name.parsed, orig, resolved: mapped })
   }
 
-  ctx.fnCalls.push({
+  ctx.fnOrCmdCalls.push({
     at: nameAt,
     data: {
       generics: resolvedGScope,

@@ -2,10 +2,11 @@ import { spawnSync } from 'child_process'
 import { Writable } from 'stream'
 import { CmdCall, InlineCmdCall, SingleCmdCall } from '../shared/ast'
 import { Token } from '../shared/parsed'
+import { getLocatedPrecomp } from '../shared/precomp'
 import { matchStr } from '../shared/utils'
 import { err, ExecValue, Runner, success } from './base'
 import { escapeCmdArg, runCmdArg } from './cmdarg'
-import { executeFnCallByName } from './fncall'
+import { executePrecompFnCall } from './fncall'
 
 export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
   let result = runSingleCmdCall(base, ctx)
@@ -22,8 +23,14 @@ export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
 
 export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { base, pipes /* redir */ } }, ctx) => {
   if (!base.parsed.unaliased) {
-    const exec = executeFnCallByName(base.parsed.name, ctx)
-    return exec.ok === true ? success(void 0) : exec
+    const precomp = getLocatedPrecomp(ctx.fnCalls, base.parsed.name.at)
+
+    if (precomp === undefined) {
+      return err(at, 'internal error: precomputed call informations not found')
+    } else if (precomp !== null) {
+      const exec = executePrecompFnCall({ name: base.parsed.name, precomp }, ctx)
+      return exec.ok === true ? success(void 0) : exec
+    }
   }
 
   const commands: [string, string[]][] = []

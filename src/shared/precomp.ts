@@ -5,7 +5,7 @@ import { CodeSection, Token } from './parsed'
 export type PrecompData = {
   typeAliases: Map<string, { at: CodeSection; content: ValueType }>
   callbackTypes: LocatedPrecomp<FnType>
-  fnCalls: LocatedPrecomp<FnCallPrecomp>
+  fnCalls: LocatedPrecomp<FnCallPrecomp | null>
   closuresArgsMapping: LocatedPrecomp<Map<string, string>>
 }
 
