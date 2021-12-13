@@ -11,10 +11,10 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
     map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
     struct: ({ members }) =>
       noDepth ? 'struct' : `struct { ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
-    fn: ({ fnType: { named, args, returnType, failureType } }) =>
+    fn: ({ fnType: { args, returnType, failureType } }) =>
       noDepth
         ? 'fn'
-        : `fn${named ? ' ' + named.parsed + ' ' : ''}(${args
+        : `fn(${args
             .map(
               ({ parsed: { flag, name, optional, type, defaultValue } }) =>
                 `${flag?.parsed ?? ''}${name.parsed}${optional ? '?' : ''}: ${rebuildType(type)}${
