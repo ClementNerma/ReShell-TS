@@ -6,8 +6,8 @@ import { takeWhile } from '../lib/loops'
 import { exact } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map, toOneProp } from '../lib/transform'
-import { selfRef, withLatelyDeclared } from '../lib/utils'
-import { Expr, ExprElement, ExprSequenceAction } from '../shared/parsed'
+import { logUsage, selfRef, withLatelyDeclared } from '../lib/utils'
+import { ElIfExpr, Expr, ExprElement, ExprSequenceAction } from '../shared/parsed'
 import { withStatementClosingChar } from './context'
 import { doubleOp, singleOp } from './operators'
 import { propertyAccess } from './propaccess'
@@ -60,10 +60,29 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           ),
           exact('{', 'Expected an opening brace ({) after the condition'),
           failure(
-            withLatelyDeclared(() => expr),
+            logUsage(withLatelyDeclared)(() => expr),
             'Expected an expression in the "if" body'
           ),
           exact('}', 'Expected a closing brace (}) to close the "if" body'),
+          takeWhile<ElIfExpr>(
+            map(
+              combine(
+                combine(exact('elif'), s),
+                failure(
+                  withLatelyDeclared(() => expr),
+                  'Expecting a condition'
+                ),
+                exact('{', 'Expected an opening brace ({) after the condition'),
+                failure(
+                  withLatelyDeclared(() => expr),
+                  'Expected an expression in the "elif" body'
+                ),
+                exact('}', 'Expected an opening brace (}) to close the "elif" body'),
+                { inter: maybe_s_nl }
+              ),
+              ([_, cond, __, expr]) => ({ cond, expr })
+            )
+          ),
           exact('else', 'Expected an "else" counterpart'),
           exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
           failure(
@@ -73,7 +92,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           exact('}', 'Expected a closing brace (}) to close the "else" body'),
           { inter: maybe_s_nl }
         ),
-        ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
+        ([_, cond, __, then, ___, { parsed: elif }, ____, _____, els, ______]) => ({ cond, then, elif, els })
       ),
 
       try: map(
