@@ -250,7 +250,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             } else if (subjectType.data.type === 'map') {
               return success([{ type: 'string' }, subjectType.data.itemsType])
             } else {
-              return err(subject.at, 'cannot iterate over non-list values')
+              return err(
+                subject.at,
+                `cannot iterate over non-list/map values (found \`${rebuildType(subjectType.data, true)}\`)`
+              )
             }
           },
 
