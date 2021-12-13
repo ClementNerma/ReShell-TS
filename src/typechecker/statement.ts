@@ -2,7 +2,7 @@ import { StatementChain, Token, ValueType } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, located, Scope, success, Typechecker, TypecheckerResult } from './base'
 import { scopeFirstPass } from './scope/first-pass'
-import { ensureScopeUnicity, getVariableInScope } from './scope/search'
+import { getVariableInScope } from './scope/search'
 import { resolveDoubleOpType } from './types/double-op'
 import { resolveExprType } from './types/expr'
 import { resolvePropAccessType } from './types/propaccess'
@@ -26,8 +26,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       const subResult: TypecheckerResult<void> = matchUnion(sub.parsed, 'type', {
         variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<void> => {
-          const unicity = ensureScopeUnicity({ name: varname }, ctx)
-          if (!unicity.ok) return unicity
+          // const unicity = ensureScopeUnicity({ name: varname }, ctx)
+          // if (!unicity.ok) return unicity
 
           let expectedType: ValueType | null = null
 
