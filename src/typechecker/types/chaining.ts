@@ -138,7 +138,7 @@ export const resolveValueChainings: Typechecker<
               generics: method.fnType.generics.concat(method.infos.generics),
               args: [selfArg].concat(method.fnType.args),
             },
-            generics: call.generics,
+            suppliedGenerics: call.generics,
             args: [selfValue].concat(call.args),
             firstArgType: inner,
           },

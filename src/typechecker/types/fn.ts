@@ -281,7 +281,7 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = (call, ctx) => 
       at: call.at,
       nameAt: call.name.at,
       fnType,
-      generics: call.generics,
+      suppliedGenerics: call.generics,
       args: call.args,
     },
     ctx
@@ -293,13 +293,13 @@ export const validateAndRegisterFnCall: Typechecker<
     at: CodeSection
     nameAt: CodeSection
     fnType: FnType
-    generics: Token<Token<ValueType | null>[]> | null
+    suppliedGenerics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
     firstArgType?: ValueType
     declaredCommand?: true
   },
   ValueType
-> = ({ at, nameAt, fnType, generics, args, firstArgType, declaredCommand }, ctx) => {
+> = ({ at, nameAt, fnType, suppliedGenerics: generics, args, firstArgType, declaredCommand }, ctx) => {
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
     name,
     orig: name.at,
