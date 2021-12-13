@@ -37,7 +37,13 @@ const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining
       return runPropertyAccess({ value, propAccessAt: chaining.at, propAccess: access }, ctx)
     },
 
-    method: ({ nullable, call }) => runMethod({ value, nullable, call }, ctx),
+    method: ({ nullable, call }) => {
+      if (nullable && value.type === 'null') {
+        return success({ type: 'null' })
+      }
+
+      return runMethod(call, ctx)
+    },
   })
 
 export const runPropertyAccess: Runner<
@@ -144,14 +150,7 @@ export const runPropertyAccess: Runner<
     },
   })
 
-export const runMethod: Runner<{ value: ExecValue; nullable: boolean; call: FnCall }, ExecValue> = (
-  { value, nullable, call },
-  ctx
-) => {
-  if (nullable && value.type === 'null') {
-    return success({ type: 'null' })
-  }
-
+export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, call.name.at)
 
   if (precomp === undefined) {
