@@ -82,7 +82,21 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
     )
   }
 
-  return err(at, 'no signature match this call')
+  return err(
+    { start: at.next, next: at.next },
+    {
+      message: 'please provide an action',
+      complements: [
+        [
+          'available',
+          subCmd.variants
+            .map((variant) => variant.parsed.argCandidates.map((candidate) => candidate.parsed))
+            .flat()
+            .join(' | '),
+        ],
+      ],
+    }
+  )
 }
 
 export const cmdSignatureCallValidator: Typechecker<
@@ -102,7 +116,7 @@ export const cmdSignatureCallValidator: Typechecker<
             returnType: null,
             failureType: null,
           },
-          declaredCommand: true
+          declaredCommand: true,
         },
         ctx
       ),
