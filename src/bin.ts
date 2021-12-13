@@ -144,8 +144,6 @@ if (!typechecked.ok) {
   process.exit(1)
 }
 
-console.dir(typechecked.data, { depth: null })
-
 infos.forEach((info) => console.log(info))
 console.log(`Typechecked         | ${ms(typecheckerDuration)} |`)
 console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} |`)
