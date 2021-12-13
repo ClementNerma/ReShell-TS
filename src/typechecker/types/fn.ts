@@ -338,7 +338,7 @@ export const validateAndRegisterFnCall: Typechecker<
         flags.delete(name.parsed)
 
         if (!directValue) {
-          return flag.parsed.type.type !== 'nullable' && flag.parsed.type.type === 'bool'
+          return !flag.parsed.optional && flag.parsed.type.type === 'bool'
             ? success([name.parsed, { type: 'null' }])
             : err(
                 name.at,
@@ -415,11 +415,13 @@ export const validateAndRegisterFnCall: Typechecker<
     })
   }
 
-  for (const arg of fnType.args.filter((arg) => arg.parsed.optional)) {
+  for (const arg of fnType.args) {
     if (!suppliedArgsScope.get(arg.parsed.name.parsed)) {
       suppliedArgsScope.set(
         arg.parsed.name.parsed,
-        arg.parsed.flag && arg.parsed.type.type === 'bool' ? { type: 'false' } : { type: 'null' }
+        arg.parsed.flag && !arg.parsed.optional && arg.parsed.type.type === 'bool'
+          ? { type: 'false' }
+          : { type: 'null' }
       )
     }
   }
