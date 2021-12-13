@@ -1,19 +1,20 @@
 import { Block, Statement } from '../shared/ast'
 import { Token } from '../shared/parsed'
-import { Runner, success } from './base'
+import { Runner, Scope, success } from './base'
 import { runStatement } from './statement'
 
 export const runBlock: Runner<Block> = (block, ctx) => {
-  ctx = { ...ctx, scopes: ctx.scopes.concat([{ generics: [], entities: new Map() }]) }
+  const blockScope: Scope = { generics: [], methods: [], entities: new Map() }
+
+  ctx = { ...ctx, scopes: ctx.scopes.concat([blockScope]) }
 
   const flattened = flattenBlock(block)
 
   for (const { parsed: stmt } of flattened) {
     if (stmt.type === 'fnDecl') {
-      const scope = ctx.scopes[ctx.scopes.length - 1]
-      scope.entities.set(stmt.name.parsed, { type: 'fn', body: stmt.body })
+      blockScope.entities.set(stmt.name.parsed, { type: 'fn', body: stmt.body })
     } else if (stmt.type === 'methodDecl') {
-      ctx.methods.push({ infos: stmt.infos, body: stmt.body })
+      blockScope.methods.push({ infos: stmt.infos, body: stmt.body })
     }
   }
 

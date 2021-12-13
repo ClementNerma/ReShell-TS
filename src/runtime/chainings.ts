@@ -3,7 +3,7 @@ import { isLocEq } from '../shared/loc-cmp'
 import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
-import { err, ExecValue, Runner, RunnerResult, success } from './base'
+import { err, ExecValue, Runner, RunnerResult, ScopedMethod, success } from './base'
 import { runExpr } from './expr'
 import { executePrecompFnBody, RunnableFnContent } from './fncall'
 import { nativeLibraryMethods } from './native-lib'
@@ -205,7 +205,16 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   }
 
   const ref = precomp.methodTypeRef
-  const method = ctx.methods.find((method) => isLocEq(method.infos.forType.at.start, ref.at.start))
+  let method: ScopedMethod | null = null
+
+  for (let s = ctx.scopes.length - 1; s >= 0; s--) {
+    const candidate = ctx.scopes[s].methods.find((method) => isLocEq(method.infos.forType.at.start, ref.at.start))
+
+    if (candidate) {
+      method = candidate
+      break
+    }
+  }
 
   let fn: RunnableFnContent
 

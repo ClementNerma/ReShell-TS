@@ -462,11 +462,11 @@ export const runTypeAssertion: Runner<
 
   return success({
     normalAssertionScope: assertion.inverted
-      ? { generics: [], functions: [], entities: oppositeScope }
-      : { generics: [], functions: [], entities: normalScope },
+      ? { generics: [], methods: [], functions: [], entities: oppositeScope }
+      : { generics: [], methods: [], functions: [], entities: normalScope },
     oppositeAssertionScope: assertion.inverted
-      ? { generics: [], functions: [], entities: normalScope }
-      : { generics: [], functions: [], entities: oppositeScope },
+      ? { generics: [], methods: [], functions: [], entities: normalScope }
+      : { generics: [], methods: [], functions: [], entities: oppositeScope },
     result: assertion.inverted ? !result.data : result.data,
   })
 }

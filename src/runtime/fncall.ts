@@ -126,7 +126,7 @@ export const executePrecompFnBody: Runner<
 
   const fnCtx: RunnerContext = {
     ...ctx,
-    scopes: ctx.scopes.concat([{ generics: precomp.generics, entities: fnScope }]),
+    scopes: ctx.scopes.concat([{ generics: precomp.generics, methods: [], entities: fnScope }]),
   }
 
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {

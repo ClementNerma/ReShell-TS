@@ -159,7 +159,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
 
       const iterateOn = list.data.items.slice()
 
-      const scope: Scope = { generics: [], entities: new Map() }
+      const scope: Scope = { generics: [], methods: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const value of iterateOn) {
@@ -195,7 +195,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       // while the loop was being run
       const iterateOn = [...iterator]
 
-      const scope: Scope = { generics: [], entities: new Map() }
+      const scope: Scope = { generics: [], methods: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const [key, value] of iterateOn) {

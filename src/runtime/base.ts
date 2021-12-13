@@ -14,7 +14,6 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
-  methods: { infos: MethodInfos; body: Token<Block> }[]
   pipeTo: null | {
     stdout: Writable
     stderr: Writable
@@ -35,7 +34,6 @@ export const createRunnerContext = (
   diagnosticHandler: RunnerContext['emitDiagnostic']
 ): RunnerContext => ({
   scopes: [],
-  methods: [],
   pipeTo: null,
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
@@ -48,8 +46,11 @@ export const createRunnerContext = (
 
 export type Scope = {
   generics: { name: string; orig: CodeSection; resolved: ValueType }[]
+  methods: ScopedMethod[]
   entities: Map<string, ExecValue>
 }
+
+export type ScopedMethod = { infos: MethodInfos; body: Token<Block> }
 
 export type ExecValue =
   | { type: 'null' }
