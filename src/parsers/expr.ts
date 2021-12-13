@@ -11,7 +11,7 @@ import { map, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
-import { withStatementClose } from './context'
+import { withStatementClosingChar } from './context'
 import {
   ComputedPathSegment,
   ComputedStringSegment,
@@ -26,7 +26,7 @@ import {
   InlineCmdCallCapture,
   SingleLogicOp,
   SingleOp,
-  Value,
+  Value
 } from './data'
 import { literalValue, rawString } from './literals'
 import { propertyAccess } from './propaccess'
@@ -172,7 +172,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     combine(
       withLatelyDeclared(() => fnType),
       exact('{', "Expected an opening brace ({) for the closure's content"),
-      withStatementClose(
+      withStatementClosingChar(
         '}',
         withLatelyDeclared(() => blockBody)
       ),
@@ -188,7 +188,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       identifier,
       exact('('),
       maybe_s_nl,
-      withStatementClose(
+      withStatementClosingChar(
         ')',
         takeWhile(
           failIfElse(
@@ -222,7 +222,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ['$(', InlineCmdCallCapture.Stdout],
       ]),
       failure(
-        withStatementClose(
+        withStatementClosingChar(
           ')',
           withLatelyDeclared(() => cmdCall(endOfInlineCmdCall))
         ),
@@ -366,7 +366,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
         map(
           combine(
             exact('{', "Expected an opening brace ({) for the try's expression"),
-            withStatementClose(
+            withStatementClosingChar(
               '}',
               withLatelyDeclared(() => expr)
             ),
@@ -386,7 +386,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
         map(
           combine(
             exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
-            withStatementClose(
+            withStatementClosingChar(
               '}',
               withLatelyDeclared(() => expr)
             ),

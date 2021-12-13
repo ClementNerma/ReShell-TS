@@ -10,7 +10,12 @@ import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
 import { cmdCall } from './cmdcall'
-import { matchContinuationKeyword, matchStatementClose, withContinuationKeyword, withStatementClose } from './context'
+import {
+  matchContinuationKeyword,
+  matchStatementClose,
+  withContinuationKeyword,
+  withStatementClosingChar,
+} from './context'
 import { ChainedStatement, Statement, StatementChain } from './data'
 import { doubleArithOp, expr } from './expr'
 import { propertyAccess } from './propaccess'
@@ -64,7 +69,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
         combine(
           maybe_s_nl,
           exact('{', 'Expected an opening brace ({) for the "if"\'s body'),
-          withStatementClose(
+          withStatementClosingChar(
             '}',
             withContinuationKeyword(
               ['else', 'elif'],
@@ -86,7 +91,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
               combine(
                 maybe_s_nl,
                 exact('{', 'Expected an opening brace ({) for the "elif" body'),
-                withStatementClose(
+                withStatementClosingChar(
                   '}',
                   withContinuationKeyword(
                     ['else', 'elif'],
@@ -112,7 +117,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
               combine(
                 maybe_s_nl,
                 exact('{', 'Expected an opening brace ({) for the "else" body'),
-                withStatementClose(
+                withStatementClosingChar(
                   '}',
                   withLatelyDeclared(() => blockBody)
                 ),
@@ -144,7 +149,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
       map(
         combine(
           exact('{', "Expected an opening brace ({) for the loop's body"),
-          withStatementClose(
+          withStatementClosingChar(
             '}',
             withLatelyDeclared(() => blockBody)
           ),
@@ -165,7 +170,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
         combine(
           maybe_s_nl,
           exact('{', "Expected an opening brace ({) for the loop's body"),
-          withStatementClose(
+          withStatementClosingChar(
             '}',
             withLatelyDeclared(() => blockBody)
           ),
@@ -187,7 +192,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
       map(
         combine(
           exact('{', "Expected an opening brace ({) for the try's body"),
-          withStatementClose(
+          withStatementClosingChar(
             '}',
             withContinuationKeyword(
               ['catch'],
@@ -210,7 +215,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
       map(
         combine(
           exact('{', 'Expected an opening brace ({) for the "catch" clause\'s body'),
-          withStatementClose(
+          withStatementClosingChar(
             '}',
             withLatelyDeclared(() => blockBody)
           ),
@@ -246,7 +251,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
     combine(
       fnDecl,
       exact('{', "Expected an opening brace ({) for the function's body"),
-      withStatementClose(
+      withStatementClosingChar(
         '}',
         withLatelyDeclared(() => blockBody)
       ),

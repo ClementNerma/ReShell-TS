@@ -20,7 +20,7 @@ export const initContext: () => CustomContext = () => ({
   continuationKeywords: [],
 })
 
-export const withStatementClose = <T>(statementClose: StatementClosingChar, parser: Parser<T>): Parser<T> =>
+export const withStatementClosingChar = <T>(statementClose: StatementClosingChar, parser: Parser<T>): Parser<T> =>
   withTypedCtx<T, CustomContext>(($custom) => ({ ...$custom, statementClose }), parser)
 
 export const withContinuationKeyword = <T>(continuationKeywords: string[], parser: Parser<T>): Parser<T> =>
