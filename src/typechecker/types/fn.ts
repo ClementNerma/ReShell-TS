@@ -2,6 +2,7 @@ import { ClosureArg, ClosureBody, CmdArg, FnArg, FnType, StatementChain, ValueTy
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
+import { cmdArgTypechecker } from '../cmdcall'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
@@ -69,13 +70,29 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
     }
   }
 
+  if (fnType.restArg) {
+    const duplicate = args.get(fnType.restArg.parsed)
+    if (duplicate) {
+      return err(fnType.restArg.at, {
+        message: 'cannot use the same name for multiple arguments',
+        also: [{ at: duplicate.at, message: 'name already used here' }],
+      })
+    }
+  }
+
   return typeValidator({ type: 'fn', fnType }, ctx)
 }
 
 export const closureTypeValidator: Typechecker<
-  { at: CodeSection; args: Token<ClosureArg>[]; body: Token<ClosureBody>; expected: FnType },
+  {
+    at: CodeSection
+    args: Token<ClosureArg>[]
+    restArg: Token<string> | null
+    body: Token<ClosureBody>
+    expected: FnType
+  },
   void
-> = ({ at, args, body, expected }, ctx) => {
+> = ({ at, args, restArg, body, expected }, ctx) => {
   const candidateArgs = [...args]
 
   for (const arg of expected.args) {
@@ -107,7 +124,11 @@ export const closureTypeValidator: Typechecker<
     return err(args[expected.args.length].at, 'too many arguments')
   }
 
-  const scopes = ctx.scopes.concat([fnScopeCreator(expected)])
+  if (restArg && !expected.restArg) {
+    return err(restArg.at, 'function was not expected to have a rest argument')
+  } else if (!restArg && expected.restArg) {
+    return err(at, 'function was expected to have a rest argument')
+  }
 
   return matchUnion(body.parsed, 'type', {
     block: ({ body }) => validateFnBody({ fnType: expected, body }, ctx),
@@ -123,6 +144,7 @@ export const closureTypeValidator: Typechecker<
           from: expected.returnType.at,
           type: expected.returnType.parsed,
         },
+        restArgs: restArg ? ctx.restArgs.concat([restArg.parsed]) : ctx.restArgs,
       })
 
       return check.ok ? success(void 0) : check
@@ -141,6 +163,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<Sta
       failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
       returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
     },
+    restArgs: fnType.restArg ? ctx.restArgs.concat([fnType.restArg.parsed]) : ctx.restArgs,
   })
 
   if (!check.ok) return check
@@ -160,8 +183,19 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
   )
+  let buildingRest = false
 
   for (const arg of args) {
+    if (!buildingRest && positional.length === 0 && fnType.restArg !== null) {
+      buildingRest = true
+    }
+
+    if (buildingRest) {
+      const check = cmdArgTypechecker(arg, ctx)
+      if (!check.ok) return check
+      continue
+    }
+
     const resolved: TypecheckerResult<void> = matchUnion(arg.parsed, 'type', {
       escape: () => success(void 0),
 
@@ -206,21 +240,6 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
         return resolved.ok ? success(void 0) : resolved
       },
 
-      // reference: ({ varname }) => {
-      //   const relatedArg = positional.shift()
-      //   if (!relatedArg) return err(varname.at, 'argument was not expected (all arguments have already been supplied)')
-
-      //   const resolved = resolveExprType(expr, {
-      //     ...ctx,
-      //     typeExpectation: {
-      //       type: relatedArg.parsed.type,
-      //       from: relatedArg.at,
-      //     },
-      //   })
-
-      //   return resolved.ok ? success(void 0) : resolved
-      // },
-
       value: ({ value }) => {
         const relatedArg = positional.shift()
         if (!relatedArg) return err(value.at, 'argument was not expected (all arguments have already been supplied)')
@@ -244,6 +263,9 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
 
         return resolved.ok ? success(void 0) : resolved
       },
+
+      rest: ({ varname }) =>
+        err(varname.at, 'rest values are only allowed after all the other arguments have been supplied'),
     })
 
     if (!resolved.ok) return resolved

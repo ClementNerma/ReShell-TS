@@ -149,7 +149,7 @@ export type Value =
   | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
   // | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
-  | { type: 'callback'; args: Token<ClosureArg>[]; body: Token<ClosureBody> }
+  | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'
@@ -190,6 +190,7 @@ export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 export type FnType = {
   named: Token<string> | null
   args: Token<FnArg>[]
+  restArg: Token<string> | null
   returnType: Token<ValueType> | null
   failureType: Token<ValueType> | null
 }
@@ -217,6 +218,7 @@ export type CmdArg =
   // | { type: 'reference'; varname: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'value'; value: Token<Value> }
+  | { type: 'rest'; varname: Token<string> }
 
 export type CmdRedir = { op: Token<CmdRedirOp>; path: Token<Token<string>[]> }
 

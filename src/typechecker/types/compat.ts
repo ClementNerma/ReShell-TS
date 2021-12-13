@@ -247,6 +247,12 @@ export const isTypeCompatible: Typechecker<
         return expectationErr(`function was expected to have a failure type`)
       }
 
+      if (c.fnType.restArg && !r.fnType.restArg) {
+        return expectationErr('function was not expected to have a rest argument', c.fnType.restArg.at)
+      } else if (!c.fnType.restArg && r.fnType.restArg) {
+        return expectationErr('function was expected to have a rest argument')
+      }
+
       return success(void 0)
     },
 

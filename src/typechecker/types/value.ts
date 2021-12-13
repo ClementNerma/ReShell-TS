@@ -377,14 +377,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     //   return success({ type: 'fn', fnType })
     // },
 
-    callback: ({ args, body }) => {
+    callback: ({ args, restArg, body }) => {
       const assert = assertExpectedNonPrimitiveType('fn')
       if (!assert.ok) return assert
       if (!assert.data) return err(value.at, 'cannot determine the signature of this function')
 
       const expected = assert.data.fnType
 
-      const check = closureTypeValidator({ at: value.at, args, body, expected }, ctx)
+      const check = closureTypeValidator({ at: value.at, args, restArg, body, expected }, ctx)
       return check.ok ? success({ type: 'fn', fnType: expected }) : check
     },
 

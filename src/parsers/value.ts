@@ -6,7 +6,7 @@ import {
   FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
-  Value
+  Value,
 } from '../shared/ast'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
@@ -14,7 +14,7 @@ import { withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse } from './lib/conditions'
+import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse, maybe } from './lib/conditions'
 import { lookahead, not } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
@@ -179,7 +179,22 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           flag: withLatelyDeclared(() => cmdFlag),
           variable: map(identifier, (_, name) => ({ name })),
         }),
-        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument name' }
+        {
+          inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
+          interExpect: 'expected another argument name',
+        }
+      ),
+      maybe(
+        map(
+          combine(
+            maybe_s_nl,
+            exact(','),
+            maybe_s_nl,
+            exact('...'),
+            failure(identifier, 'expected a rest argument identifier')
+          ),
+          ([_, __, ___, ____, restArg]) => restArg
+        )
       ),
       combine(
         maybe_s_nl,
@@ -208,7 +223,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ),
       })
     ),
-    ([_, { parsed: args }, __, body]) => ({ args, body })
+    ([_, { parsed: args }, { parsed: restArg }, __, body]) => ({ args, restArg, body })
   ),
 
   fnCall: map(

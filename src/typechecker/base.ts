@@ -14,6 +14,7 @@ export type TypecheckerContext = {
     returnType: { type: ValueType; from: CodeSection } | null
     failureType: { type: ValueType; from: CodeSection } | null
   }
+  restArgs: string[]
   expectedFailureWriter: null | { ref: null | Located<ValueType> }
   checkIfCommandExists: (name: string) => boolean
 }
@@ -25,6 +26,7 @@ export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIf
     typeExpectation: null,
     typeExpectationNature: null,
     fnExpectation: null,
+    restArgs: [],
     expectedFailureWriter: null,
     checkIfCommandExists: cmdChecker,
   }

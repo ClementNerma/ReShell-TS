@@ -2,7 +2,7 @@ import { FnArg, FnType } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { maybe } from './lib/conditions'
+import { failIfMatches, maybe } from './lib/conditions'
 import { notFollowedBy } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
@@ -104,9 +104,21 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
           })
         ),
         {
-          inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+          inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
           interExpect: 'expected an argument name',
         }
+      ),
+      maybe(
+        map(
+          combine(
+            maybe_s_nl,
+            exact(','),
+            maybe_s_nl,
+            exact('...'),
+            failure(identifier, 'expected a rest argument identifier')
+          ),
+          ([_, __, ___, ____, restArg]) => restArg
+        )
       ),
       combine(maybe_s_nl, exact(')', "expected a closing paren ')'")),
       maybe(
@@ -138,9 +150,18 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         )
       )
     ),
-    ([{ parsed: named }, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
+    ([
+      { parsed: named },
+      _,
+      { parsed: args },
+      { parsed: restArg },
+      __,
+      { parsed: returnType },
+      { parsed: failureType },
+    ]) => ({
       named,
       args,
+      restArg,
       returnType,
       failureType,
     })

@@ -62,4 +62,8 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   // })),
 
   value: map(value, (_, value) => ({ type: 'value', value })),
+
+  rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
+    varname,
+  })),
 })

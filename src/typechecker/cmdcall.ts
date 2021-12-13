@@ -42,24 +42,23 @@ export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
       return resolved.ok ? cmdArgExprTypeValidator(directValue.at, resolved.data) : resolved
     },
 
-    // reference: ({ varname }) => {
-    //   const scopedVar = getVariableInScope(varname, ctx)
-    //   if (!scopedVar.ok) return scopedVar
-
-    //   const type = scopedVar.data.content.type
-
-    //   return cmdArgExprTypeValidator(varname.at, type)
-    // },
-
     value: ({ value }) => {
       const resolved = resolveValueType(value, ctx)
       return resolved.ok ? cmdArgExprTypeValidator(value.at, resolved.data) : resolved
     },
+
+    rest: ({ varname }) =>
+      ctx.restArgs.includes(varname.parsed)
+        ? success(void 0)
+        : err(varname.at, `rest argument \`${varname.parsed}\` was not found`),
   })
 
 function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerResult<void> {
   if (type.type !== 'string' && type.type !== 'number' && type.type !== 'path') {
-    return err(at, `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, true)}\``)
+    return err(
+      at,
+      `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, true)}\``
+    )
   }
 
   return success(void 0)
