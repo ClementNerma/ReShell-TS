@@ -82,8 +82,6 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
         }`,
       ]
 
-      let componentsAlignmentCol = addLinesPadding.length + rawLocPtr.length
-
       if (addLines) {
         for (let l = line + 1; l < line + (addLines <= 5 ? addLines : 3); l++) {
           upToError.push(`${format('gutter', padLineNb(l) + ' | ')}${format('locationPointer', '|')} ${sourceLines[l]}`)
@@ -104,8 +102,6 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
         )
 
         const rawLocPtr = '|_' + '_'.repeat(end.col) + '^'
-        componentsAlignmentCol = rawLocPtr.length
-
         upToError.push(`${paddingGutter}${format('locationPointer', rawLocPtr)} ${format('errorMessage', message)}`)
       }
 
