@@ -46,6 +46,10 @@ export const resolveExprElementType: Typechecker<ExprElement, Scope, ValueType, 
       // TODO: check that <cond> is a bool, check that all <then> / <elif> / <else> have the same value
       throw new Error('// TODO: ternary expressions')
 
+    case 'try':
+      // TODO: check that the <try> and <catch> body have the same type
+      throw new Error('// TODO: inline try/catch expressions')
+
     case 'value':
       return valueType(element.parsed.content, scope)
   }

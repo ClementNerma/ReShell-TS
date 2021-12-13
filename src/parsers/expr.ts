@@ -3,7 +3,7 @@ import { combine } from '../lib/combinations'
 import { extract, failIf, failIfBool, failIfElse } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
-import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
+import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, s, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile, takeWhile1N } from '../lib/loops'
 import { exact, match, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
@@ -362,6 +362,50 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           { inter: maybe_s_nl }
         ),
         ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
+      ),
+
+      try: map(
+        combine(
+          exact('try'),
+          map(
+            combine(
+              exact('{', "Expected an opening brace ({) for the try's expression"),
+              withStatementClose(
+                '}',
+                withLatelyDeclared(() => expr)
+              ),
+              exact('}', "Expected a closing brace (}) to close the block's content"),
+              { inter: maybe_s_nl }
+            ),
+            ([_, { parsed: expr }, __]) => expr
+          ),
+          map(
+            combine(
+              exact('catch', 'Expected a "catch" clause'),
+              failure(identifier, 'Expected an identifier for the "catch" clause'),
+              { inter: s }
+            ),
+            ([_, catchVarname]) => catchVarname
+          ),
+          map(
+            combine(
+              exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
+              withStatementClose(
+                '}',
+                withLatelyDeclared(() => expr)
+              ),
+              exact('}', "Expected a closing brace (}) to close the block's content"),
+              { inter: maybe_s_nl }
+            ),
+            ([_, { parsed: expr }, __]) => expr
+          ),
+          { inter: maybe_s_nl }
+        ),
+        ([_, trying, { parsed: catchVarname }, catchExpr]) => ({
+          trying,
+          catchVarname,
+          catchExpr,
+        })
       ),
 
       assertion: map(

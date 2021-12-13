@@ -9,7 +9,6 @@ export const keyword: Parser<string> = oneOfWords([
   'else',
   'elif',
   'fn',
-  'end',
   'return',
   'for',
   'while',
@@ -17,5 +16,7 @@ export const keyword: Parser<string> = oneOfWords([
   'catch',
   'type',
   'wait',
+  'on',
+  'throw',
   'async',
 ])

@@ -177,6 +177,7 @@ export type ExprElement =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
   | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; els: Token<Expr> }
+  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElement> }
 
