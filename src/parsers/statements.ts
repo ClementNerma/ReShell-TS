@@ -6,7 +6,7 @@ import {
   withContinuationKeyword,
   withStatementClosingChar,
 } from './context'
-import { expr } from './expr'
+import { expr, exprOrTypeAssertion } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
@@ -65,7 +65,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ifBlock: map(
       combine(
         combine(exact('if'), s),
-        failure(expr, 'Expected a condition'),
+        failure(exprOrTypeAssertion, 'Expected a condition'),
         combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "if"\'s body'), maybe_s_nl),
         withStatementClosingChar(
           '}',
@@ -80,7 +80,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             map(
               combine(
                 combine(maybe_s_nl, exact('elif'), s),
-                failure(expr, 'Expected a condition for the "elif" statement'),
+                failure(exprOrTypeAssertion, 'Expected a condition for the "elif" statement'),
                 combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "elif" body'), maybe_s_nl),
                 withStatementClosingChar(
                   '}',
@@ -142,7 +142,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     whileLoop: map(
       combine(
         combine(exact('while'), s),
-        failure(expr, 'Expected a loop condition'),
+        failure(exprOrTypeAssertion, 'Expected a loop condition'),
         map(
           combine(
             combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the loop's body"), maybe_s_nl),

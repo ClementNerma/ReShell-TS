@@ -1,4 +1,4 @@
-import { ElIfExpr, Expr, ExprElement, ExprElementContent } from '../shared/parsed'
+import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion } from '../shared/parsed'
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -9,7 +9,7 @@ import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
 import { mappedCases } from './lib/switches'
-import { map } from './lib/transform'
+import { map, toOneProp } from './lib/transform'
 import { selfRef, withLatelyDeclared } from './lib/utils'
 import { doubleOp, singleOp } from './operators'
 import { propertyAccess } from './propaccess'
@@ -54,7 +54,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
         combine(
           combine(exact('if'), s),
           failure(
-            withLatelyDeclared(() => expr),
+            withLatelyDeclared(() => exprOrTypeAssertion),
             'Expected a condition'
           ),
           combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) after the condition'), maybe_s_nl),
@@ -69,7 +69,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
                 combine(
                   combine(exact('elif'), s),
                   failure(
-                    withLatelyDeclared(() => expr),
+                    withLatelyDeclared(() => exprOrTypeAssertion),
                     'Expecting a condition'
                   ),
                   combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) after the condition'), maybe_s_nl),
@@ -144,15 +144,6 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
         })
       ),
 
-      assertion: map(
-        combine(
-          identifier,
-          combine(s, exact('is'), s),
-          failure(valueType, 'Expected a type after the "is" type assertion operator')
-        ),
-        ([varname, _, minimum]) => ({ varname, minimum })
-      ),
-
       // value
       value: map(value, (_, content) => ({ content })),
 
@@ -187,3 +178,16 @@ export const expr: Parser<Expr> = map(
     doubleOps,
   })
 )
+
+export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<ExprOrTypeAssertion>()('type', {
+  assertion: map(
+    combine(
+      identifier,
+      combine(s, exact('is'), s),
+      failure(valueType, 'Expected a type after the "is" type assertion operator')
+    ),
+    ([varname, _, minimum]) => ({ varname, minimum })
+  ),
+
+  expr: toOneProp(expr, 'inner'),
+})

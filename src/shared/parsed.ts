@@ -41,13 +41,13 @@ export type Statement =
     }
   | {
       type: 'ifBlock'
-      cond: Token<Expr>
+      cond: Token<ExprOrTypeAssertion>
       body: Token<StatementChain>[]
       elif: ElIfBlock[]
       els: Token<StatementChain>[] | null
     }
   | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr>; body: Token<StatementChain>[] }
-  | { type: 'whileLoop'; cond: Token<Expr>; body: Token<StatementChain>[] }
+  | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
   | {
       type: 'tryBlock'
       body: Token<StatementChain>[]
@@ -60,7 +60,7 @@ export type Statement =
   | { type: 'return'; expr: Token<Expr> | null }
   | ({ type: 'cmdCall' } & CmdCall)
 
-export type ElIfBlock = { cond: Token<Expr>; body: Token<StatementChain>[] }
+export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
@@ -88,19 +88,28 @@ export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
 export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
 
+export type ExprOrTypeAssertion =
+  | { type: 'expr'; inner: Token<Expr> }
+  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
+
 export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
 
 export type ExprElementContent =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
-  | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: ElIfExpr[]; els: Token<Expr> }
+  | {
+      type: 'ternary'
+      cond: Token<ExprOrTypeAssertion>
+      then: Token<Expr>
+      elif: ElIfExpr[]
+      els: Token<Expr>
+    }
   | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
   // Internal type
   | { type: 'synth'; inner: Token<Expr> }
 
-export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
+export type ElIfExpr = { cond: Token<ExprOrTypeAssertion>; expr: Token<Expr> }
 
 export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
 
