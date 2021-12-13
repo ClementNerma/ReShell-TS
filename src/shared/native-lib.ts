@@ -189,6 +189,27 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
     returnType: () => 'string',
   }),
 
+  filter: _buildNativeLibraryFn({
+    generics: ['T'],
+    methodFor: ({ T }) => [[T.name], { type: 'list', itemsType: T }],
+    args: ({ T }) => [
+      {
+        name: 'mapper',
+        type: {
+          type: 'fn',
+          fnType: _buildNativeLibraryFn({
+            args: () => [
+              { name: 'value', type: T },
+              { name: 'index', type: 'int' },
+            ],
+            returnType: () => 'bool',
+          }),
+        },
+      },
+    ],
+    returnType: ({ T }) => ({ type: 'list', itemsType: T }),
+  }),
+
   map: _buildNativeLibraryFn({
     generics: ['T', 'O'],
     methodFor: ({ T }) => [[T.name], { type: 'list', itemsType: T }],

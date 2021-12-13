@@ -243,6 +243,32 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     return success({ type: 'string', value: pieces.join(glue.value) })
   }),
 
+  filter: withArguments({ self: 'list', mapper: 'fn' }, ({ self, mapper }, { at, ctx }) => {
+    const out: ExecValue[] = []
+
+    for (let i = 0; i < self.items.length; i++) {
+      const mapped = unsafeCallbackExec(
+        mapper,
+        new Map<string, ExecValue>([
+          ['value', self.items[i]],
+          ['index', { type: 'int', value: i }],
+        ]),
+        ctx
+      )
+
+      if (mapped.ok !== true) return mapped
+
+      const predicate = expectValueType(at, mapped.data, 'bool')
+      if (predicate.ok !== true) return predicate
+
+      if (predicate.data.value) {
+        out.push(self.items[i])
+      }
+    }
+
+    return success({ type: 'list', items: out })
+  }),
+
   map: withArguments({ self: 'list', mapper: 'fn' }, ({ self, mapper }, { ctx }) => {
     const out: ExecValue[] = []
 
