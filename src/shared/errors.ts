@@ -57,7 +57,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       const maxLineLen = (line + 1 + addLines).toString().length
       const linePad = ' '.repeat(maxLineLen)
 
-      const padLineNb = (line: number) => (line + 1).toString().padStart(maxLineLen, ' ')
+      const padLineNb = (line: number) => (line + 1).toString().padEnd(maxLineLen, ' ')
 
       const header = `--> At ${format('location', `${line + 1}:${col + 1}`)}:`
 
@@ -90,7 +90,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
         }
 
         if (addLines > 5) {
-          upToError.push('...')
+          upToError.push('...  ' + format('locationPointer', '|'))
 
           for (let l = line + addLines - 2; l < line + addLines; l++) {
             upToError.push(
