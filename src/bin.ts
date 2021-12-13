@@ -32,9 +32,9 @@ if (!existsSync(path)) fail('Example not found')
 
 const source = readFileSync(path, 'utf-8')
 
-const iter = argv[1] && argv[1] !== '--ast' ? parseInt(argv[1]) : 1
+const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
 
-const iterSrc = source.repeat(iter)
+const iterSrc = iter > 1 ? `if true { ${source} }\n`.repeat(iter) : source
 
 const errorFormatters: ErrorParsingFormatters = {
   header: chalk.yellowBright,
@@ -83,7 +83,12 @@ const infos = [
   `Decompressed (max)  | ${ms(decompressDuration)} |`,
 ]
 
-if (argv[1] === '--ast' || argv[2] === '--ast') {
+if (argv.includes('--ast-perf')) {
+  infos.forEach((info) => console.log(info))
+  process.exit(0)
+}
+
+if (argv.includes('--ast')) {
   console.dir(parsed.data, { depth: null })
   infos.forEach((info) => console.log(info))
   process.exit(0)
