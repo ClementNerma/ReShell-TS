@@ -37,10 +37,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           const validation = resolveExprType(expr, { scopes, expectedType: expectedType ?? null })
           if (!validation.ok) return validation
 
-          scope.variables.set(
-            varname.parsed,
-            located(varname.start, varname.next, { mutable: mutable.parsed, type: validation.data })
-          )
+          scope.variables.set(varname.parsed, located(varname.at, { mutable: mutable.parsed, type: validation.data }))
 
           return false
         },

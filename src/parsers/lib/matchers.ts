@@ -141,7 +141,7 @@ export function failWithPrecedenceIf<T>(parser: Parser<T>, error: string, pos: '
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok
-      ? err(before ? start : parsed.data.next, before ? start : parsed.data.next, context, error)
+      ? err(before ? start : parsed.data.at.next, before ? start : parsed.data.at.next, context, error)
       : { ...parsed, precedence: false }
   }
 }

@@ -79,7 +79,7 @@ export function notFollowedBy<T>(parser: Parser<T>, by: Parser<T>, options?: Loo
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const following = lookahead(parser)(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
+    const following = lookahead(parser)(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
     return following.ok || following.precedence === options?.precedencePassthrough
       ? err(start, start, context, options?.error)
       : parsed
@@ -91,7 +91,7 @@ export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<T
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const following = lookahead(parser)(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
+    const following = lookahead(parser)(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
     return following.ok ? parsed : err(start, start, context, error)
   }
 }

@@ -10,7 +10,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   const { expectedType } = ctx
 
   if (expectedType?.inner.type === 'implicit') {
-    return err('Internal error: expected type is set as implicit while evaluating value type', value)
+    return err('Internal error: expected type is set as implicit while evaluating value type', value.at)
   }
 
   if (expectedType?.inner.type === 'aliasRef') {
@@ -27,7 +27,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               ['Tip', 'Usage of "null" values require to be able to determine the type of the parent expression'],
             ],
           },
-          value
+          value.at
         )
       }
 
@@ -40,7 +40,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               ['Found', 'void'],
             ],
           },
-          value
+          value.at
         )
       }
       return success(expectedType)
@@ -143,7 +143,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     list: ({ items }) => {
       if (items.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this list', value)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this list', value.at)
       }
 
       let expectedItemType: ValueType | null = null
@@ -171,7 +171,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     map: ({ entries }) => {
       if (entries.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value.at)
       }
 
       let expectedItemType: ValueType | null = null
@@ -193,8 +193,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         const duplicate = keys.get(key.parsed)
 
         if (duplicate) {
-          return err('A key with this name was already declared above', key, [
-            formattableExtract(duplicate, 'Original declaration occurs here'),
+          return err('A key with this name was already declared above', key.at, [
+            formattableExtract(duplicate.at, 'Original declaration occurs here'),
           ])
         }
 
@@ -211,7 +211,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     struct: ({ members }) => {
       if (members.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value.at)
       }
 
       let expectedMembers: Map<string, ValueType> | null = null
@@ -235,8 +235,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         const duplicate = memberNames.get(name.parsed)
 
         if (duplicate) {
-          return err('A member with this name was already declared above', name, [
-            formattableExtract(duplicate, 'Original declaration occurs here'),
+          return err('A member with this name was already declared above', name.at, [
+            formattableExtract(duplicate.at, 'Original declaration occurs here'),
           ])
         }
 
@@ -253,7 +253,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
                 message: `Unknown member "${name.parsed}"`,
                 complements: [['Expected', rebuildType(expectedType!)]],
               },
-              name
+              name.at
             )
           }
 
@@ -288,11 +288,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       let foundType: ValueType
 
       if (referencedVar.ok) {
-        foundType = referencedVar.data.data.type
+        foundType = referencedVar.data.content.type
       } else if (referencedFn.ok) {
-        foundType = { nullable: false, inner: { type: 'fn', fnType: referencedFn.data.data } }
+        foundType = { nullable: false, inner: { type: 'fn', fnType: referencedFn.data.content } }
       } else {
-        return err(`Referenced variable "${varname.parsed}" was not found in this scope`, value)
+        return err(`Referenced variable "${varname.parsed}" was not found in this scope`, value.at)
       }
 
       if (!expectedType) {
@@ -334,7 +334,7 @@ const errIncompatibleValueType = (
             ]
           : [],
     },
-    value
+    value.at
   )
 }
 

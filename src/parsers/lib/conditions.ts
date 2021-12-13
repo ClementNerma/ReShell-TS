@@ -68,7 +68,7 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const not = notFollowedBy(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
+    const not = notFollowedBy(parsed.data.at.next, sliceInput(input, start, parsed.data.at.next), context)
     return not.ok ? err(start, start, context, error) : parsed
   }
 }

@@ -35,9 +35,9 @@ export function fullSource<T>(
     const parsed = parser(start, input, context)
     if (!parsed.ok) return withErr(parsed, context, errors?.error)
 
-    const remaining = sliceInput(input, start, parsed.data.next)
+    const remaining = sliceInput(input, start, parsed.data.at.next)
 
-    if (remaining.length > 0) return err(parsed.data.next, parsed.data.next, context, errors?.eos)
+    if (remaining.length > 0) return err(parsed.data.at.next, parsed.data.at.next, context, errors?.eos)
 
     return parsed
   }

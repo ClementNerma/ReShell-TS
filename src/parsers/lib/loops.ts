@@ -49,8 +49,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
       lastWasNeutralError = data.neutralError
 
-      input = sliceInput(input, next, data.next)
-      next = data.next
+      input = sliceInput(input, next, data.at.next)
+      next = data.at.next
 
       parsed.push(data)
       matched.push(data.matched)
@@ -73,8 +73,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         const { data: interData } = interResult
 
         beforeInterMatching = next
-        input = sliceInput(input, next, interData.next)
-        next = interData.next
+        input = sliceInput(input, next, interData.at.next)
+        next = interData.at.next
 
         matched.push(interData.matched)
 
@@ -93,7 +93,9 @@ export function takeWhile1<T>(
   options?: TakeWhileOptions & { noMatchError?: ErrInputData }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
-    parsed.data.parsed.length === 0 ? err(parsed.data.start, parsed.data.next, context, options?.noMatchError) : parsed
+    parsed.data.parsed.length === 0
+      ? err(parsed.data.at.start, parsed.data.at.next, context, options?.noMatchError)
+      : parsed
   )
 }
 
@@ -103,7 +105,7 @@ export function takeWhileN<T>(
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
     parsed.data.parsed.length < options.minimum
-      ? err(parsed.data.start, parsed.data.next, context, options?.noMatchError)
+      ? err(parsed.data.at.start, parsed.data.at.next, context, options?.noMatchError)
       : parsed
   )
 }

@@ -9,7 +9,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
   const from = resolveExprElementType(expr.parsed.from, context)
   if (!from.ok) return from
 
-  let leftExpr: CodeSection = expr
+  let leftExprAt: CodeSection = expr.at
   let leftExprType = from.data
 
   for (const { parsed: action } of expr.parsed.sequence) {
@@ -28,7 +28,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
                   leftExprType.nullable ||
                   (leftExprType.inner.type !== 'number' && leftExprType.inner.type !== 'string')
                 ) {
-                  return errCannotApplyOperator(op.op, 'number | string', leftExprType, leftExpr)
+                  return errCannotApplyOperator(op.op, 'number | string', leftExprType, leftExprAt)
                 }
 
                 checkRightOperandType = leftExprType
@@ -40,7 +40,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
               case 'Div':
               case 'Rem':
                 if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
-                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExpr)
+                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExprAt)
                 }
 
                 checkRightOperandType = leftExprType
@@ -49,8 +49,8 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
 
               case 'Null':
                 if (!leftExprType.nullable) {
-                  return err('This operator can only be applied on nullable values', action.op, [
-                    formattableExtract(leftExpr, 'This expression is not nullable'),
+                  return err('This operator can only be applied on nullable values', action.op.at, [
+                    formattableExtract(leftExprAt, 'This expression is not nullable'),
                   ])
                 }
 
@@ -69,7 +69,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
               case 'Eq':
               case 'NotEq':
                 if (leftExprType.nullable || leftExprType.inner.type !== 'bool') {
-                  return errCannotApplyOperator(op.op, 'bool', leftExprType, leftExpr)
+                  return errCannotApplyOperator(op.op, 'bool', leftExprType, leftExprAt)
                 }
 
                 checkRightOperandType = leftExprType
@@ -81,7 +81,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
               case 'LessThan':
               case 'LessThanOrEqualTo':
                 if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
-                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExpr)
+                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExprAt)
                 }
 
                 checkRightOperandType = leftExprType
@@ -101,9 +101,9 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
 
         if (!rightExprType.ok) return rightExprType
 
-        leftExpr = {
-          start: leftExpr.start,
-          next: rightExpr.next,
+        leftExprAt = {
+          start: leftExprAt.start,
+          next: rightExpr.at.next,
         }
 
         leftExprType = typeof producedType === 'function' ? producedType(rightExprType.data) : rightExprType.data

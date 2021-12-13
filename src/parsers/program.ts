@@ -11,7 +11,7 @@ const strippedProgram: Parser<Program> = takeWhile(statementChain)
 
 export const program: Parser<Program> = withNormalizedNewlines(
   fullSource(
-    then(commentStripper, ({ data: { start, parsed } }, context) => strippedProgram(start, parsed, context)),
+    then(commentStripper, ({ data }, context) => strippedProgram(data.at.start, data.parsed, context)),
     { eos: 'Expected statement' }
   )
 )

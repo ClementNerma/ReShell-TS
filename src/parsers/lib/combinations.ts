@@ -60,7 +60,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
 
       const { data } = result
 
-      input = sliceInput(input, loc, data.next)
+      input = sliceInput(input, loc, data.at.next)
 
       parsed.push(data)
       matched.push(data.matched)
@@ -73,7 +73,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
 
       lastWasNeutralError = data.neutralError
 
-      loc = data.next
+      loc = data.at.next
       lastResult = result
 
       if (!data.neutralError && options?.inter && i < parsers.length - 1) {
@@ -85,13 +85,13 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
 
         const { data } = interResult
 
-        input = sliceInput(input, loc, data.next)
-        loc = data.next
+        input = sliceInput(input, loc, data.at.next)
+        loc = data.at.next
 
         matched.push(data.matched)
       }
     }
 
-    return success(start, lastResult.data.next, parsed, matched.join(''))
+    return success(start, lastResult.data.at.next, parsed, matched.join(''))
   }
 }

@@ -55,7 +55,7 @@ export function success<T>(
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
-    data: { matched, parsed, neutralError: neutralError ?? false, start, next },
+    data: { matched, parsed, neutralError: neutralError ?? false, at: { start, next } },
   }
 }
 
@@ -68,8 +68,7 @@ export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<Parse
       matched: '',
       parsed: neutralValue!,
       neutralError: true,
-      start,
-      next: start,
+      at: { start, next: start },
     },
   }
 }

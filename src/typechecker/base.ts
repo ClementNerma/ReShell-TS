@@ -1,5 +1,5 @@
 import { FormatableError, FormatableExtract, FormatableExtractsInput, formattableExtract } from '../shared/errors'
-import { CodeLoc, CodeSection, FnType, ValueType } from '../shared/parsed'
+import { CodeSection, FnType, ValueType } from '../shared/parsed'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
@@ -28,9 +28,9 @@ export const err = (err: FormatableExtractsInput, at: CodeSection, also?: Format
   also: also ?? [],
 })
 
-export type Located<T> = { start: CodeLoc; end: CodeLoc; data: T }
+export type Located<T> = { at: CodeSection; content: T }
 
-export const located = <T>(start: CodeLoc, end: CodeLoc, data: T): Located<T> => ({ start, end, data })
+export const located = <T>(at: CodeSection, content: T): Located<T> => ({ at, content })
 
 // export const tokenToLocated = <T>(token: Token<T>): Located<T> => ({ loc: token.start, data: token.parsed })
 
