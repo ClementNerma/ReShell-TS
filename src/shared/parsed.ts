@@ -42,7 +42,7 @@ export type Statement =
   | {
       type: 'assignment'
       varname: Token<string>
-      propAccess: Token<PropertyAccess>[]
+      propAccess: Token<NonNullablePropertyAccess>[]
       prefixOp: Token<DoubleArithOp> | null
       expr: Token<Expr>
     }
