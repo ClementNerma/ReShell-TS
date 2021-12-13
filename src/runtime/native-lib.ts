@@ -102,7 +102,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
 
           return {
             type: 'struct',
-            members: new Map([
+            members: new Map<string, ExecValue>([
               [
                 'type',
                 item.isFile()
@@ -113,6 +113,14 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
                   ? { type: 'enum', variant: 'Symlink' }
                   : { type: 'enum', variant: 'Unknown' },
               ],
+              ['name', { type: 'string', value: name }],
+              [
+                'size',
+                item.isFile() || item.isSymbolicLink() ? { type: 'number', value: item.size } : { type: 'null' },
+              ],
+              ['ctime', { type: 'number', value: item.ctime.getDate() }],
+              ['mtime', { type: 'number', value: item.mtime.getDate() }],
+              ['atime', { type: 'number', value: item.atime.getDate() }],
             ]),
           }
         }),

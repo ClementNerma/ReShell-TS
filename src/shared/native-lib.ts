@@ -38,8 +38,9 @@ export const nativeLibraryTypeAliases = buildWithNativeLibraryTypeAliasNames<Val
       { name: 'type', type: { type: 'aliasRef', typeAliasName: _forgeToken('LsItemType') } },
       { name: 'name', type: { type: 'string' } },
       { name: 'size', type: { type: 'nullable', inner: { type: 'number' } } },
-      { name: 'creationDate', type: { type: 'number' } },
-      { name: 'modificationDate', type: { type: 'number' } },
+      { name: 'ctime', type: { type: 'number' } },
+      { name: 'mtime', type: { type: 'number' } },
+      { name: 'atime', type: { type: 'number' } },
     ],
   },
 
