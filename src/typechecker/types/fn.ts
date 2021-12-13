@@ -229,15 +229,19 @@ export const validateFnCall: Typechecker<
     generics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
     declaredCommand?: true
+    resolvedGenerics?: GenericResolutionScope
   },
   ValueType
-> = ({ at, fnType, generics, args, declaredCommand }, ctx) => {
+> = ({ at, fnType, generics, args, declaredCommand, resolvedGenerics }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
   )
 
-  const gScope: GenericResolutionScope = new Map(fnType.generics.map((generic) => [generic.parsed, null]))
+  const gScope: GenericResolutionScope = new Map(
+    fnType.generics.map((generic) => [generic.parsed, resolvedGenerics?.get(generic.parsed) ?? null])
+  )
+
   ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat(gScope) }
 
   if (generics) {

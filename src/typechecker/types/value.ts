@@ -1,7 +1,15 @@
 import { FnType, PrimitiveValueType, StructTypeMember, Value, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import {
+  ensureCoverage,
+  err,
+  GenericResolutionScope,
+  success,
+  Typechecker,
+  TypecheckerContext,
+  TypecheckerResult,
+} from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope } from '../scope/search'
@@ -536,7 +544,25 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         )
       }
 
-      const returnType = validateFnCall({ at: name.at, fnType, generics, args }, ctx)
+      let resolvedGenerics: GenericResolutionScope = new Map()
+
+      if (ctx.typeExpectation && fnType.generics.length > 0) {
+        resolvedGenerics = new Map(fnType.generics.map((g) => [g.parsed, null]))
+
+        const compat = isTypeCompatible(
+          {
+            at: name.at,
+            candidate: fnType.returnType.parsed,
+            typeExpectation: ctx.typeExpectation,
+            fillKnownGenerics: resolvedGenerics,
+          },
+          ctx
+        )
+
+        if (!compat.ok) return compat
+      }
+
+      const returnType = validateFnCall({ at: name.at, fnType, generics, args, resolvedGenerics }, ctx)
 
       if (!returnType.ok) return returnType
 

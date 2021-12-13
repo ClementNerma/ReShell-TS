@@ -1,6 +1,6 @@
 import { ValueType } from '../../shared/ast'
 import { CodeSection } from '../../shared/parsed'
-import { err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { rebuildType } from './rebuilder'
 
 export const isTypeCompatible: Typechecker<
@@ -8,12 +8,13 @@ export const isTypeCompatible: Typechecker<
     candidate: ValueType
     at: CodeSection
     typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
+    fillKnownGenerics?: GenericResolutionScope
     _path?: string[]
     _originalCandidate?: ValueType
     _originalReferent?: ValueType
   },
   void
-> = ({ candidate, at, typeExpectation, _path, _originalCandidate, _originalReferent }, ctx) => {
+> = ({ candidate, at, typeExpectation, fillKnownGenerics, _path, _originalCandidate, _originalReferent }, ctx) => {
   const expectationErr = (message?: string, atOverride?: CodeSection) => {
     const pathStr = path.length > 0 ? path.join(' > ') + ' > ' : ''
 
@@ -60,13 +61,23 @@ export const isTypeCompatible: Typechecker<
   //   ctx,
   // })
 
-  const subCheck = (addPath: string | null, candidate: ValueType, referent: ValueType, atOverride?: CodeSection) =>
+  const subCheck = (options: {
+    addPath?: string
+    candidate: ValueType
+    candidateAt?: CodeSection
+    referent: ValueType
+    referentAt?: CodeSection | null
+  }) =>
     isTypeCompatible(
       {
-        candidate,
-        at: atOverride ?? at,
-        typeExpectation: { from, type: referent },
-        _path: addPath === null ? path : path.concat([addPath]),
+        candidate: options.candidate,
+        at: options.candidateAt ?? at,
+        typeExpectation: {
+          from: options.referentAt !== undefined ? options.referentAt : from,
+          type: options.referent,
+        },
+        fillKnownGenerics,
+        _path: options.addPath === undefined ? path : path.concat([options.addPath]),
         _originalCandidate: originalCandidate,
         _originalReferent: originalReferent,
       },
@@ -123,17 +134,11 @@ export const isTypeCompatible: Typechecker<
           gScope.set(referent.name.parsed, candidate)
           return success(void 0)
         } else {
-          return isTypeCompatible(
-            {
-              at,
-              candidate,
-              typeExpectation: {
-                type: generic,
-                from,
-              },
-            },
-            ctx
-          )
+          return subCheck({
+            candidate,
+            referent: generic,
+            referentAt: from,
+          })
         }
       }
     }
@@ -143,13 +148,35 @@ export const isTypeCompatible: Typechecker<
     if (candidate.type === 'nullable') {
       return referent.type !== 'nullable'
         ? expectationErr('value should not be nullable')
-        : subCheck('nullable type', candidate.inner, referent.inner)
+        : subCheck({ addPath: 'nullable type', candidate: candidate.inner, referent: referent.inner })
     } else if (referent.type === 'nullable') {
-      return subCheck('nullable type', candidate, referent.inner)
+      return subCheck({ addPath: 'nullable type', candidate, referent: referent.inner })
     }
   }
 
   if (candidate.type !== referent.type) {
+    if (candidate.type === 'generic' && fillKnownGenerics) {
+      const set = fillKnownGenerics.get(candidate.name.parsed)
+
+      if (set === undefined) {
+        return expectationErr('internal error: candidate generic is unknown although filling map was provided')
+      }
+
+      if (set === null) {
+        fillKnownGenerics.set(candidate.name.parsed, referent)
+        return success(void 0)
+      } else {
+        const compat = subCheck({
+          candidate: referent,
+          candidateAt: from ?? undefined,
+          referent: set,
+          referentAt: at,
+        })
+
+        if (!compat.ok) return compat
+      }
+    }
+
     return expectationErr()
   }
 
@@ -163,8 +190,8 @@ export const isTypeCompatible: Typechecker<
     number: () => success(void 0),
     string: () => success(void 0),
     path: () => success(void 0),
-    list: (c, r) => subCheck('list', c.itemsType, r.itemsType),
-    map: (c, r) => subCheck('map', c.itemsType, r.itemsType),
+    list: (c, r) => subCheck({ addPath: 'list', candidate: c.itemsType, referent: r.itemsType }),
+    map: (c, r) => subCheck({ addPath: 'map', candidate: c.itemsType, referent: r.itemsType }),
     struct: (c, r) => {
       const candidateMembers = new Map(c.members.map(({ name, type }) => [name, type]))
       const referentMembers = new Map(r.members.map(({ name, type }) => [name, type]))
@@ -176,7 +203,7 @@ export const isTypeCompatible: Typechecker<
           return expectationErr(`missing member \`${name}\``)
         }
 
-        const comparison = subCheck('.' + name, candidateMember, type)
+        const comparison = subCheck({ addPath: '.' + name, candidate: candidateMember, referent: type })
         if (!comparison.ok) return comparison
       }
 
@@ -243,7 +270,7 @@ export const isTypeCompatible: Typechecker<
           return expectationErr(`argument \`${cArg.name.parsed}\` is not marked as optional unlike in the parent type`)
         }
 
-        const compat = subCheck(null, cArg.type, rArg.type, rArgAt)
+        const compat = subCheck({ candidate: cArg.type, referent: rArg.type, referentAt: rArgAt })
         if (!compat.ok) return compat
       }
 
@@ -256,14 +283,12 @@ export const isTypeCompatible: Typechecker<
           return expectationErr(`function was not expected to have a return type`, c.fnType.returnType.at)
         }
 
-        const retTypeCompat = isTypeCompatible(
-          {
-            candidate: c.fnType.returnType.parsed,
-            at: c.fnType.returnType.at,
-            typeExpectation: { type: r.fnType.returnType.parsed, from: r.fnType.returnType.at },
-          },
-          ctx
-        )
+        const retTypeCompat = subCheck({
+          candidate: c.fnType.returnType.parsed,
+          candidateAt: c.fnType.returnType.at,
+          referent: r.fnType.returnType.parsed,
+          referentAt: r.fnType.returnType.at,
+        })
 
         if (!retTypeCompat.ok) return retTypeCompat
       } else if (r.fnType.returnType) {
@@ -280,25 +305,21 @@ export const isTypeCompatible: Typechecker<
     },
 
     failable: (c, r) => {
-      const successCheck = isTypeCompatible(
-        {
-          at: c.successType.at,
-          candidate: c.successType.parsed,
-          typeExpectation: { type: r.successType.parsed, from: r.successType.at },
-        },
-        ctx
-      )
+      const successCheck = subCheck({
+        candidate: c.successType.parsed,
+        candidateAt: c.successType.at,
+        referent: r.successType.parsed,
+        referentAt: r.successType.at,
+      })
 
       if (!successCheck.ok) return successCheck
 
-      const failureCheck = isTypeCompatible(
-        {
-          at: c.failureType.at,
-          candidate: c.failureType.parsed,
-          typeExpectation: { type: r.failureType.parsed, from: r.failureType.at },
-        },
-        ctx
-      )
+      const failureCheck = subCheck({
+        candidateAt: c.failureType.at,
+        candidate: c.failureType.parsed,
+        referent: r.failureType.parsed,
+        referentAt: r.failureType.at,
+      })
 
       if (!failureCheck.ok) return failureCheck
 
