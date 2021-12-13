@@ -43,6 +43,18 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'bool',
   }),
 
+  charAt: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [{ name: 'index', type: 'number' }],
+    returnType: () => ({ type: 'nullable', inner: { type: 'string' } }),
+  }),
+
+  indexOf: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [{ name: 'lookup', type: 'string' }],
+    returnType: () => ({ type: 'nullable', inner: { type: 'number' } }),
+  }),
+
   replace: _buildNativeLibraryFn({
     methodFor: () => 'string',
     args: () => [

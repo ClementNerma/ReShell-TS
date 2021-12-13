@@ -48,6 +48,24 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       success({ type: 'bool', value: self.value.includes(lookup.value) })
     ),
 
+  charAt: ({ at }, args) =>
+    withArguments(at, args, { self: 'string', index: 'number' }, ({ self, index }) =>
+      success(
+        Math.floor(index.value) === index.value && index.value >= 0 && index.value < self.value.length
+          ? { type: 'string', value: self.value.charAt(index.value) }
+          : { type: 'null' }
+      )
+    ),
+
+  indexOf: ({ at }, args) =>
+    withArguments(at, args, { self: 'string', lookup: 'string' }, ({ self, lookup }) =>
+      success(
+        self.value.includes(lookup.value)
+          ? { type: 'number', value: self.value.indexOf(lookup.value) }
+          : { type: 'null' }
+      )
+    ),
+
   replace: ({ at }, args) =>
     withArguments(
       at,
