@@ -1,4 +1,4 @@
-import { Block, ClosureBody, FnType, Value, ValueType } from '../shared/ast'
+import { Block, ClosureBody, FnType, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
@@ -13,9 +13,9 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
-  typeAliases: Map<string, { at: CodeSection; content: ValueType }>
-  callbackTypes: Map<Value, FnType>
-  fnCallGenerics: Map<CodeSection, Map<string, ValueType>>
+  typeAliases: PrecompData['typeAliases']
+  callbackTypes: PrecompData['callbackTypes']
+  fnCallGenerics: PrecompData['fnCallGenerics']
 }
 
 export const createRunnerContext = (precompData: PrecompData): RunnerContext => ({

@@ -407,7 +407,7 @@ export const validateFnCall: Typechecker<
     resolvedGScope.set(name.parsed, mapped)
   }
 
-  ctx.fnCallGenerics.set(nameAt, resolvedGScope)
+  ctx.fnCallGenerics.push({ at: nameAt, data: resolvedGScope })
 
   return success([
     fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics) : { type: 'void' },

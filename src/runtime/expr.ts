@@ -395,7 +395,7 @@ export const runExprElementContent: Runner<ExprElementContent, ExecValue> = (con
   matchUnion(content, 'type', {
     synth: ({ inner }) => runExpr(inner.parsed, ctx),
     paren: ({ inner }) => runExpr(inner.parsed, ctx),
-    value: ({ content }) => runValue(content.parsed, ctx),
+    value: ({ content }) => runValue(content, ctx),
 
     ternary: ({ cond, then, elif, els }) => {
       const result = runCondOrTypeAssertion(cond.parsed, ctx)

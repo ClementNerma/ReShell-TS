@@ -38,8 +38,8 @@ export function createTypecheckerContext(
     fnExpectation: null,
     restArgs: [],
     commandDeclarations: new Map(),
-    callbackTypes: new Map(),
-    fnCallGenerics: new Map(),
+    callbackTypes: [],
+    fnCallGenerics: [],
     checkIfCommandExists: cmdChecker,
     emitDiagnostic: diagnosticHandler,
   }

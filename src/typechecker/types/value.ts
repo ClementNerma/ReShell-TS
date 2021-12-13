@@ -530,7 +530,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (!check.ok) return check
 
-      ctx.callbackTypes.set(value.parsed, expected)
+      ctx.callbackTypes.push({ at: value.at, data: expected })
 
       return success({ type: 'fn', fnType: expected })
     },

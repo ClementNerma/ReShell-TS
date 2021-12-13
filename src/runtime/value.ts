@@ -1,11 +1,12 @@
 import { Value } from '../shared/ast'
-import { CodeSection } from '../shared/parsed'
+import { CodeSection, Token } from '../shared/parsed'
+import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
 import { runExpr } from './expr'
 
-export const runValue: Runner<Value, ExecValue> = (value, ctx) =>
-  matchUnion(value, 'type', {
+export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
+  matchUnion(value.parsed, 'type', {
     null: () => success({ type: 'null' }),
     bool: ({ value }) => success({ type: 'bool', value: value.parsed }),
     number: ({ value }) => success({ type: 'number', value: value.parsed }),
@@ -161,7 +162,7 @@ export const runValue: Runner<Value, ExecValue> = (value, ctx) =>
     },
 
     callback: ({ args, restArg, body }) => {
-      const fnType = ctx.callbackTypes.get(value)
+      const fnType = getLocatedPrecomp(value.at, ctx.callbackTypes)
 
       if (fnType === undefined) {
         return err(body.at, "internal error: failed to get this function's type from context")
