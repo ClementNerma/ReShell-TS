@@ -123,9 +123,19 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
             failure(valueType, 'Expected a type for the argument'),
             maybeFlatten(
               map(
-                combine(exact('='), failure(literalValue, 'Expected a default value'), {
-                  inter: maybe_s_nl,
-                }),
+                combine(
+                  exact('='),
+                  failure(
+                    withLatelyDeclared(() => literalValue),
+                    {
+                      message: 'Expected a literal default value',
+                      tip: 'Lists, maps and structures are not literal values',
+                    }
+                  ),
+                  {
+                    inter: maybe_s_nl,
+                  }
+                ),
                 ([_, defaultValue]) => defaultValue
               )
             ),
