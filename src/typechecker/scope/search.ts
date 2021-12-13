@@ -1,10 +1,21 @@
 import { Token } from '../../shared/parsed'
 import { matchStr } from '../../shared/utils'
-import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerErr, TypecheckerResult } from '../base'
+import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 
 export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { scopes }) => {
   const orig = scopes[scopes.length - 1].get(name.parsed)
-  return orig ? generateDuplicateDeclError(orig, name) : success(void 0)
+
+  return orig
+    ? err(name.at, {
+        message: `a ${getEntityCategoryName(orig.type)} with this name was previously declared in this scope`,
+        also: [
+          {
+            at: orig.at,
+            message: 'original declaration occurs here',
+          },
+        ],
+      })
+    : success(void 0)
 }
 
 export const getEntityInScope: Typechecker<Token<string>, ScopeEntity> = (name, { scopes }) => {
@@ -87,17 +98,6 @@ export const getVariableInScope: Typechecker<Token<string>, Extract<ScopeEntity,
 
   return err(name.at, 'variable not found')
 }
-
-export const generateDuplicateDeclError = (original: ScopeEntity, duplicate: Token<string>): TypecheckerErr =>
-  err(duplicate.at, {
-    message: `a ${getEntityCategoryName(original.type)} with this name was previously declared in this scope`,
-    also: [
-      {
-        at: original.at,
-        message: 'original declaration occurs here',
-      },
-    ],
-  })
 
 export function getEntityCategoryName(type: ScopeEntity['type']): string {
   return matchStr(type, {

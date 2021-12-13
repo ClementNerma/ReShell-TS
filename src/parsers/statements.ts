@@ -1,26 +1,18 @@
-import {
-  ChainedStatement,
-  ElIfBlock,
-  EntityImport,
-  EntityImports,
-  ForLoopSubject,
-  Statement,
-  StatementChain,
-} from '../shared/ast'
+import { ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar,
+  withStatementClosingChar
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
-import { lookahead, nothing } from './lib/consumeless'
+import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -309,61 +301,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     cmdCall: cmdCall(endOfCmdCallStatement),
 
     fileInclusion: then(
-      combine(
-        exact('@include'),
-        s,
-        failure(rawString, 'expected a file path to include'),
-        maybe_s,
-        mappedCases<EntityImports>()('type', {
-          all: map(combine(exact('import'), s, exact('*')), () => ({})),
-
-          some: map(
-            combine(
-              combine(
-                exact('import', 'expected an "import" keyword'),
-                maybe_s_nl,
-                exact('{', 'expected an opening brace ({)'),
-                maybe_s_nl
-              ),
-              extract(
-                takeWhile<EntityImport>(
-                  map(
-                    combine(
-                      identifier,
-                      maybe(
-                        map(
-                          combine(
-                            s,
-                            exact('as'),
-                            failure(s, 'expected space after "as" keyword'),
-                            failure(identifier, 'expected an alias identifier')
-                          ),
-                          ([_, __, ___, alias]) => alias
-                        )
-                      )
-                    ),
-                    ([entity, { parsed: alias }]) => ({ entity, alias })
-                  ),
-                  {
-                    inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-                    interExpect: 'expected an identifier to import',
-                  }
-                )
-              ),
-              maybe_s_nl,
-              exact('}', 'expected a closing brace (})')
-            ),
-            ([_, { parsed: imports }]) => ({ imports })
-          ),
-
-          none: map(nothing(), () => ({})),
-        })
-      ),
-      (
-        [_, __, { parsed: filePath }, ___, { parsed: imports }],
-        { at, parsed: [____, _____, filePathToken], matched },
-        context
-      ) => {
+      combine(exact('@include'), s, failure(rawString, 'expected a file path to include')),
+      ([_, __, { parsed: filePath }], { at, parsed: [____, _____, filePathToken], matched }, context) => {
         const resolvedFilePath = context.sourceServer.resolvePath(filePath, context.currentFilePath)
         const fileContent = context.sourceServer.read(resolvedFilePath)
 
@@ -375,7 +314,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
         if (!sub.ok) return sub
 
-        return success(at.start, at.next, { content: sub.data.parsed, imports }, matched)
+        return success(at.start, at.next, { content: sub.data.parsed }, matched)
       }
     ),
   },
