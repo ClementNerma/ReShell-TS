@@ -8,7 +8,7 @@ import { takeWhile } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, mapFull, silence, toOneProp } from '../lib/transform'
-import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { logUsage, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdCall } from './cmdcall'
 import {
   DoubleArithOp,
@@ -87,7 +87,11 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         takeWhile(
           map(
             combine(
-              identifier,
+              logUsage(contextualFailure)(
+                identifier,
+                (ctx) => ctx.loopData?.iter !== 0,
+                'Syntax error: expected either a member name, or a closing brace (}) to close the structure'
+              ),
               exact(':'),
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
@@ -99,7 +103,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact('}', 'Syntax error: expected either a member name, or a closing brace (}) to close the structure'),
+      exact('}', 'Syntax error: expected a closing brace (}) to close the structure'),
       {
         inter: maybe_s_nl,
       }

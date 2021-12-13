@@ -43,7 +43,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
     for (let i = 0; i < parsers.length; i++) {
       const result = (parsers[i] as Parser<unknown>)(loc, input, {
         ...context,
-        loopData: { iter: i, soFar: { start, matched, parsed } },
+        combinationData: { iter: i, soFar: { start, matched, parsed } },
       })
       if (!result.ok) return withErr(result, context, options?.error)
 
@@ -64,7 +64,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
       if (!data.neutralError && options?.inter && i < parsers.length - 1) {
         const interResult = options.inter(loc, input, {
           ...context,
-          loopData: { iter: i, soFar: { start, matched, parsed } },
+          combinationData: { iter: i, soFar: { start, matched, parsed } },
         })
 
         if (!interResult.ok) {

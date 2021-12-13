@@ -28,6 +28,7 @@ export type ParsingContext = Readonly<{
   source: { ref: string }
   failureWillBeNeutral?: boolean
   loopData?: LoopContext
+  combinationData?: LoopContext
   $custom: unknown
   self: () => ParsingContext
 }>
