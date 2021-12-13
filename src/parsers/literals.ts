@@ -17,7 +17,7 @@ export const rawPath: Parser<Token<string>[]> = takeWhileN(
 )
 
 export const rawString: Parser<string> = map(
-  combine(exact('r"'), match(/([^\\"\n]|\\[^\n])*/), exact('"', 'Opened string has not been closed with a quote (")')),
+  combine(exact("r'"), match(/([^\\'\n]|\\[^\n])*/), exact("'", 'Opened string has not been closed with a quote (")')),
   ([_, { parsed: content }, __]) => content
 )
 

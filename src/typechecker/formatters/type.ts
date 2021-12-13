@@ -38,6 +38,6 @@ export const rebuildLiteralValue = (value: LiteralValue): string =>
     null: () => 'null',
     bool: ({ value }) => (value.parsed ? 'true' : 'false'),
     number: ({ value }) => value.parsed.toString(),
-    string: ({ value }) => `r"${value.parsed}"`,
+    string: ({ value }) => `'${value.parsed}'`,
     path: ({ segments }) => segments.parsed.map((segment) => segment.parsed).join('/'),
   })
