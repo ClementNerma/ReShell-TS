@@ -31,7 +31,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
 
 export const resolveExprOrTypeAssertionType: Typechecker<
   Token<ExprOrTypeAssertion>,
-  { type: 'expr'; resolved: ValueType } | { type: 'assertion'; assertionScope: Scope }
+  { type: 'expr'; resolved: ValueType } | { type: 'assertion'; assertionScope: Scope; inverted: boolean }
 > = (expr, ctx) => {
   switch (expr.parsed.type) {
     case 'expr':
@@ -39,6 +39,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       return resolved.ok ? success({ type: 'expr', resolved: resolved.data }) : resolved
 
     case 'assertion':
+    case 'invertedAssertion':
       const subject = getVariableInScope(expr.parsed.varname, ctx)
       if (!subject.ok) return subject
 
@@ -86,7 +87,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
         },
       })
 
-      return success({ type: 'assertion', assertionScope })
+      return success({ type: 'assertion', assertionScope, inverted: expr.parsed.type === 'invertedAssertion' })
 
     default:
       return ensureCoverage(expr.parsed)

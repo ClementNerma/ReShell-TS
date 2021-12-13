@@ -137,7 +137,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           const thenCheck = statementChainChecker(
             body,
-            condCheck.data.type === 'assertion'
+            condCheck.data.type === 'assertion' && !condCheck.data.inverted
               ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.assertionScope]) }
               : ctx
           )
@@ -166,7 +166,15 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           }
 
           if (els) {
-            const elseCheck = statementChainChecker(els, ctx)
+            const elseCheck = statementChainChecker(
+              els,
+              condCheck.data.type === 'assertion' && condCheck.data.inverted
+                ? {
+                    ...ctx,
+                    scopes: ctx.scopes.concat(condCheck.data.assertionScope),
+                  }
+                : ctx
+            )
 
             if (!elseCheck.ok) return elseCheck
 
@@ -175,7 +183,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           const neverReturns = blocksMetadata.every((metadata) => metadata.neverReturns)
 
-          if (neverReturns && condCheck.data.type === 'assertion') {
+          if (
+            condCheck.data.type === 'assertion' &&
+            ((condCheck.data.inverted && thenCheck.data.neverReturns) || (!condCheck.data.inverted && neverReturns))
+          ) {
             for (const [varname, vartype] of condCheck.data.assertionScope.variables.entries()) {
               currentScope.variables.set(varname, vartype)
             }

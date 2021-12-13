@@ -180,6 +180,21 @@ export const expr: Parser<Expr> = map(
 )
 
 export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<ExprOrTypeAssertion>()('type', {
+  invertedAssertion: map(
+    combine(
+      identifier,
+      s,
+      or<ValueType | null>([
+        map(combine(exact('is'), s, exact('null')), (_) => null),
+        map(
+          combine(s, exact('isnt'), s, failure(valueType, 'Expected a type after the "isnt" type assertion operator')),
+          ([_, __, ___, { parsed: type }]) => type
+        ),
+      ])
+    ),
+    ([varname, _, minimum]) => ({ varname, minimum: flattenMaybeToken(minimum) })
+  ),
+
   assertion: map(
     combine(
       identifier,
