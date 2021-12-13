@@ -312,7 +312,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         typeAlias: () => success({ neverReturns: false }),
 
         fnDecl: ({ fnType, body }) => {
-          return statementChainChecker(body, {
+          const check = statementChainChecker(body, {
             ...ctx,
             scopes: scopes.concat([fnScopeCreator(fnType)]),
             fnExpectation: {
@@ -320,6 +320,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
             },
           })
+
+          return check.ok ? success({ neverReturns: false }) : check
         },
 
         return: ({ expr }) => {
