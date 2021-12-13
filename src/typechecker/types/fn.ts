@@ -24,7 +24,17 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
     }
   }
 
-  return typeValidator({ type: 'fn', fnType }, ctx)
+  if (fnType.returnType) {
+     const check = typeValidator(fnType.returnType.parsed, ctx)
+     if (!check.ok) return check
+  }
+
+  if (fnType.failureType) {
+    const check = typeValidator(fnType.failureType.parsed, ctx)
+    if (!check.ok) return check
+  }
+
+  return success(void 0)
 }
 
 export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: CodeSection; type: ValueType }>> = (
