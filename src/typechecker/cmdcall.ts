@@ -111,6 +111,7 @@ export const cmdSignatureCallValidator: Typechecker<
           at,
           args: callArgs,
           fnType: {
+            generics: [],
             args,
             restArg: rest,
             returnType: null,

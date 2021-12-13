@@ -256,6 +256,11 @@ export const isTypeCompatible: Typechecker<
       return success(void 0)
     },
 
+    generic: (c, r) =>
+      c.name.parsed === r.name.parsed
+        ? success(void 0)
+        : err(c.name.at, `expected generic \`${r.name.parsed}\`, found \`${c.name.parsed}\``),
+
     aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),
     unknown: () => expectationErr('internal error: unreachable "unknown" type comparison'),
     nullable: () => expectationErr('internal error: unreachable "nullable" type comparison'),

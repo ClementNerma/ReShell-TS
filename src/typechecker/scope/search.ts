@@ -102,6 +102,7 @@ export const getVariableInScope: Typechecker<Token<string>, Extract<ScopeEntity,
 export function getEntityCategoryName(type: ScopeEntity['type']): string {
   return matchStr(type, {
     typeAlias: () => 'type alias',
+    generic: () => 'generic',
     fn: () => 'function',
     var: () => 'variable',
   })

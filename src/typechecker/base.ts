@@ -1,6 +1,6 @@
 import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
-import { CodeSection } from '../shared/parsed'
+import { CodeSection, Token } from '../shared/parsed'
 import { nativeLibraryScope } from './scope/native-lib'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
@@ -50,6 +50,7 @@ export type Scope = Map<string, ScopeEntity>
 export type ScopeEntity =
   | { type: 'typeAlias'; at: CodeSection; content: ValueType }
   | { type: 'fn'; at: CodeSection; content: FnType }
+  | { type: 'generic'; at: CodeSection; name: Token<string> }
   | ({ type: 'var'; at: CodeSection } & ScopeVar)
 
 export type ScopeVar = { mutable: boolean; varType: ValueType }

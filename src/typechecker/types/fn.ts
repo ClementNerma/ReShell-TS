@@ -11,7 +11,17 @@ import { typeValidator } from './validator'
 import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
+  ctx = {
+    ...ctx,
+    scopes: ctx.scopes.concat(
+      new Map(
+        fnType.generics.map((name): [string, ScopeEntity] => [name.parsed, { type: 'generic', at: name.at, name }])
+      )
+    ),
+  }
+
   const args = fnTypeArgsValidator(fnType.args, ctx)
+
   if (!args.ok) return args
 
   if (fnType.restArg) {
@@ -360,14 +370,18 @@ export const validateFnCallArgs: Typechecker<
 
 export function fnScopeCreator(fnType: FnType): Scope {
   return new Map(
-    fnType.args.map((arg): [string, ScopeEntity] => [
-      arg.parsed.name.parsed,
-      {
-        type: 'var',
-        at: arg.at,
-        mutable: false,
-        varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
-      },
-    ])
+    fnType.generics
+      .map((name): [string, ScopeEntity] => [name.parsed, { type: 'generic', at: name.at, name }])
+      .concat(
+        fnType.args.map((arg): [string, ScopeEntity] => [
+          arg.parsed.name.parsed,
+          {
+            type: 'var',
+            at: arg.at,
+            mutable: false,
+            varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
+          },
+        ])
+      )
   )
 }
