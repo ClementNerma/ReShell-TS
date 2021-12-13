@@ -56,7 +56,7 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
   return [elapsed, out]
 }
 
-const [parsedDuration, parsed] = measurePerf(() => parseSource(StrView.create(iterSrc), program, initContext()))
+const [parsingDuration, parsed] = measurePerf(() => parseSource(StrView.create(iterSrc), program, initContext()))
 
 if (!parsed.ok) {
   console.error(
@@ -79,20 +79,20 @@ if (decompressed1.toString('utf-8') !== jsonStr || decompressed9.toString('utf-8
   fail('Decompressed data is not the same as the source!')
 }
 
-const [parseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
+const [jsonParseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
 
 if (JSON.stringify(reparsed) !== jsonStr) {
   fail('Reparsed data is not the same as the source!')
 }
 
 const infos = [
-  `Parsed              | ${ms(parsedDuration)} | ${kb(source.length * iter)}`,
+  `Parsed              | ${ms(parsingDuration)} | ${kb(source.length * iter)}`,
   `Minimified AST JSON | ${ms(jsonStrDuration)} | ${kb(JSON.stringify(parsed.data).length)}`,
   `Compressed (min)    | ${ms(compress1Duration)} | ${kb(compressed1.byteLength)}`,
   `Decompressed (min)  | ${ms(decompress1Duration)} |`,
   `Compressed (max)    | ${ms(compress9Duration)} | ${kb(compressed9.byteLength)}`,
   `Decompressed (max)  | ${ms(decompress9Duration)} |`,
-  `JSON AST parsing    | ${ms(parseDuration)} |`,
+  `JSON AST parsing    | ${ms(jsonParseDuration)} |`,
 ]
 
 if (argv.includes('--ast-perf')) {
@@ -141,3 +141,4 @@ console.dir(typechecked.data, { depth: null })
 
 infos.forEach((info) => console.log(info))
 console.log(`Typechecked         | ${ms(typecheckerDuration)} |`)
+console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} |`)

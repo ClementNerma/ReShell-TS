@@ -11,8 +11,8 @@ It is currently under heavy construction.
 | Language design                     | :heavy_check_mark: |
 | Language parsing and AST generation | :heavy_check_mark: |
 | Syntax checking                     | :heavy_check_mark: |
-| Typechecking                        | :construction:     |
-| Runtime engine                      | _TODO_             |
+| Typechecking                        | :heavy_check_mark: |
+| Runtime engine                      | :construction:     |
 
 ## Comparison with other shells
 
