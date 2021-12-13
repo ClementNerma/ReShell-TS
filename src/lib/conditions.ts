@@ -7,6 +7,7 @@ import {
   ParserResult,
   ParserSucess,
   ParsingContext,
+  sliceInput,
   Token,
 } from './base'
 
@@ -38,6 +39,16 @@ export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T
   return (start, input, context) => {
     const parsed = failIf(start, input, context)
     return parsed.ok ? err(start, context) : els(start, input, context)
+  }
+}
+
+export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknown>, error?: ErrFnData): Parser<T> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    if (!parsed.ok) return parsed
+
+    const not = notFollowedBy(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
+    return not.ok ? err(start, context, error) : parsed
   }
 }
 

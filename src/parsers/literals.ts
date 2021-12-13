@@ -1,8 +1,8 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { failIfElse } from '../lib/conditions'
+import { failIfElse, notFollowedBy } from '../lib/conditions'
 import { failure } from '../lib/errors'
-import { maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
+import { digit, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeForever, takeWhile, takeWhile1N, takeWhileMN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
@@ -72,9 +72,18 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
     (_, value) => ({ value })
   ),
 
-  number: map(
-    regex(/\d+(\.\d+)?/, (num) => parseFloat(num[0])),
-    (_, value) => ({ value })
+  number: toOneProp(
+    notFollowedBy(
+      or([
+        regex(/0x([0-9a-fA-F]+)/, ([_, num]) => parseInt(num, 16)),
+        regex(/0b([0-1]+)/, ([_, num]) => parseInt(num, 2)),
+        regex(/0o([0-7]+)/, ([_, num]) => parseInt(num, 8)),
+        regex(/0*(\d+(\.\d+)?)/, ([_, num]) => parseFloat(num)),
+      ]),
+      digit,
+      'Unexpected token in number'
+    ),
+    'value'
   ),
 
   string: toOneProp(literalString, 'value'),
