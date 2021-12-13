@@ -227,7 +227,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     forLoop: ({ loopVar, subject, body }) => {
-      const subjectType = resolveExprType(subject, ctx)
+      const subjectType = resolveExprType(subject, { ...ctx, typeExpectation: null })
       if (!subjectType.ok) return subjectType
 
       if (subjectType.data.type === 'map') {
