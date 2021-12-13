@@ -9,7 +9,7 @@ export const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 | 4 =>
     Div: () => 2,
     Rem: () => 1,
     Null: () => 2,
-    And: () => 2,
+    And: () => 4,
     Or: () => 4,
     Xor: () => 4,
     Eq: () => 3,
