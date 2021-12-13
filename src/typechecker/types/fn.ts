@@ -325,7 +325,12 @@ export const validateAndRegisterFnCall: Typechecker<
 
       const suppliedFor = fnType.generics[g]
 
-      const scoped = getResolvedGenericInSingleScope(gScope, at.start, suppliedFor.parsed, suppliedFor.at)
+      const scoped = getResolvedGenericInSingleScope(gScope, at.start, {
+        // to remake more properly (set the types during the gScope's creation)
+        type: 'generic',
+        name: suppliedFor,
+        orig: suppliedFor.at,
+      })
 
       if (!scoped) {
         return err(generics.parsed[g].at, "internal error: generic not found in function's generics scope")

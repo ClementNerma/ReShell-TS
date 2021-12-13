@@ -114,12 +114,7 @@ export function resolveGenerics(type: ValueType, ctx: TypecheckerContext): Value
         const allDeps: { name: Token<string>; orig: CodeSection }[] = [{ name: type.name, orig: type.orig }]
 
         const previous = { ...type }
-        const resolved = getContextuallyResolvedGeneric(
-          ctx.resolvedGenerics,
-          ctx.inFnCallAt,
-          type.name.parsed,
-          type.orig
-        )
+        const resolved = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, type)
 
         type = resolved?.mapped ?? type
 

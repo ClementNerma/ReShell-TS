@@ -113,12 +113,7 @@ export const isTypeCompatible: Typechecker<
   referent = developedReferent.data
 
   if (referent.type === 'generic' && ctx.inFnCallAt) {
-    const generic = getContextuallyResolvedGeneric(
-      ctx.resolvedGenerics,
-      ctx.inFnCallAt,
-      referent.name.parsed,
-      referent.orig
-    )
+    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, referent)
 
     if (generic?.mapped === null) {
       generic.mapped = candidate
@@ -130,12 +125,7 @@ export const isTypeCompatible: Typechecker<
 
   if (candidate.type === 'generic' && ctx.inFnCallAt) {
     if (fillKnownGenerics) {
-      const set = getResolvedGenericInSingleScope(
-        fillKnownGenerics,
-        ctx.inFnCallAt,
-        candidate.name.parsed,
-        candidate.orig
-      )
+      const set = getResolvedGenericInSingleScope(fillKnownGenerics, ctx.inFnCallAt, candidate)
 
       if (set === undefined) {
         return expectationErr('internal error: candidate generic is unknown although filling map was provided')

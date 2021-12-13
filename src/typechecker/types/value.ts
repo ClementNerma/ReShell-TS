@@ -15,12 +15,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let { typeExpectation } = ctx
 
   if (typeExpectation?.type.type === 'generic' && ctx.inFnCallAt) {
-    const generic = getContextuallyResolvedGeneric(
-      ctx.resolvedGenerics,
-      ctx.inFnCallAt,
-      typeExpectation.type.name.parsed,
-      typeExpectation.type.orig
-    )
+    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, typeExpectation.type)
 
     if (generic?.mapped) {
       typeExpectation = { from: typeExpectation.from, type: generic.mapped }
