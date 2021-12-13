@@ -2,6 +2,7 @@ import { DoubleOp, ExprDoubleOp, ExprElement, ValueType } from '../../shared/ast
 import { getOpPrecedence } from '../../shared/constants'
 import { CodeSection, Token } from '../../shared/parsed'
 import { err, success, Typechecker } from '../base'
+import { developTypeAliases } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprElementType, resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
@@ -89,6 +90,11 @@ export const resolveDoubleOpType: Typechecker<
 > = ({ leftExprAt, leftExprType, op: { op, right } }, ctx) => {
   let checkRightOperandType: ValueType | null
   let producedType: ValueType | ((rightType: ValueType) => ValueType)
+
+  const developed = developTypeAliases(leftExprType, ctx)
+  if (!developed.ok) return developed
+
+  leftExprType = developed.data
 
   switch (op.parsed.type) {
     case 'arith':
