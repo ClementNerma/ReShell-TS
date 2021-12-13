@@ -28,8 +28,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     let expected: ValueType = typeExpectation.type
 
-    while (expected.type === 'nullable') {
-      expected = expected.inner
+    while (true) {
+      if (expected.type === 'nullable') {
+        expected = expected.inner
+      } else if (expected.type === 'aliasRef') {
+        const alias = getTypeAliasInScope(expected.typeAliasName, ctx)
+
+        if (!alias.ok) {
+          return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
+        }
+
+        expected = alias.data.content
+      } else {
+        break
+      }
     }
 
     return expected.type === type || expected.type === 'unknown'
@@ -49,8 +61,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     let expected: ValueType = typeExpectation.type
 
-    while (expected.type === 'nullable') {
-      expected = expected.inner
+    while (true) {
+      if (expected.type === 'nullable') {
+        expected = expected.inner
+      } else if (expected.type === 'aliasRef') {
+        const alias = getTypeAliasInScope(expected.typeAliasName, ctx)
+
+        if (!alias.ok) {
+          return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
+        }
+
+        expected = alias.data.content
+      } else {
+        break
+      }
     }
 
     return expected.type === type || expected.type === 'unknown'
