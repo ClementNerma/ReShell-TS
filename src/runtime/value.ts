@@ -96,8 +96,10 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
           }
 
           case 'separator':
-            out.push(currentSegment.join(''))
-            currentSegment = []
+            if (currentSegment.length > 0 || out.length === 0) {
+              out.push(currentSegment.join(''))
+              currentSegment = []
+            }
             break
 
           default:
