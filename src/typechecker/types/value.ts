@@ -192,7 +192,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!assert.ok) return assert
 
       if (members.length === 0) {
-        return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this map')
+        return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this struct')
       }
 
       let expectedMembers: Map<string, ValueType> | null = null
