@@ -1,5 +1,4 @@
-import { ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
-import { Token } from '../shared/parsed'
+import { Block, ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
 import { cmdCall } from './cmdcall'
 import { cmdDeclSubCommand } from './cmddecl'
 import {
@@ -325,7 +324,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   map(combine(bol(), maybe_s, statementChainFree), ([_, __, { parsed: chain }]) => chain),
 ])
 
-export const blockBody: Parser<Token<StatementChain>[]> = map(
+export const blockBody: Parser<Block> = map(
   combine(
     exact('{', 'expected an opening brace ({)'),
     maybe_s_nl,

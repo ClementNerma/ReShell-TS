@@ -1,14 +1,14 @@
 // 1. Find all declared functions and type alias
 // 2. Discover scope sequentially using the items above
 
-import { Statement, StatementChain } from '../../shared/ast'
+import { Block, Statement } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { err, Scope, success, Typechecker } from '../base'
 import { fnTypeValidator } from '../types/fn'
 import { typeValidator } from '../types/validator'
 import { ensureScopeUnicity } from './search'
 
-export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
+export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
   const firstPass: Scope = new Map()
 
   ctx = {
@@ -16,7 +16,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
     scopes: ctx.scopes.concat([firstPass]),
   }
 
-  for (const stmt of flattenStatementChains(chain)) {
+  for (const stmt of flattenBlock(chain)) {
     switch (stmt.parsed.type) {
       case 'typeAlias':
       case 'enumDecl': {
@@ -72,14 +72,14 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
   return success(firstPass)
 }
 
-export function flattenStatementChains(chains: Token<StatementChain>[]): Token<Statement>[] {
-  return chains
+export function flattenBlock(block: Block): Token<Statement>[] {
+  return block
     .map((chain) =>
       chain.parsed.type === 'empty'
         ? []
         : [chain.parsed.start].concat(chain.parsed.sequence.map((stmt) => stmt.parsed.chainedStatement))
     )
     .flat()
-    .map((stmt) => (stmt.parsed.type === 'fileInclusion' ? flattenStatementChains(stmt.parsed.content) : [stmt]))
+    .map((stmt) => (stmt.parsed.type === 'fileInclusion' ? flattenBlock(stmt.parsed.content) : [stmt]))
     .flat()
 }

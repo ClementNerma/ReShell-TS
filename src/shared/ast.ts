@@ -2,7 +2,9 @@ import { CodeSection, Token } from './parsed'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Statements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-export type Program = Token<StatementChain>[]
+export type Program = Block
+
+export type Block = Token<StatementChain>[]
 
 export type StatementChain =
   | { type: 'empty' }
@@ -31,18 +33,18 @@ export type Statement =
   | {
       type: 'ifBlock'
       cond: Token<ExprOrTypeAssertion>
-      then: Token<StatementChain>[]
+      then: Block
       elif: ElIfBlock[]
-      els: Token<StatementChain>[] | null
+      els: Block | null
     }
   | {
       type: 'forLoop'
       loopvar: Token<string>
       loopvar2: Token<string> | null
       subject: Token<ForLoopSubject>
-      body: Token<StatementChain>[]
+      body: Block
     }
-  | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
+  | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Block }
   | { type: 'continue' }
   | { type: 'break' }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
@@ -50,16 +52,16 @@ export type Statement =
   | {
       type: 'match'
       subject: Token<Expr>
-      arms: Token<{ variant: Token<string>; matchWith: Token<Token<StatementChain>[]> }[]>
+      arms: Token<{ variant: Token<string>; matchWith: Token<Block> }[]>
     }
-  | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
+  | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Block> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'cmdCall'; content: CmdCall }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
 
-export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
+export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Block }
 
 export type ForLoopSubject = { type: 'expr'; expr: Token<Expr> } | { type: 'range'; from: Token<Expr>; to: Token<Expr> }
 
@@ -161,7 +163,7 @@ export type Value =
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
   | { type: 'enumVariant'; enumName: Token<string> | null; variant: Token<string> }
   | { type: 'match'; subject: Token<Expr>; arms: Token<{ variant: Token<string>; matchWith: Token<Expr> }[]> }
-  // | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
+  // | { type: 'closure'; fnType: FnType; body: Token<Block> }
   | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }
   | {
@@ -190,7 +192,7 @@ export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Tok
 
 export type ClosureArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
 
-export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Token<StatementChain>[]> }
+export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Block> }
 
 export type InlineCmdCall = CmdCall
 

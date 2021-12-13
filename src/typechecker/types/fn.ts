@@ -1,4 +1,4 @@
-import { ClosureArg, ClosureBody, CmdArg, FnArg, FnType, StatementChain, ValueType } from '../../shared/ast'
+import { Block, ClosureArg, ClosureBody, CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import {
@@ -10,9 +10,9 @@ import {
   TypecheckerContext,
   TypecheckerResult,
 } from '../base'
+import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
 import { getResolvedGenericInSingleScope } from '../scope/search'
-import { statementChainChecker } from '../statement'
 import { resolveExprType } from './expr'
 import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
@@ -198,11 +198,8 @@ export const closureTypeValidator: Typechecker<
   })
 }
 
-export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<StatementChain>[]> }, void> = (
-  { fnType, body },
-  ctx
-) => {
-  const check = statementChainChecker(body.parsed, {
+export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> }, void> = ({ fnType, body }, ctx) => {
+  const check = blockChecker(body.parsed, {
     ...withFnScope(fnType, ctx),
     fnExpectation: {
       returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
