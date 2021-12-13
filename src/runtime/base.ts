@@ -22,13 +22,13 @@ export type RunnerContext = {
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
   platformPathSeparator: string
-  syncNoWorkSleep: (milliseconds: number) => void
+  emitDiagnostic: (diagnostic: Diagnostic) => void
 }
 
 export const createRunnerContext = (
   precompData: PrecompData,
   platformPathSeparator: string,
-  syncNoWorkSleep: RunnerContext['syncNoWorkSleep']
+  diagnosticHandler: RunnerContext['emitDiagnostic']
 ): RunnerContext => ({
   scopes: [],
   pipeTo: null,
@@ -36,7 +36,7 @@ export const createRunnerContext = (
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
   platformPathSeparator,
-  syncNoWorkSleep,
+  emitDiagnostic: diagnosticHandler,
 })
 
 export type Scope = {

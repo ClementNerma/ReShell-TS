@@ -12,7 +12,7 @@ import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
 import { createRunnerContext } from './runtime/base'
 import { execProgram } from './runtime/runner'
-import { DiagnosticFormatters, DiagnosticLevel, formatErr } from './shared/diagnostics'
+import { Diagnostic, DiagnosticFormatters, DiagnosticLevel, formatErr } from './shared/diagnostics'
 import { SourceFilesServer } from './shared/files-server'
 import { langTypechecker } from './typechecker'
 import { createTypecheckerContext } from './typechecker/base'
@@ -121,23 +121,22 @@ const PATH = RAW_PATH.split(delimiter).map((entry) =>
   entry.startsWith('"') && entry.endsWith('"') ? entry.substr(1, entry.length - 2) : entry
 )
 
-const typecheckerContext = createTypecheckerContext(
-  (cmd) => {
-    for (const entry of PATH) {
-      if (existsSync(join(entry, cmd))) return true
+const diagnosticHandler = (diag: Diagnostic) => console.error(formatErr(diag, sourceServer, errorFormatters(null)))
 
-      if (isWindows) {
-        for (const ext of ['.exe', '.cmd', '.bat', '.com']) {
-          if (existsSync(join(entry, cmd + ext))) return true
-          if (existsSync(join(entry, cmd + ext.toLocaleUpperCase()))) return true
-        }
+const typecheckerContext = createTypecheckerContext((cmd) => {
+  for (const entry of PATH) {
+    if (existsSync(join(entry, cmd))) return true
+
+    if (isWindows) {
+      for (const ext of ['.exe', '.cmd', '.bat', '.com']) {
+        if (existsSync(join(entry, cmd + ext))) return true
+        if (existsSync(join(entry, cmd + ext.toLocaleUpperCase()))) return true
       }
     }
+  }
 
-    return false
-  },
-  (diag) => console.error(formatErr(diag, sourceServer, errorFormatters(null)))
-)
+  return false
+}, diagnosticHandler)
 
 const [typecheckerDuration, typechecked] = measurePerf(() => langTypechecker(parsed.data, typecheckerContext))
 
@@ -153,9 +152,7 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
 
-  const runnerContext = createRunnerContext(typechecked.data, sep, (ms) =>
-    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
-  )
+  const runnerContext = createRunnerContext(typechecked.data, sep, diagnosticHandler)
 
   const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 

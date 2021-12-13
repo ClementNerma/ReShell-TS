@@ -179,7 +179,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       })
     },
 
-    fnCall: ({ name }) => {
+    fnCall: ({ content: { name } }) => {
       const precomp = getLocatedPrecomp(ctx.fnCalls, name.at)
 
       if (precomp === undefined) {

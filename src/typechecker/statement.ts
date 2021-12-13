@@ -6,6 +6,7 @@ import { err, success, Typechecker, TypecheckerResult } from './base'
 import { blockChecker, StatementChainMetadata } from './block'
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
+import { resolveFnCallType } from './fncall'
 import { enumMatchingTypechecker } from './matching'
 import { getTypedEntityInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
@@ -411,6 +412,38 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       if (!check.ok) return check
 
       return success({ neverEnds: true })
+    },
+
+    fnCall: ({ content }) => {
+      const resolved = resolveFnCallType(content, ctx)
+      if (!resolved.ok) return resolved
+
+      let returnType = resolved.data
+
+      while (returnType.type === 'aliasRef') {
+        const typeAlias = ctx.typeAliases.get(returnType.typeAliasName.parsed)
+
+        if (!typeAlias) {
+          return err(
+            returnType.typeAliasName.at,
+            'internal error: type alias reference not found during function call return type resolution'
+          )
+        }
+
+        returnType = typeAlias.content
+      }
+
+      if (returnType.type === 'failable') {
+        ctx.emitDiagnostic(
+          diagnostic(
+            content.name.at,
+            'this function call returns a `failable` value which is not handled',
+            DiagnosticLevel.Warning
+          )
+        )
+      }
+
+      return success({ neverEnds: false })
     },
 
     cmdCall: ({ content }) => {

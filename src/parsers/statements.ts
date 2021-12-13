@@ -12,6 +12,7 @@ import {
 } from './context'
 import { condOrTypeAssertion, expr } from './expr'
 import { fnDecl } from './fn'
+import { fnCall } from './fncall'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
@@ -264,6 +265,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         expr,
       })
     ),
+
+    fnCall: map(fnCall, (content) => ({ content })),
 
     cmdCall: map(cmdCall(endOfCmdCallStatement), (_, content) => ({ content })),
 

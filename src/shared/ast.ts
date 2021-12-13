@@ -54,6 +54,7 @@ export type Statement =
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Block> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
+  | { type: 'fnCall'; content: FnCall }
   | { type: 'cmdCall'; content: Token<CmdCall> }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
@@ -162,7 +163,7 @@ export type Value =
   | { type: 'match'; subject: Token<Expr>; arms: Token<{ variant: Token<string>; matchWith: Token<Expr> }[]> }
   // | { type: 'closure'; fnType: FnType; body: Token<Block> }
   | { type: 'callback'; args: Token<ClosureCallArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
-  | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }
+  | { type: 'fnCall'; content: FnCall }
   | { type: 'inlineCmdCallSequence'; content: Token<CmdCall>; capture: Token<InlineCmdCallCapture> }
   | { type: 'reference'; varname: Token<string> }
 
@@ -179,6 +180,12 @@ export type ComputedPathSegment =
   | { type: 'separator' }
   | { type: 'literal'; content: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
+
+export type FnCall = {
+  name: Token<string>
+  generics: Token<Token<ValueType | null>[]> | null
+  args: Token<FnCallArg>[]
+}
 
 export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
 
