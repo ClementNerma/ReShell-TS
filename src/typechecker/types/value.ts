@@ -2,6 +2,7 @@ import { StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
+import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
@@ -291,8 +292,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return success(foundType)
       }
 
-      // TODO: Compare already defined types
-      throw new Error('// TODO: reference types comparison')
+      const compat = isTypeCompatible({ candidate: foundType, referent: expectedType, at: varname.at }, ctx)
+      if (!compat.ok) return compat
+
+      return success(expectedType)
     },
   })
 }
