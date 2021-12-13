@@ -22,6 +22,7 @@ export type FnCallGeneric = { name: string; orig: CodeSection; resolved: ValueTy
 
 export type FnCallPrecompArg =
   | { type: 'null' }
+  | { type: 'false' }
   | { type: 'value'; value: Token<Value> }
   | { type: 'expr'; expr: Token<Expr> }
 

@@ -415,6 +415,15 @@ export const validateAndRegisterFnCall: Typechecker<
     })
   }
 
+  for (const arg of fnType.args.filter((arg) => arg.parsed.optional)) {
+    if (!suppliedArgsScope.get(arg.parsed.name.parsed)) {
+      suppliedArgsScope.set(
+        arg.parsed.name.parsed,
+        arg.parsed.flag && arg.parsed.type.type === 'bool' ? { type: 'false' } : { type: 'null' }
+      )
+    }
+  }
+
   const resolvedGScope: FnCallGeneric[] = []
 
   for (const { name, orig, mapped } of gScope) {
