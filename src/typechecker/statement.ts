@@ -4,6 +4,7 @@ import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
+import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { flattenStatementChains, scopeFirstPass } from './scope/first-pass'
 import { getFunctionInScope, getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
@@ -457,9 +458,21 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
       },
 
       cmdDecl: ({ name, body }) => {
-        throw new Error(
-          'TODO: command declaration validation + generating type + ensuring command exists + validating future calls'
-        )
+        const orig = ctx.commandDeclarations.get(name.parsed)
+
+        if (orig) {
+          return err(name.at, {
+            message: 'cannot declare a command twice',
+            also: [{ at: orig.at, message: 'command was originally declared here' }],
+          })
+        }
+
+        const check = cmdDeclSubCommandTypechecker(body, ctx)
+        if (!check.ok) return check
+
+        ctx.commandDeclarations.set(name.parsed, { at: name.at, content: body })
+
+        throw new Error('TODO: validating future calls')
       },
 
       // Nothing to do here, already handled in first pass

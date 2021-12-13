@@ -11,10 +11,30 @@ import { typeValidator } from './validator'
 import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
+  const args = fnTypeArgsValidator(fnType.args, ctx)
+  if (!args.ok) return args
+
+  if (fnType.restArg) {
+    const duplicate = args.data.get(fnType.restArg.parsed)
+    if (duplicate) {
+      return err(fnType.restArg.at, {
+        message: 'cannot use the same name for multiple arguments',
+        also: [{ at: duplicate.at, message: 'name already used here' }],
+      })
+    }
+  }
+
+  return typeValidator({ type: 'fn', fnType }, ctx)
+}
+
+export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: CodeSection; type: ValueType }>> = (
+  fnArgs,
+  ctx
+) => {
   let hadOptionalPos: Token<FnArg> | null = null
   const args = new Map<string, { at: CodeSection; type: ValueType }>()
 
-  for (const arg of fnType.args) {
+  for (const arg of fnArgs) {
     if (arg.parsed.flag !== null) {
       const name = arg.parsed.name
 
@@ -68,19 +88,12 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
         hadOptionalPos = arg
       }
     }
+
+    const typeCheck = typeValidator(arg.parsed.type, ctx)
+    if (!typeCheck.ok) return typeCheck
   }
 
-  if (fnType.restArg) {
-    const duplicate = args.get(fnType.restArg.parsed)
-    if (duplicate) {
-      return err(fnType.restArg.at, {
-        message: 'cannot use the same name for multiple arguments',
-        also: [{ at: duplicate.at, message: 'name already used here' }],
-      })
-    }
-  }
-
-  return typeValidator({ type: 'fn', fnType }, ctx)
+  return success(args)
 }
 
 export const closureTypeValidator: Typechecker<

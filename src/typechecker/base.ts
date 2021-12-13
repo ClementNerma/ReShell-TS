@@ -1,4 +1,4 @@
-import { FnType, ValueType } from '../shared/ast'
+import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection } from '../shared/parsed'
 import { nativeLibraryScope } from './scope/native-lib'
@@ -16,6 +16,7 @@ export type TypecheckerContext = {
   }
   restArgs: string[]
   expectedFailureWriter: null | { ref: null | { at: CodeSection; content: ValueType } }
+  commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
@@ -32,6 +33,7 @@ export function createTypecheckerContext(
     fnExpectation: null,
     restArgs: [],
     expectedFailureWriter: null,
+    commandDeclarations: new Map(),
     checkIfCommandExists: cmdChecker,
     emitDiagnostic: diagnosticHandler,
   }
