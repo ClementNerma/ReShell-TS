@@ -395,7 +395,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (enumName) {
         const enumTypeEntity = ctx.typeAliases.get(enumName.parsed)
-        if (!enumTypeEntity) return err(enumName.at, `type alias \`${enumName.parsed}\` was not found`)
+        if (!enumTypeEntity) return err(enumName.at, `enumeration type \`${enumName.parsed}\` was not found`)
 
         if (enumTypeEntity.content.type !== 'enum') {
           return err(
