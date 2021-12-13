@@ -301,6 +301,7 @@ export const isTypeCompatible: Typechecker<
 
     failable: (c, r) => {
       const successCheck = subCheck({
+        addPath: 'success type',
         candidate: c.successType.parsed,
         // candidateAt: c.successType.at,
         referent: r.successType.parsed,
@@ -310,6 +311,7 @@ export const isTypeCompatible: Typechecker<
       if (!successCheck.ok) return successCheck
 
       const failureCheck = subCheck({
+        addPath: 'failure type',
         candidate: c.failureType.parsed,
         // candidateAt: c.failureType.at,
         referent: r.failureType.parsed,
