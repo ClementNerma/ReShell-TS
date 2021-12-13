@@ -101,6 +101,13 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
         defaultValue: null,
         type: _forgeToken({ type: 'string' }),
       },
+      {
+        flag: _forgeToken('-'),
+        name: _forgeToken('n'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'bool' }),
+      },
     ]),
     restArg: null,
     returnType: null,
