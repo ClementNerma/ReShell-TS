@@ -3,10 +3,10 @@ import { withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatchesElse, maybe } from './lib/conditions'
+import { failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
 import { not } from './lib/consumeless'
 import { failure } from './lib/errors'
-import { maybe_s, maybe_s_nl } from './lib/littles'
+import { maybe_s, maybe_s_nl, unicodeDigit } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact, oneOf } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
@@ -43,6 +43,7 @@ export const fnCall: Parser<FnCall> = map(
               flag: map(
                 combine(
                   oneOf(['--', '-']),
+                  failIfMatches(unicodeDigit),
                   failure(identifier, 'expected a flag identifier'),
                   maybe(
                     map(
@@ -58,7 +59,7 @@ export const fnCall: Parser<FnCall> = map(
                     )
                   )
                 ),
-                ([prefixSym, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
+                ([prefixSym, _, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
               ),
               expr: toOneProp(
                 'expr',
