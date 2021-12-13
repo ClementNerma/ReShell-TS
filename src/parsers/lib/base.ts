@@ -7,10 +7,7 @@ export type ParserResult<T> = ParserSucess<T> | ParserErr
 export type ParserSucess<T> = {
   ok: true
   data: Token<T>
-  infos: ParserSuccessInfos
 }
-
-export type ParserSuccessInfos = { phantomSuccess: boolean; skipInter: boolean | null }
 
 export type ParserErr = {
   ok: false
@@ -40,7 +37,6 @@ export type LoopContext = Readonly<{
     matched: ReadonlyArray<string>
     parsed: ReadonlyArray<Token<unknown>>
     previous: Token<unknown> | null
-    previousInfos: ParserSuccessInfos | null
   }>
 }>
 
@@ -50,16 +46,11 @@ export function success<T>(
   start: CodeLoc,
   next: CodeLoc,
   parsed: T,
-  matched: string,
-  infos?: Partial<ParserSuccessInfos>
+  matched: string
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
     data: { matched, parsed, at: { start, next } },
-    infos: {
-      phantomSuccess: infos?.phantomSuccess ?? false,
-      skipInter: infos?.skipInter ?? null,
-    },
   }
 }
 
@@ -72,10 +63,6 @@ export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<Par
       matched: '',
       parsed: phantomValue!,
       at: { start, next: start },
-    },
-    infos: {
-      phantomSuccess: true,
-      skipInter: true,
     },
   }
 }

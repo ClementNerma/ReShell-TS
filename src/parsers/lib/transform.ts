@@ -21,9 +21,7 @@ export function mapFull<T, U>(
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok
-      ? { ok: true, data: mapper(parsed.data.parsed, parsed.data), infos: parsed.infos }
-      : withErr(parsed, context, error)
+    return parsed.ok ? { ok: true, data: mapper(parsed.data.parsed, parsed.data) } : withErr(parsed, context, error)
   }
 }
 

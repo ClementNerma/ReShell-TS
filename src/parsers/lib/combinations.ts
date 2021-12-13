@@ -1,5 +1,5 @@
 import { Token } from '../../shared/parsed'
-import { Parser, ParserResult, ParserSuccessInfos, ParsingContext, success, withErr, WithErrData } from './base'
+import { Parser, ParserResult, ParsingContext, success, withErr, WithErrData } from './base'
 
 /* prettier-ignore */ export function combine<A, B>(a: Parser<A>, b: Parser<B>, error?: WithErrData): Parser<[Token<A>, Token<B>]>;
 /* prettier-ignore */ export function combine<A, B, C>(a: Parser<A>, b: Parser<B>, c: Parser<C>, error?: WithErrData): Parser<[Token<A>, Token<B>, Token<C>]>;
@@ -35,15 +35,13 @@ export function combine(...parsers: (Parser<Token<unknown>> | WithErrData | null
     const matched = []
     let next = { ...start }
 
-    let previousInfos: ParserSuccessInfos | null = null
-
     for (let i = 0; i < parsers.length; i++) {
       const combinationContext: ParsingContext = {
         ...context,
         combinationData: {
           firstIter: i === 0,
           iter: i,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, previousInfos, start, matched, parsed },
+          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
         },
       }
 
@@ -51,9 +49,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | WithErrData | null
 
       if (!result.ok) return withErr(result, context, error)
 
-      const { data, infos } = result
-
-      previousInfos = infos
+      const { data } = result
 
       input = input.offset(data.matched.length)
       next = data.at.next

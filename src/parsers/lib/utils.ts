@@ -21,9 +21,9 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
 
     console.log(
       result.ok
-        ? `${parserName} Succeeded${result.infos.phantomSuccess ? ' (phantom) ' : ' '}${
-            result.infos.skipInter ? '(skipInter) ' : ''
-          }at line ${result.data.at.next.line} col ${result.data.at.next.col} | ${trimStr(result.data.matched)}`
+        ? `${parserName} Succeeded at line ${result.data.at.next.line} col ${result.data.at.next.col} | ${trimStr(
+            result.data.matched
+          )}`
         : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | ${trimStr(JSON.stringify(result.stack))}`
     )
 

@@ -1,5 +1,5 @@
 import { CodeLoc, Token } from '../../shared/parsed'
-import { err, ErrInputData, Parser, ParserSuccessInfos, ParsingContext, success, withErr, WithErrData } from './base'
+import { err, ErrInputData, Parser, ParsingContext, success, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
@@ -15,7 +15,6 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const matched: string[] = []
     let interMadeExpectation = false
     let beforeInterMatching: CodeLoc | null = null
-    let previousInfos: ParserSuccessInfos | null = null
 
     let next = { ...start }
     let iter = 0
@@ -26,7 +25,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         loopData: {
           firstIter: iter === 0,
           iter: iter++,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, previousInfos, start, matched, parsed },
+          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
         },
       }
 
@@ -45,9 +44,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         break
       }
 
-      const { data, infos } = result
-
-      previousInfos = infos
+      const { data } = result
 
       input = input.offset(data.matched.length)
       next = data.at.next
@@ -59,7 +56,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         break
       }
 
-      if (!infos.skipInter && options?.inter) {
+      if (/*!infos.skipInter &&*/ options?.inter) {
         const interResult = options.inter(next, input, iterContext)
 
         if (!interResult.ok) {
@@ -80,10 +77,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
     }
 
-    return success(start, next, parsed, matched.join(''), {
-      phantomSuccess: false,
-      skipInter: parsed.length === 0 && options?.dontPropagateInterSkipping !== false,
-    })
+    return success(start, next, parsed, matched.join(''))
   }
 }
 
