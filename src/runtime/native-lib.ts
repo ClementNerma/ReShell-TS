@@ -60,7 +60,7 @@ export type NativeFn = (
     pipeTo: NonNullable<RunnerContext['pipeTo']>
   },
   args: Map<string, ExecValue>
-) => RunnerResult<ExecValue>
+) => RunnerResult<ExecValue | null>
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
   ok: ({ at }, map) => {
@@ -68,7 +68,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     if (args.ok !== true) return args
 
     const { value } = args.data
-    return { ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }
+    return success({ type: 'failable', success: true, value })
   },
 
   err: ({ at }, map) => {
@@ -76,7 +76,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     if (args.ok !== true) return args
 
     const { error } = args.data
-    return { ok: null, breaking: 'return', value: { type: 'failable', success: false, value: error } }
+    return success({ type: 'failable', success: false, value: error })
   },
 
   typed: ({ at }, map) => {
@@ -92,7 +92,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     if (args.ok !== true) return args
 
     const { number, precision } = args.data
-    return { ok: null, breaking: 'return', value: { type: 'string', value: number.value.toFixed(precision.value) } }
+    return success({ type: 'string', value: number.value.toFixed(precision.value) })
   },
 
   listAt: ({ at }, map) => {
@@ -102,7 +102,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     const { list, index } = args.data
 
     const item = list.items.at(index.value)
-    return { ok: null, breaking: 'return', value: item ?? { type: 'null' } }
+    return success(item ?? { type: 'null' })
   },
 
   repeat: ({ at }, map) => {
@@ -111,7 +111,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
 
     const { str, repeat } = args.data
 
-    return { ok: null, breaking: 'return', value: { type: 'string', value: str.value.repeat(repeat.value) } }
+    return success({ type: 'string', value: str.value.repeat(repeat.value) })
   },
 
   echo: ({ at, pipeTo }, map) => {
@@ -121,7 +121,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     const { message, n } = args.data
     pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
 
-    return { ok: null, breaking: 'return', value: null }
+    return success(null)
   },
 
   dump: ({ at, ctx, pipeTo }, map) => {
@@ -131,7 +131,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     const { value, pretty } = args.data
     pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
 
-    return { ok: null, breaking: 'return', value: null }
+    return success(null)
   },
 
   toStr: ({ at, ctx }, map) => {
@@ -140,11 +140,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
 
     const { value, pretty } = args.data
 
-    return {
-      ok: null,
-      breaking: 'return',
-      value: { type: 'string', value: valueToStr(value, pretty.value, false, ctx) },
-    }
+    return success({ type: 'string', value: valueToStr(value, pretty.value, false, ctx) })
   },
 
   trace: ({ pipeTo, at }) => {
