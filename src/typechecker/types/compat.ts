@@ -250,26 +250,9 @@ export const isTypeCompatible: Typechecker<
       return success(void 0)
     },
 
-    aliasRef: (c, r) => {
-      throw new Error('internal error: trying to compare an alias ref')
-    },
-
-    unknown: () => {
-      throw new Error('internal error: unreachable "unknown" type comparison')
-    },
-
-    nullable: (c, r) =>
-      isTypeCompatible(
-        {
-          at,
-          candidate: c.inner,
-          typeExpectation: {
-            type: r.inner,
-            from: typeExpectation.from,
-          },
-        },
-        ctx
-      ),
+    aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),
+    unknown: () => expectationErr('internal error: unreachable "unknown" type comparison'),
+    nullable: () => expectationErr('internal error: unreachable "nullable" type comparison'),
 
     // Internal types
     void: () => expectationErr('internal error: trying to compare candidate with internal type "void"'),
