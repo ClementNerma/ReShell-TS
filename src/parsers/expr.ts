@@ -256,6 +256,32 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
         })
       ),
 
+      // if <cond> { <then> } else { <else> }
+      ternary: map(
+        combine(
+          exact('if'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Syntax error: expected a condition'
+          ),
+          exact('{', 'Syntax error: expected an opening brace ({) after the condition'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Syntax error: expected an expression in the "if" body'
+          ),
+          exact('}', 'Syntax error: expected a closing brace (}) to close the "if" body'),
+          exact('else', 'Syntax error: expected an "else" counterpart'),
+          exact('{', 'Syntax error: expected an opening brace ({) for the "else" counterpart'),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Syntax error: expected an expression in the "else" body'
+          ),
+          exact('}', 'Syntax error: expected a closing brace (}) to close the "else" body'),
+          { inter: maybe_s_nl }
+        ),
+        ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
+      ),
+
       // value
       value: map(value, (_, content) => ({ content })),
     },
