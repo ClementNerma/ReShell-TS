@@ -2,7 +2,7 @@ import { addCols, addLoc, err, ErrInputData, neutralError, Parser, success } fro
 import { unicodeAlphanumericUnderscore } from './littles'
 import { matches } from './raw'
 
-export function exact<S extends string>(candidate: S, error?: string): Parser<S> {
+export function exact<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     return input.startsWith(candidate)
       ? success(start, addCols(start, candidate.length), candidate, candidate)
@@ -10,7 +10,7 @@ export function exact<S extends string>(candidate: S, error?: string): Parser<S>
   }
 }
 
-export function oneOfWords<S extends string>(candidates: S[], error?: string): Parser<S> {
+export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     const match = candidates.find((c) => input.startsWith(c))
 
@@ -24,7 +24,7 @@ export function oneOfWords<S extends string>(candidates: S[], error?: string): P
   }
 }
 
-export function word<S extends string>(candidate: S, error?: string): Parser<S> {
+export function word<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     if (!input.startsWith(candidate)) return err(start, context, error)
 
@@ -66,7 +66,7 @@ export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
   }
 }
 
-export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, error?: string): Parser<T> {
+export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0
@@ -75,7 +75,7 @@ export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, 
   }
 }
 
-export function regexRaw(regex: RegExp, error?: string): Parser<RegExpMatchArray> {
+export function regexRaw(regex: RegExp, error?: ErrInputData): Parser<RegExpMatchArray> {
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0
@@ -84,7 +84,7 @@ export function regexRaw(regex: RegExp, error?: string): Parser<RegExpMatchArray
   }
 }
 
-export function oneOf(candidates: string[], error?: string): Parser<string> {
+export function oneOf(candidates: string[], error?: ErrInputData): Parser<string> {
   return (start, input, context) => {
     for (const candidate of candidates) {
       if (input.startsWith(candidate)) {
@@ -96,7 +96,7 @@ export function oneOf(candidates: string[], error?: string): Parser<string> {
   }
 }
 
-export function oneOfMap<T>(candidates: [string, T][], error?: string): Parser<T> {
+export function oneOfMap<T>(candidates: [string, T][], error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     for (const [candidate, parsed] of candidates) {
       if (input.startsWith(candidate)) {
@@ -108,11 +108,11 @@ export function oneOfMap<T>(candidates: [string, T][], error?: string): Parser<T
   }
 }
 
-export function bol(error?: string): Parser<void> {
+export function bol(error?: ErrInputData): Parser<void> {
   return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, context, error))
 }
 
-export function eol(error?: string): Parser<string> {
+export function eol(error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
     input.length === 0
       ? success(start, start, '', '')
@@ -121,11 +121,11 @@ export function eol(error?: string): Parser<string> {
       : err(start, context, error)
 }
 
-export function bos(error?: string): Parser<void> {
+export function bos(error?: ErrInputData): Parser<void> {
   return (start, _, context) => (start.col === 0 && start.line === 0 ? neutralError(start) : err(start, context, error))
 }
 
-export function eos(error?: string): Parser<void> {
+export function eos(error?: ErrInputData): Parser<void> {
   return (start, input, context) => (input.length === 0 ? neutralError(start) : err(start, context, error))
 }
 

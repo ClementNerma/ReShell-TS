@@ -31,7 +31,7 @@ export function nothing(): Parser<void> {
   return (start, _, __) => neutralError(start)
 }
 
-export function fail<T>(error?: string): Parser<T> {
+export function fail<T>(error?: ErrInputData): Parser<T> {
   return (start, _, context) => err(start, context, error)
 }
 

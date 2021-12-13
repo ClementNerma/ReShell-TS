@@ -1,4 +1,15 @@
-import { err, Parser, ParserLoc, ParsingContext, sliceInput, success, Token, withErr, WithErrData } from './base'
+import {
+  err,
+  ErrInputData,
+  Parser,
+  ParserLoc,
+  ParsingContext,
+  sliceInput,
+  success,
+  Token,
+  withErr,
+  WithErrData,
+} from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
@@ -89,7 +100,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
 export function takeWhile1<T>(
   parser: Parser<T>,
-  options?: TakeWhileOptions & { noMatchError?: string }
+  options?: TakeWhileOptions & { noMatchError?: ErrInputData }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
     parsed.data.parsed.length === 0 ? err(parsed.data.start, context, options?.noMatchError) : parsed
@@ -98,7 +109,7 @@ export function takeWhile1<T>(
 
 export function takeWhileN<T>(
   parser: Parser<T>,
-  options: TakeWhileOptions & { noMatchError?: string; minimum: number }
+  options: TakeWhileOptions & { noMatchError?: ErrInputData; minimum: number }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
     parsed.data.parsed.length < options.minimum ? err(parsed.data.start, context, options?.noMatchError) : parsed
