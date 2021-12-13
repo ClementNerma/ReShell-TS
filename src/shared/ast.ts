@@ -6,11 +6,7 @@ export type AST = Program
 
 export type Program = Block
 
-export type Block = Token<StatementChain>[]
-
-export type StatementChain =
-  | { type: 'empty' }
-  | { type: 'chain'; start: Token<Statement>; sequence: Token<ChainedStatement>[] }
+export type Block = Token<Statement>[]
 
 export type ChainedStatement = { op: Token<StatementChainOp>; chainedStatement: Token<Statement> }
 

@@ -81,13 +81,5 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
 }
 
 export function flattenBlock(block: Block): Token<Statement>[] {
-  return block
-    .map((chain) =>
-      chain.parsed.type === 'empty'
-        ? []
-        : [chain.parsed.start].concat(chain.parsed.sequence.map((stmt) => stmt.parsed.chainedStatement))
-    )
-    .flat()
-    .map((stmt) => (stmt.parsed.type === 'fileInclusion' ? flattenBlock(stmt.parsed.content) : [stmt]))
-    .flat()
+  return block.map((stmt) => (stmt.parsed.type === 'fileInclusion' ? flattenBlock(stmt.parsed.content) : [stmt])).flat()
 }

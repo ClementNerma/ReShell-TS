@@ -1,14 +1,13 @@
-import { Block, ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
+import { ElIfBlock, ForLoopSubject, Statement } from '../shared/ast'
+import { blockWithBraces } from './block'
 import { cmdCall } from './cmdcall'
 import { cmdDeclSubCommand } from './cmddecl'
 import {
   CustomContext,
   mapContextProp,
-  matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
   withinTypeAliasDefinition,
-  withStatementClosingChar,
 } from './context'
 import { condOrTypeAssertion, expr } from './expr'
 import { fnDecl } from './fn'
@@ -21,8 +20,8 @@ import { feedContext } from './lib/context'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { bol, eol, exact } from './lib/matchers'
-import { mappedCases, or } from './lib/switches'
+import { exact } from './lib/matchers'
+import { mappedCases } from './lib/switches'
 import { map, silence, suppressErrorPrecedence, toOneProp } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
@@ -30,7 +29,6 @@ import { enumMatchingBlock } from './matching'
 import { doubleOpForAssignment } from './operators'
 import { program } from './program'
 import { nonNullablePropertyAccess } from './propaccess'
-import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { valueType } from './types'
 
@@ -268,7 +266,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     fnCall: map(fnCall, (content) => ({ content })),
 
-    cmdCall: map(cmdCall(endOfCmdCallStatement), (content) => ({ content })),
+    cmdCall: map(cmdCall, (content) => ({ content })),
 
     cmdDecl: map(
       combine(
@@ -300,66 +298,4 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ),
   },
   'failed to parse statement'
-)
-
-export const statementChainFree: Parser<StatementChain> = map(
-  combine(
-    statement,
-    maybe_s,
-    takeWhile(
-      failIfMatchesElse(
-        or([endOfStatementChain, matchContinuationKeyword]),
-        map(
-          combine(
-            maybe_s,
-            failure(statementChainOp, 'expected end of statement'),
-            maybe_s_nl,
-            failure(statement, 'expected another statement')
-          ),
-          ([_, op, __, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
-        )
-      ),
-      { inter: maybe_s, interExpect: false }
-    ),
-    endOfStatementChain
-  ),
-  ([start, __, { parsed: sequence }]): StatementChain => ({
-    type: 'chain',
-    start,
-    sequence,
-  })
-)
-
-export const statementChain: Parser<StatementChain> = or<StatementChain>([
-  map(combine(bol('internal error: statement chain must start at BOL'), maybe_s, eol()), (_, __) => ({
-    type: 'empty',
-  })),
-  map(combine(bol(), maybe_s, statementChainFree), ([_, __, { parsed: chain }]) => chain),
-])
-
-export const block: Parser<Block> = takeWhile<StatementChain>(
-  or([
-    map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
-    failIfMatchesElse(
-      matchStatementClose,
-      map(
-        combine(
-          maybe_s,
-          withLatelyDeclared(() => statementChainFree)
-        ),
-        ([_, { parsed: chain }]) => chain
-      )
-    ),
-  ])
-)
-
-export const blockWithBraces: Parser<Block> = map(
-  combine(
-    exact('{', 'expected an opening brace ({)'),
-    maybe_s_nl,
-    withStatementClosingChar('}', block),
-    maybe_s_nl,
-    exact('}', 'expected a closing brace (})')
-  ),
-  ([_, __, { parsed: body }]) => body
 )

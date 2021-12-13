@@ -4,8 +4,9 @@ import {
   ComputedPathSegment,
   ComputedStringSegment,
   InlineCmdCallCapture,
-  Value
+  Value,
 } from '../shared/ast'
+import { blockWithBraces } from './block'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClosingChar } from './context'
@@ -24,8 +25,6 @@ import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { literalValue, rawString } from './literals'
 import { enumMatchingExpr } from './matching'
-import { blockWithBraces } from './statements'
-import { endOfInlineCmdCall } from './stmtend'
 import { identifier } from './tokens'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
@@ -249,7 +248,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       failure(
         withStatementClosingChar(
           ')',
-          withLatelyDeclared(() => cmdCall(endOfInlineCmdCall))
+          withLatelyDeclared(() => cmdCall)
         ),
         'expected inline command call'
       ),

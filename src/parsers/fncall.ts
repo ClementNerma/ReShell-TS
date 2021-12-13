@@ -12,8 +12,7 @@ import { exact, oneOf } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
-import { endOfInlineCmdCall } from './stmtend'
-import { identifier, keyword } from './tokens'
+import { identifier, keyword, stmtEnd } from './tokens'
 import { valueType } from './types'
 
 export const fnCall: Parser<FnCall> = map(
@@ -38,7 +37,7 @@ export const fnCall: Parser<FnCall> = map(
       ')',
       takeWhile(
         failIfMatchesElse(
-          endOfInlineCmdCall,
+          stmtEnd,
           failure(
             mappedCases<FnCallArg>()('type', {
               flag: map(

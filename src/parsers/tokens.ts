@@ -1,9 +1,11 @@
+import { matchStatementClose } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches, notStartingWith } from './lib/conditions'
-import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore, unicodeDigit } from './lib/littles'
-import { oneOfWords } from './lib/matchers'
-import { map } from './lib/transform'
+import { buildUnicodeRegexMatcher, maybe_s, unicodeAlphanumericUnderscore, unicodeDigit } from './lib/littles'
+import { eol, exact, oneOfWords } from './lib/matchers'
+import { or } from './lib/switches'
+import { map, silence } from './lib/transform'
 
 export const keyword: Parser<string> = oneOfWords([
   'if',
@@ -39,3 +41,5 @@ export const cmdAction: Parser<string> = notStartingWith(
   unicodeDigit,
   buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
 )
+
+export const stmtEnd: Parser<void> = silence(combine(maybe_s, or<unknown>([eol(), exact(';'), matchStatementClose])))

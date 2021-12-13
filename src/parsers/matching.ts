@@ -1,5 +1,6 @@
 import { Expr } from '../shared/ast'
 import { Token } from '../shared/parsed'
+import { blockWithBraces } from './block'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -11,7 +12,6 @@ import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
-import { blockWithBraces } from './statements'
 import { identifier } from './tokens'
 
 export const enumMatching: <T>(
