@@ -1,5 +1,5 @@
 import { lstatSync, readdirSync } from 'fs'
-import { join } from 'path'
+import { isAbsolute, join } from 'path'
 import { ValueType } from '../shared/ast'
 import { nativeLibraryFnTypes, nativeLibraryVarTypes } from '../shared/native-lib'
 import { CodeSection } from '../shared/parsed'
@@ -79,6 +79,58 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
 
       return success({ type: 'string', value: pieces.join(glue.value) })
     }),
+
+  pathtostr: ({ at, ctx }, args) =>
+    withArguments(at, args, { path: 'path' }, ({ path }) =>
+      success({ type: 'string', value: path.segments.join(ctx.platformPathSeparator) })
+    ),
+
+  strtopath: ({ at }, args) =>
+    withArguments(at, args, { path: 'string' }, ({ path }) =>
+      success({ type: 'path', segments: path.value.split(/[/\\]/) })
+    ),
+
+  pathSegments: ({ at }, args) =>
+    withArguments(at, args, { path: 'path' }, ({ path }) =>
+      success({ type: 'list', items: path.segments.map((segment) => ({ type: 'string', value: segment })) })
+    ),
+
+  pathFromSegments: ({ at, ctx }, args) =>
+    withArguments(at, args, { segments: 'list' }, ({ segments }) => {
+      const pieces: string[] = []
+
+      for (const value of segments.items) {
+        const str = expectValueType(at, value, 'string')
+        if (str.ok !== true) return str
+        pieces.push(str.data.value)
+      }
+
+      return success({
+        type: 'path',
+        segments: pieces.join(ctx.platformPathSeparator).split(ctx.platformPathSeparator),
+      })
+    }),
+
+  joinPaths: ({ at, ctx }, args) =>
+    withArguments(at, args, { paths: 'list' }, ({ paths }) => {
+      const pieces: string[] = []
+
+      for (const value of paths.items) {
+        const path = expectValueType(at, value, 'path')
+        if (path.ok !== true) return path
+        pieces.push(path.data.segments.join(ctx.platformPathSeparator))
+      }
+
+      return success({
+        type: 'path',
+        segments: join(...pieces).split(ctx.platformPathSeparator),
+      })
+    }),
+
+  isAbsolute: ({ at, ctx }, args) =>
+    withArguments(at, args, { path: 'path' }, ({ path }) =>
+      success({ type: 'bool', value: isAbsolute(path.segments.join(ctx.platformPathSeparator)) })
+    ),
 
   echo: ({ at, pipeTo }, args) =>
     withArguments(at, args, { message: 'string', n: 'bool' }, ({ message, n }) => {

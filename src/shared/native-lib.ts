@@ -79,7 +79,37 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
       { name: 'subject', type: { type: 'list', itemsType: { type: 'string' } } },
       { name: 'glue', type: 'string' },
     ],
-    returnType: () => ({ type: 'string' }),
+    returnType: () => 'string',
+  }),
+
+  pathtostr: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'path' }],
+    returnType: () => 'string',
+  }),
+
+  strtopath: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'string' }],
+    returnType: () => 'path',
+  }),
+
+  pathSegments: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'path' }],
+    returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
+  }),
+
+  pathFromSegments: _buildNativeLibraryFn({
+    args: () => [{ name: 'segments', type: { type: 'list', itemsType: { type: 'string' } } }],
+    returnType: () => 'path',
+  }),
+
+  joinPaths: _buildNativeLibraryFn({
+    args: () => [{ name: 'paths', type: { type: 'list', itemsType: { type: 'path' } } }],
+    returnType: () => 'path',
+  }),
+
+  isAbsolute: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'path' }],
+    returnType: () => 'bool',
   }),
 
   echo: _buildNativeLibraryFn({
