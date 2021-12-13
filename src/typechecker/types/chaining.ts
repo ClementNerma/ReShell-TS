@@ -78,7 +78,7 @@ export const resolveValueChainings: Typechecker<
             also: [
               {
                 at: upToPreviousChaining,
-                message: 'no method with this name found for this expression',
+                message: 'method not found for this expression',
                 complements: candidates
                   .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forType.parsed)])
                   .concat([['type      ', rebuildType(developed.data)]])
