@@ -36,22 +36,24 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           map(match(/([^\\"\$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
           map(
             combine(
-              exact('$'),
-              exact('{', {
-                message: 'Expecting an expression after the "$" symbol',
-                complements: [
-                  ['Tip', 'If you want to write an expression, write "${" to open it and "}" to close it'],
-                  ['Tip', 'If you want to write the "$" symbol alone, you can escape it with a backslash "\\"'],
-                ],
-              }),
+              combine(
+                exact('$'),
+                exact('{', {
+                  message: 'Expecting an expression after the "$" symbol',
+                  complements: [
+                    ['Tip', 'If you want to write an expression, write "${" to open it and "}" to close it'],
+                    ['Tip', 'If you want to write the "$" symbol alone, you can escape it with a backslash "\\"'],
+                  ],
+                }),
+                maybe_s_nl
+              ),
               failure(
                 withLatelyDeclared(() => expr),
                 'Failed to parse the inner expression'
               ),
-              exact('}', 'Expected a closing brace (}) to close the inner expression'),
-              { inter: maybe_s_nl }
+              combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the inner expression'))
             ),
-            ([_, __, expr]) => ({ type: 'expr', expr })
+            ([_, expr]) => ({ type: 'expr', expr })
           ),
         ])
       ),
@@ -71,13 +73,12 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           ),
           map(
             combine(
-              exact('${'),
+              combine(exact('${'), maybe_s_nl),
               failure(
                 withLatelyDeclared(() => expr),
                 'Failed to parse the inner expression'
               ),
-              exact('}', 'Expected a closing brace (}) to close the inner path expression'),
-              { inter: maybe_s_nl }
+              combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the inner path expression'))
             ),
             ([_, expr, __]) => ({ type: 'expr', expr })
           ),
@@ -93,13 +94,12 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
     map(
       combine(
-        exact('['),
+        combine(exact('['), maybe_s_nl),
         takeWhile(
           withLatelyDeclared(() => expr),
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         ),
-        exact(']', "Expected a closing bracket (]) to end the list's content"),
-        { inter: maybe_s_nl }
+        combine(maybe_s_nl, exact(']', "Expected a closing bracket (]) to end the list's content"))
       ),
       ([_, { parsed: items }, __]) => ({ items })
     ),
@@ -107,7 +107,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   map: map(
     combine(
-      exact('map:('),
+      combine(exact('map:('), maybe_s_nl),
       extract(
         takeWhile(
           map(
@@ -117,24 +117,22 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 complements: [['Tip', 'Key names in map values must be written between quotes']],
               }),
               contextualFailure(rawString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
-              exact(':'),
-              withLatelyDeclared(() => expr),
-              { inter: maybe_s_nl }
+              combine(maybe_s, exact(':'), maybe_s_nl),
+              withLatelyDeclared(() => expr)
             ),
             ([_, key, __, value]) => ({ key, value })
           ),
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
-      exact(')', "Expected a closing parenthesis ')' to close the map's content"),
-      { inter: maybe_s_nl }
+      combine(maybe_s_nl, exact(')', "Expected a closing parenthesis ')' to close the map's content"))
     ),
     ([_, { parsed: entries }, __]) => ({ entries })
   ),
 
   struct: map(
     combine(
-      exact('{'),
+      combine(exact('{'), maybe_s_nl),
       extract(
         takeWhile(
           map(
@@ -144,17 +142,15 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 (ctx) => !ctx.loopData!.firstIter,
                 'Expected either a member name, or a closing brace (}) to close the structure'
               ),
-              exact(':'),
-              withLatelyDeclared(() => expr),
-              { inter: maybe_s_nl }
+              combine(maybe_s, exact(':'), maybe_s_nl),
+              withLatelyDeclared(() => expr)
             ),
             ([name, _, value]) => ({ name, value })
           ),
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
-      exact('}', 'Expected a closing brace (}) to close the structure'),
-      { inter: maybe_s_nl }
+      combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the structure'))
     ),
     ([_, { parsed: members }, __]) => ({ members })
   ),
@@ -162,13 +158,12 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
   closure: map(
     combine(
       withLatelyDeclared(() => fnType),
-      exact('{', "Expected an opening brace ({) for the closure's content"),
+      combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the closure's content"), maybe_s_nl),
       withStatementClosingChar(
         '}',
         withLatelyDeclared(() => blockBody)
       ),
-      exact('}', "Expected a closing brace (}) after the closure's content"),
-      { inter: maybe_s_nl }
+      combine(maybe_s_nl, exact('}', "Expected a closing brace (}) after the closure's content"))
     ),
     ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
   ),
@@ -177,8 +172,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     combine(
       failure(not(keyword), 'Cannot use reserved keyword alone'),
       identifier,
-      exact('('),
-      maybe_s_nl,
+      combine(maybe_s, exact('('), maybe_s_nl),
       withStatementClosingChar(
         ')',
         takeWhile(
@@ -198,11 +192,9 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
-      maybe_s_nl,
-      exact(')', 'Expected a closing parenthesis to end the list of arguments'),
-      { inter: maybe_s }
+      combine(maybe_s_nl, exact(')', 'Expected a closing parenthesis to end the list of arguments'))
     ),
-    ([_, name, __, ___, { parsed: args }]) => ({ name, args })
+    ([_, name, __, { parsed: args }]) => ({ name, args })
   ),
 
   inlineCmdCallSequence: map(
@@ -212,6 +204,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ['$!(', 'Stderr'],
         ['$(', 'Stdout'],
       ]),
+      maybe_s_nl,
       failure(
         withStatementClosingChar(
           ')',
@@ -224,20 +217,19 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           combine(
             maybe_s,
             statementChainOp,
+            maybe_s_nl,
             failure(
               withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
               'Expected inline command call after chaining operator'
-            ),
-            { inter: maybe_s_nl }
+            )
           ),
-          ([_, op, chainedCmdCall]) => ({ op, chainedCmdCall })
+          ([_, op, __, chainedCmdCall]) => ({ op, chainedCmdCall })
         ),
         { inter: maybe_s }
       ),
-      exact(')', "Expected closing paren ')' after inline command call"),
-      { inter: maybe_s_nl }
+      combine(maybe_s_nl, exact(')', "Expected closing paren ')' after inline command call"))
     ),
-    ([capture, start, { parsed: sequence }]) => ({ start, sequence, capture })
+    ([capture, _, start, { parsed: sequence }]) => ({ start, sequence, capture })
   ),
 
   // FIX: TypeScript compiler produced an error because of the produced union being too complex

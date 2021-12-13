@@ -10,7 +10,7 @@ import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, flatten, maybe, maybeFlatten } from './lib/conditions'
-import { contextualFailIf, failure } from './lib/errors'
+import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { bol, eol, exact } from './lib/matchers'
@@ -19,7 +19,7 @@ import { map } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { doubleArithOp } from './operators'
 import { propertyAccess } from './propaccess'
-import { cmdOnlyChainOp, endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
+import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
 import { fnDecl, valueType } from './types'
 
@@ -34,23 +34,21 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         map(
           combine(
-            exact('let'),
-            maybe(exact('mut')),
+            combine(exact('let'), s),
+            maybe(combine(exact('mut'), s)),
             failIfMatches(keyword, 'Cannot use reserved keyword as a variable name'),
-            failure(identifier, 'Expected an identifier'),
-            { inter: s }
+            failure(identifier, 'Expected an identifier')
           ),
           ([_, mutable, __, varname]) => ({ mutable, varname })
         ),
         maybeFlatten(
           map(
-            combine(exact(':'), failure(valueType, 'Expected a type annotation'), { inter: maybe_s }),
+            combine(combine(maybe_s, exact(':'), maybe_s), failure(valueType, 'Expected a type annotation')),
             ([_, type]) => type
           )
         ),
-        exact('=', 'Expected an assignment'),
-        failure(expr, 'Expected an expression'),
-        { inter: maybe_s }
+        combine(maybe_s, exact('=', 'Expected an assignment'), maybe_s),
+        failure(expr, 'Expected an expression')
       ),
 
       ([mv, vartype, _, expr]) => ({
@@ -65,7 +63,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         combine(exact('if'), s),
         failure(expr, 'Expected a condition'),
-        exact('{', 'Expected an opening brace ({) for the "if"\'s body'),
+        combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "if"\'s body'), maybe_s_nl),
         withStatementClosingChar(
           '}',
           withContinuationKeyword(
@@ -73,14 +71,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             withLatelyDeclared(() => blockBody)
           )
         ),
-        exact('}', "Expected a closing brace (}) to close the block's content"),
+        combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content")),
         extract(
           takeWhile<ElIfBlock>(
             map(
               combine(
-                combine(exact('elif'), s),
+                combine(maybe_s_nl, exact('elif'), s),
                 failure(expr, 'Expected a condition for the "elif" statement'),
-                exact('{', 'Expected an opening brace ({) for the "elif" body'),
+                combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "elif" body'), maybe_s_nl),
                 withStatementClosingChar(
                   '}',
                   withContinuationKeyword(
@@ -88,8 +86,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
                     withLatelyDeclared(() => blockBody)
                   )
                 ),
-                exact('}', "Expected a closing brace (}) to close the block's content"),
-                { inter: maybe_s_nl }
+                combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
               ),
               ([_, cond, __, { parsed: body }]) => ({ cond, body })
             ),
@@ -99,19 +96,17 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         maybe(
           map(
             combine(
-              combine(exact('else'), s),
-              exact('{', 'Expected an opening brace ({) for the "else" body'),
+              combine(maybe_s_nl, exact('else'), s),
+              combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "else" body'), maybe_s_nl),
               withStatementClosingChar(
                 '}',
                 withLatelyDeclared(() => blockBody)
               ),
-              exact('}', "Expected a closing brace (}) to close the block's content"),
-              { inter: maybe_s_nl }
+              combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
             ),
             ([_, __, { parsed: body }]) => body
           )
-        ),
-        { inter: maybe_s_nl }
+        )
       ),
       ([_, cond, __, { parsed: body }, ___, { parsed: elif }, { parsed: els }]) => ({ cond, body, elif, els })
     ),
@@ -126,21 +121,19 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           failure(s, 'Expected a space after the "in" keyword')
         ),
         failure(expr, 'Expected an expression to iterate on'),
-        maybe_s_nl,
         map(
           combine(
-            exact('{', "Expected an opening brace ({) for the loop's body"),
+            combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the loop's body"), maybe_s_nl),
             withStatementClosingChar(
               '}',
               withLatelyDeclared(() => blockBody)
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
           ),
           ([_, { parsed: body }, __]) => body
         )
       ),
-      ([_, loopvar, __, subject, ___, { parsed: body }]) => ({ loopvar, subject, body })
+      ([_, loopvar, __, subject, { parsed: body }]) => ({ loopvar, subject, body })
     ),
 
     whileLoop: map(
@@ -149,16 +142,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         failure(expr, 'Expected a loop condition'),
         map(
           combine(
-            maybe_s_nl,
-            exact('{', "Expected an opening brace ({) for the loop's body"),
+            combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the loop's body"), maybe_s_nl),
             withStatementClosingChar(
               '}',
               withLatelyDeclared(() => blockBody)
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
           ),
-          ([_, __, { parsed: body }, ___]) => body
+          ([_, { parsed: body }]) => body
         )
       ),
       ([_, cond, { parsed: body }]) => ({
@@ -172,7 +163,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         exact('try'),
         map(
           combine(
-            exact('{', "Expected an opening brace ({) for the try's body"),
+            combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the try's body"), maybe_s_nl),
             withStatementClosingChar(
               '}',
               withContinuationKeyword(
@@ -180,32 +171,28 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
                 withLatelyDeclared(() => blockBody)
               )
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
           ),
           ([_, { parsed: body }, __]) => body
         ),
         map(
           combine(
-            exact('catch', 'Expected a "catch" clause'),
-            failure(identifier, 'Expected an identifier for the "catch" clause'),
-            { inter: s }
+            combine(maybe_s_nl, exact('catch', 'Expected a "catch" clause'), s),
+            failure(identifier, 'Expected an identifier for the "catch" clause')
           ),
           ([_, catchVarname]) => catchVarname
         ),
         map(
           combine(
-            exact('{', 'Expected an opening brace ({) for the "catch" clause\'s body'),
+            combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) for the "catch" clause\'s body'), maybe_s_nl),
             withStatementClosingChar(
               '}',
               withLatelyDeclared(() => blockBody)
             ),
-            exact('}', "Expected a closing brace (}) to close the block's content"),
-            { inter: maybe_s_nl }
+            combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
           ),
           ([_, { parsed: body }, __]) => body
-        ),
-        { inter: maybe_s_nl }
+        )
       ),
       ([_, { parsed: body }, { parsed: catchVarname }, { parsed: catchBody }]) => ({
         body,
@@ -231,13 +218,12 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     fnDecl: map(
       combine(
         fnDecl,
-        exact('{', "Expected an opening brace ({) for the function's body"),
+        combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the function's body"), maybe_s_nl),
         withStatementClosingChar(
           '}',
           withLatelyDeclared(() => blockBody)
         ),
-        exact('}', "Expected a closing brace (}) to end the function's body"),
-        { inter: maybe_s_nl }
+        combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to end the function's body"))
       ),
       ([
         {
@@ -249,21 +235,24 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       ]) => ({ name, fnType, body })
     ),
 
-    throw: map(combine(exact('throw'), failure(expr, 'Expected a value to throw'), { inter: s }), ([_, expr]) => ({
+    throw: map(combine(exact('throw'), s, failure(expr, 'Expected a value to throw')), ([_, __, expr]) => ({
       expr,
     })),
 
     assignment: map(
       combine(
         identifier,
+        maybe_s_nl,
         takeWhile(propertyAccess),
-        combine(maybe(doubleArithOp), exact('=')),
-        failure(expr, 'Expected an expression to assign'),
-        { inter: maybe_s }
+        maybe_s_nl,
+        combine(maybe(doubleArithOp), maybe_s_nl, exact('='), maybe_s_nl),
+        failure(expr, 'Expected an expression to assign')
       ),
       ([
         varname,
+        _,
         { parsed: propAccess },
+        __,
         {
           parsed: [prefixOp],
         },
@@ -285,24 +274,13 @@ export const statementChainFree: Parser<StatementChain> = map(
   combine(
     maybe_s,
     statement,
-    contextualFailIf(
-      cmdOnlyChainOp,
-      (ctx) => (ctx.combinationData!.soFar.previous!.parsed as Statement).type !== 'cmdCall',
-      'This chaining operator is reserved to command calls'
-    ),
+    maybe_s,
     takeWhile(
       failIfMatchesElse(
         or([endOfStatementChain, matchContinuationKeyword]),
         map(
           combine(
-            contextualFailIf(
-              cmdOnlyChainOp,
-              (ctx) => {
-                const previous = ctx.combinationData!.soFar.previous
-                return !!previous && (previous.parsed as Statement).type !== 'cmdCall'
-              },
-              'This chaining operator is reserved to command calls'
-            ),
+            maybe_s,
             failure(statementChainOp, 'Expected end of statement'),
             maybe_s_nl,
             failure(statement, 'Expected another statement')
@@ -312,8 +290,7 @@ export const statementChainFree: Parser<StatementChain> = map(
       ),
       { inter: maybe_s }
     ),
-    endOfStatementChain,
-    { inter: maybe_s }
+    endOfStatementChain
   ),
   ([_, start, __, { parsed: sequence }]): StatementChain => ({
     type: 'chain',

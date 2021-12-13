@@ -27,6 +27,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
         map(
           combine(
             identifier,
+            s,
             takeWhile(
               failIfMatchesElse(
                 callEndDetector,
@@ -36,12 +37,12 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
                 )
               ),
               { inter: s }
-            ),
-            { inter: s }
+            )
           ),
-          ([name, { parsed: args }]) => ({ name, args })
+          ([name, _, { parsed: args }]) => ({ name, args })
         ),
       ]),
+      maybe_s,
       maybe(
         map(
           combine(
@@ -54,8 +55,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
           ),
           ([op, _, path]): CmdRedir => ({ op, path })
         )
-      ),
-      { inter: maybe_s }
+      )
     ),
-    ([{ parsed: nameAndArgs }, redir]) => ({ ...nameAndArgs, redir: flattenMaybeToken(redir) })
+    ([{ parsed: nameAndArgs }, _, redir]) => ({ ...nameAndArgs, redir: flattenMaybeToken(redir) })
   )

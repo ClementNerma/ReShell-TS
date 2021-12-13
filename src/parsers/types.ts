@@ -25,11 +25,11 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
 
     list: map(
       combine(
-        exact('list'),
-        exact('['),
+        exact('list['),
+        maybe_s_nl,
         withLatelyDeclared(() => valueType),
-        exact(']'),
-        { inter: maybe_s_nl }
+        maybe_s_nl,
+        exact(']')
       ),
       ([_, __, { parsed: itemsType }, ___]) => ({
         itemsType,
@@ -38,31 +38,28 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
 
     map: map(
       combine(
-        exact('map'),
-        exact('['),
+        combine(exact('map['), maybe_s_nl),
         withLatelyDeclared(() => valueType),
-        exact(']'),
-        { inter: maybe_s_nl }
+        combine(maybe_s_nl, exact(']'))
       ),
-      ([_, __, { parsed: itemsType }, ___]) => ({
+      ([_, { parsed: itemsType }]) => ({
         itemsType,
       })
     ),
 
     struct: map(
       combine(
-        exact('{'),
+        combine(exact('{'), maybe_s_nl),
         extract(
           takeWhile1(
             map(
               combine(
                 failure(identifier, 'Expected a member name'),
-                exact(':', 'Expected a semicolon (:) type separator'),
+                combine(maybe_s_nl, exact(':', 'Expected a semicolon (:) type separator'), maybe_s_nl),
                 failure(
                   withLatelyDeclared(() => valueType),
                   'Expected a type annotation for this member'
-                ),
-                { inter: maybe_s_nl }
+                )
               ),
               ([{ parsed: name }, _, { parsed: type }]) => ({ name, type })
             ),
@@ -73,8 +70,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
             }
           )
         ),
-        exact('}', "Expected a closing brace (}) after the list of the struct's members"),
-        { inter: maybe_s_nl }
+        combine(maybe_s_nl, exact('}', "Expected a closing brace (}) after the list of the struct's members"))
       ),
       ([_, { parsed: members }, __]) => ({ members })
     ),
@@ -114,21 +110,28 @@ export const valueType: Parser<ValueType> = map(
 const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>
   map(
     combine(
-      map(combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }), ([_, name]) => name),
-      exact('(', "Expected an open paren '('"),
+      map(combine(exact('fn'), s, requireName ? identifier : maybe(identifier)), ([_, __, name]) => name),
+      combine(maybe_s, exact('(', "Expected an open paren '('"), maybe_s_nl),
       extract(
         takeWhile(
           map(
             combine(
               // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
               contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
-              maybe(exact('?')),
-              exact(':', "Expected a semicolon (:) separator for the argument's type"),
+              map(
+                combine(
+                  maybe_s,
+                  maybe(exact('?')),
+                  exact(':', "Expected a semicolon (:) separator for the argument's type"),
+                  maybe_s
+                ),
+                ([_, optional, __, ___]) => !!optional.parsed
+              ),
               failure(valueType, 'Expected a type for the argument'),
               maybe(
                 map(
                   combine(
-                    exact('='),
+                    combine(maybe_s_nl, exact('='), maybe_s_nl),
                     failure(
                       withLatelyDeclared(() => literalValue),
                       (err) => ({
@@ -142,17 +145,15 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                           ],
                         ],
                       })
-                    ),
-                    { inter: maybe_s_nl }
+                    )
                   ),
                   ([_, { parsed: defaultValue }]) => defaultValue
                 )
-              ),
-              { inter: maybe_s_nl }
+              )
             ),
-            ([name, { parsed: optional }, _, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
+            ([name, { parsed: optional }, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
               name,
-              optional: !!optional,
+              optional,
               type,
               defaultValue,
             })
@@ -163,11 +164,11 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
           }
         )
       ),
-      exact(')', "Expected a closing paren ')'"),
+      combine(maybe_s_nl, exact(')', "Expected a closing paren ')'")),
       maybeFlatten(
         map(
-          combine(exact('->'), failure(valueType, 'Expected a return type'), { inter: maybe_s_nl }),
-          ([_, returnType]) => returnType
+          combine(maybe_s, exact('->'), maybe_s, failure(valueType, 'Expected a return type')),
+          ([_, __, ___, returnType]) => returnType
         )
       ),
       maybeFlatten(
@@ -175,8 +176,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
           combine(maybe_s, exact('throws'), s, failure(valueType, 'Expected a failure type')),
           ([_, __, ___, failureType]) => failureType
         )
-      ),
-      { inter: maybe_s_nl }
+      )
     ),
     ([{ parsed: named }, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
       named: flattenMaybeToken(named),

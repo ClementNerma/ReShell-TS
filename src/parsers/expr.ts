@@ -24,25 +24,24 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
       singleOp: map(
         combine(
           singleOp,
+          maybe_s,
           failure(
             withLatelyDeclared(() => simpleExpr),
             'Expected an expression after the operator'
-          ),
-          { inter: maybe_s }
+          )
         ),
-        ([op, right]) => ({ op, right })
+        ([op, _, right]) => ({ op, right })
       ),
 
       // "(" expr ")"
       paren: map(
         combine(
-          exact('('),
+          combine(exact('('), maybe_s_nl),
           failure(
             withLatelyDeclared(() => expr),
             'Expected an expression after an opening parenthesis'
           ),
-          exact(')'),
-          { inter: maybe_s_nl }
+          combine(maybe_s_nl, exact(')'))
         ),
         ([_, inner, __]) => ({
           inner,
@@ -57,12 +56,12 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
             withLatelyDeclared(() => expr),
             'Expected a condition'
           ),
-          exact('{', 'Expected an opening brace ({) after the condition'),
+          combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) after the condition'), maybe_s_nl),
           failure(
             withLatelyDeclared(() => expr),
             'Expected an expression in the "if" body'
           ),
-          exact('}', 'Expected a closing brace (}) to close the "if" body'),
+          combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the "if" body'), maybe_s_nl),
           extract(
             takeWhile<ElIfExpr>(
               map(
@@ -72,66 +71,70 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
                     withLatelyDeclared(() => expr),
                     'Expecting a condition'
                   ),
-                  exact('{', 'Expected an opening brace ({) after the condition'),
+                  combine(maybe_s_nl, exact('{', 'Expected an opening brace ({) after the condition'), maybe_s_nl),
                   failure(
                     withLatelyDeclared(() => expr),
                     'Expected an expression in the "elif" body'
                   ),
-                  exact('}', 'Expected an opening brace (}) to close the "elif" body'),
-                  { inter: maybe_s_nl }
+                  combine(maybe_s_nl, exact('}', 'Expected an opening brace (}) to close the "elif" body'))
                 ),
                 ([_, cond, __, expr]) => ({ cond, expr })
-              )
+              ),
+              { inter: maybe_s_nl }
             )
           ),
-          exact('else', 'Expected an "else" counterpart'),
-          exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
+          combine(
+            maybe_s_nl,
+            exact('else', 'Expected an "else" counterpart'),
+            maybe_s_nl,
+            exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
+            maybe_s_nl
+          ),
           failure(
             withLatelyDeclared(() => expr),
             'Expected an expression in the "else" body'
           ),
-          exact('}', 'Expected a closing brace (}) to close the "else" body'),
-          { inter: maybe_s_nl }
+          combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the "else" body'))
         ),
-        ([_, cond, __, then, ___, { parsed: elif }, ____, _____, els, ______]) => ({ cond, then, elif, els })
+        ([_, cond, __, then, ___, { parsed: elif }, ____, els]) => ({ cond, then, elif, els })
       ),
 
       try: map(
         combine(
-          exact('try'),
+          combine(exact('try'), maybe_s_nl),
           map(
             combine(
-              exact('{', "Expected an opening brace ({) for the try's expression"),
+              combine(exact('{', "Expected an opening brace ({) for the try's expression"), maybe_s_nl),
               withStatementClosingChar(
                 '}',
                 withLatelyDeclared(() => expr)
               ),
-              exact('}', "Expected a closing brace (}) to close the block's content"),
-              { inter: maybe_s_nl }
+              combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
             ),
             ([_, { parsed: expr }, __]) => expr
           ),
           map(
             combine(
-              exact('catch', 'Expected a "catch" clause'),
-              failure(identifier, 'Expected an identifier for the "catch" clause'),
-              { inter: s }
+              combine(maybe_s_nl, exact('catch', 'Expected a "catch" clause'), s),
+              failure(identifier, 'Expected an identifier for the "catch" clause')
             ),
             ([_, catchVarname]) => catchVarname
           ),
           map(
             combine(
-              exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
+              combine(
+                maybe_s_nl,
+                exact('{', 'Expected an opening brace ({) for the "catch" clause\'s expression'),
+                maybe_s_nl
+              ),
               withStatementClosingChar(
                 '}',
                 withLatelyDeclared(() => expr)
               ),
-              exact('}', "Expected a closing brace (}) to close the block's content"),
-              { inter: maybe_s_nl }
+              combine(maybe_s_nl, exact('}', "Expected a closing brace (}) to close the block's content"))
             ),
             ([_, { parsed: expr }, __]) => expr
-          ),
-          { inter: maybe_s_nl }
+          )
         ),
         ([_, trying, { parsed: catchVarname }, catchExpr]) => ({
           trying,
@@ -141,9 +144,11 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
       ),
 
       assertion: map(
-        combine(identifier, exact('is'), failure(valueType, 'Expected a type after the "is" type assertion operator'), {
-          inter: maybe_s,
-        }),
+        combine(
+          identifier,
+          combine(s, exact('is'), s),
+          failure(valueType, 'Expected a type after the "is" type assertion operator')
+        ),
         ([varname, _, minimum]) => ({ varname, minimum })
       ),
 
@@ -158,10 +163,8 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSe
   propAccess: toOneProp(propertyAccess, 'access'),
 
   doubleOp: map(
-    combine(maybe_s, doubleOp, failure(exprElement, 'Expected an expression after operator'), {
-      inter: maybe_s,
-    }),
-    ([_, op, right]) => ({
+    combine(maybe_s, doubleOp, maybe_s, failure(exprElement, 'Expected an expression after operator')),
+    ([_, op, __, right]) => ({
       type: 'doubleOp',
       op,
       right,

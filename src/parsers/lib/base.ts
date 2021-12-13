@@ -38,7 +38,7 @@ export type LoopContext = Readonly<{
   soFar: Readonly<{
     start: Readonly<CodeLoc>
     matched: ReadonlyArray<string>
-    parsed: ReadonlyArray<unknown>
+    parsed: ReadonlyArray<Token<unknown>>
     previous: Token<unknown> | null
     previousInfos: ParserSuccessInfos | null
   }>

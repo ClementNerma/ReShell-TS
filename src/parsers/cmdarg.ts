@@ -45,13 +45,13 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
 
   expr: map(
     combine(
-      exact('${'),
+      combine(exact('${'), maybe_s_nl),
       failure(
         withLatelyDeclared(() => expr),
         'Failed to parse the inner expression'
       ),
-      exact('}', 'Expected a closing brace (}) to close the inner expression'),
-      { inter: maybe_s_nl }
+      maybe_s_nl,
+      exact('}', 'Expected a closing brace (}) to close the inner expression')
     ),
     ([_, expr, __]) => ({ type: 'expr', expr })
   ),
