@@ -3,8 +3,17 @@
 
 import { FnType, StatementChain, ValueType } from '../../shared/parsed'
 import { located, Located, success, TypecheckerArr } from '../base'
-import { Scope } from './complete'
 import { ensureScopeUnicity } from './search'
+
+export type Scope = {
+  typeAliases: Map<string, ScopeTypeAlias>
+  functions: Map<string, ScopeFn>
+  variables: Map<string, ScopeVar>
+}
+
+export type ScopeTypeAlias = Located<ValueType>
+export type ScopeFn = Located<FnType>
+export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 
 export type ScopeFirstPass = {
   typeAliases: Map<string, Located<ValueType>>

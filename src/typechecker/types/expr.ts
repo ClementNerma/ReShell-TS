@@ -1,7 +1,7 @@
-import { Expr, ExprElement, SingleLogicOp, ValueType } from '../shared/parsed'
-import { ensureCoverage, err, success, Typechecker } from './base'
-import { Scope } from './scope/complete'
-import { valueType } from './value-type'
+import { Expr, ExprElement, SingleLogicOp, ValueType } from '../../shared/parsed'
+import { ensureCoverage, err, success, Typechecker } from '../base'
+import { Scope } from '../scope/first-pass'
+import { valueType } from './value'
 
 export type ScopedExprType = ValueType
 

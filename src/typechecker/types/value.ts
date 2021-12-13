@@ -1,8 +1,8 @@
-import { Value, ValueType } from '../shared/parsed'
-import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from './base'
-import { resolveExprType, ScopedExprType } from './expr-type'
-import { Scope } from './scope/complete'
-import { getFunctionInScope, getVariableInScope } from './scope/search'
+import { Value, ValueType } from '../../shared/parsed'
+import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
+import { Scope } from '../scope/first-pass'
+import { getFunctionInScope, getVariableInScope } from '../scope/search'
+import { resolveExprType, ScopedExprType } from './expr'
 
 export const valueType: Typechecker<Value, Scope[], ScopedExprType> = (
   value,

@@ -1,7 +1,6 @@
 import { CodeLoc } from '../../shared/parsed'
 import { err, success, TypecheckerErr, TypecheckerRaw } from '../base'
-import { Scope, ScopeFn, ScopeTypeAlias, ScopeVar } from './complete'
-import { ScopeFirstPass } from './first-pass'
+import { Scope, ScopeFirstPass, ScopeFn, ScopeTypeAlias, ScopeVar } from './first-pass'
 
 export const categoryMapping: { [key in keyof Scope]: string } = {
   typeAliases: 'type',

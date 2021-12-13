@@ -1,8 +1,8 @@
 import { matchUnion } from '../../parsers/utils'
 import { ValueType } from '../../shared/parsed'
 import { success, TypecheckerArr, TypecheckerRaw } from '../base'
-import { Scope } from './complete'
-import { getTypeAliasInScope } from './search'
+import { Scope } from '../scope/first-pass'
+import { getTypeAliasInScope } from '../scope/search'
 
 export const typeValidator: TypecheckerRaw<ValueType, Scope[], void> = (type, parents) =>
   matchUnion(type.inner)('type', {
