@@ -1,5 +1,6 @@
 import { Block, ClosureArg, ClosureBody, CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
+import { FnCallPrecompArg } from '../../shared/precomp'
 import { matchUnion } from '../../shared/utils'
 import {
   err,
@@ -274,20 +275,23 @@ export const validateFnCall: Typechecker<
     }
   }
 
-  let buildingRest = false
+  let isSupplyingRestArguments = false
+  const suppliedRestArgument: Token<CmdArg>[] = []
+  const suppliedArgsScope = new Map<string, FnCallPrecompArg>()
 
   for (const arg of args) {
-    if (!buildingRest && positional.length === 0 && fnType.restArg !== null) {
-      buildingRest = true
+    if (!isSupplyingRestArguments && positional.length === 0 && fnType.restArg !== null) {
+      isSupplyingRestArguments = true
     }
 
-    if (buildingRest) {
+    if (isSupplyingRestArguments) {
       const check = cmdArgTypechecker(arg, ctx)
       if (!check.ok) return check
+      suppliedRestArgument.push(arg)
       continue
     }
 
-    const resolved: TypecheckerResult<void> = matchUnion(arg.parsed, 'type', {
+    const resolved: TypecheckerResult<[string, FnCallPrecompArg]> = matchUnion(arg.parsed, 'type', {
       action: ({ name }) =>
         err(name.at, {
           message:
@@ -309,7 +313,7 @@ export const validateFnCall: Typechecker<
           },
         })
 
-        return resolved.ok ? success(void 0) : resolved
+        return resolved.ok ? success([relatedArg.parsed.name.parsed, { type: 'expr', expr }]) : resolved
       },
 
       flag: ({ name, directValue }) => {
@@ -320,7 +324,7 @@ export const validateFnCall: Typechecker<
 
         if (!directValue) {
           return flag.parsed.type.type !== 'nullable' && flag.parsed.type.type === 'bool'
-            ? success(void 0)
+            ? success([name.parsed, { type: 'null' }])
             : err(
                 name.at,
                 `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type, true)}\`)`
@@ -335,7 +339,7 @@ export const validateFnCall: Typechecker<
           },
         })
 
-        return resolved.ok ? success(void 0) : resolved
+        return resolved.ok ? success([name.parsed, { type: 'expr', expr: directValue }]) : resolved
       },
 
       value: ({ value }) => {
@@ -359,7 +363,7 @@ export const validateFnCall: Typechecker<
           },
         })
 
-        return resolved.ok ? success(void 0) : resolved
+        return resolved.ok ? success([relatedArg.parsed.name.parsed, { type: 'value', value }]) : resolved
       },
 
       rest: ({ varname }) =>
@@ -367,6 +371,8 @@ export const validateFnCall: Typechecker<
     })
 
     if (!resolved.ok) return resolved
+
+    suppliedArgsScope.set(resolved.data[0], resolved.data[1])
   }
 
   const lastSection = args[args.length - 1]?.at ?? at
@@ -407,7 +413,19 @@ export const validateFnCall: Typechecker<
     resolvedGScope.set(name.parsed, mapped)
   }
 
-  ctx.fnCallGenerics.push({ at: nameAt, data: resolvedGScope })
+  ctx.fnCalls.push({
+    at: nameAt,
+    data: {
+      generics: resolvedGScope,
+      args: suppliedArgsScope,
+      restArg: fnType.restArg
+        ? {
+            name: fnType.restArg.parsed,
+            content: suppliedRestArgument,
+          }
+        : null,
+    },
+  })
 
   return success([
     fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics) : { type: 'void' },

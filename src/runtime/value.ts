@@ -162,7 +162,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
     },
 
     callback: ({ args, restArg, body }) => {
-      const fnType = getLocatedPrecomp(value.at, ctx.callbackTypes)
+      const fnType = getLocatedPrecomp(ctx.callbackTypes, value.at)
 
       if (fnType === undefined) {
         return err(body.at, "internal error: failed to get this function's type from context")
@@ -176,7 +176,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       })
     },
 
-    fnCall: (/*{ name, args }*/) => {
+    fnCall: (/*{ name }*/) => {
       throw new Error('TODO: function calls')
       // TODO: generics resolution
     },

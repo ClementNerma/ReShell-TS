@@ -15,14 +15,14 @@ export type RunnerContext = {
   scopes: Scope[]
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
-  fnCallGenerics: PrecompData['fnCallGenerics']
+  fnCalls: PrecompData['fnCalls']
 }
 
 export const createRunnerContext = (precompData: PrecompData): RunnerContext => ({
   scopes: [],
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
-  fnCallGenerics: precompData.fnCallGenerics,
+  fnCalls: precompData.fnCalls,
 })
 
 export type Scope = {

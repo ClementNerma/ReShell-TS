@@ -10,9 +10,5 @@ export const langTypechecker: Typechecker<Token<AST>, TypecheckerOutput> = (ast,
   const check = programChecker(ast.parsed, ctx)
   if (!check.ok) return check
 
-  return success({
-    typeAliases: ctx.typeAliases,
-    callbackTypes: ctx.callbackTypes,
-    fnCallGenerics: ctx.fnCallGenerics,
-  })
+  return success({ typeAliases: ctx.typeAliases, callbackTypes: ctx.callbackTypes, fnCalls: ctx.fnCalls })
 }
