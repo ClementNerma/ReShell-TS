@@ -5,7 +5,7 @@ import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
-import { resolveExprType } from './types/expr'
+import { resolveExprOrTypeAssertionType, resolveExprType } from './types/expr'
 import { fnScopeCreator } from './types/fn'
 import { resolvePropAccessType } from './types/propaccess'
 import { rebuildType } from './types/rebuilder'
@@ -116,6 +116,49 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
               })
 
           if (!check.ok) return check
+
+          return success(void 0)
+        },
+
+        ifBlock: ({ cond, then: body, elif, els }) => {
+          const condCheck = resolveExprOrTypeAssertionType(cond, {
+            ...ctx,
+            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+          })
+
+          if (!condCheck.ok) return condCheck
+
+          const thenCheck = statementChainChecker(
+            body,
+            condCheck.data.type === 'assertion'
+              ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.assertionScope]) }
+              : ctx
+          )
+
+          if (!thenCheck.ok) return thenCheck
+
+          for (const { cond, body } of elif) {
+            const condCheck = resolveExprOrTypeAssertionType(cond, {
+              ...ctx,
+              typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+            })
+
+            if (!condCheck.ok) return condCheck
+
+            const elifCheck = statementChainChecker(body, {
+              ...ctx,
+              scopes:
+                condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.assertionScope]) : ctx.scopes,
+            })
+
+            if (!elifCheck.ok) return elifCheck
+          }
+
+          if (els) {
+            const elseCheck = statementChainChecker(els, ctx)
+
+            if (!elseCheck.ok) return elseCheck
+          }
 
           return success(void 0)
         },
