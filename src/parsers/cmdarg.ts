@@ -53,7 +53,7 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
       maybe_s_nl,
       exact('}', 'expected a closing brace (}) to close the inner expression')
     ),
-    ([_, expr, __]) => ({ expr })
+    ([_, expr]) => ({ expr })
   ),
 
   value: toOneProp('value', value),

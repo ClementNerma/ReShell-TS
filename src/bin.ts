@@ -66,7 +66,7 @@ const sourceServer = new SourceFilesServer(
 const [parsingDuration, parsed] = measurePerf(() => parseSource(sourceServer, program, initContext()))
 
 if (!parsed.ok) {
-  const error = parsed.history?.[0] ?? '<no error provided>'
+  const error = parsed.history[0] ?? '<no error provided>'
   console.error(formatErr(error, sourceServer, errorFormatters))
   process.exit(1)
 }
@@ -83,7 +83,7 @@ if (argv.includes('--compression-perf')) {
     fail('Decompressed data is not the same as the source!')
   }
 
-  const [jsonParseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
+  const [jsonParseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr) as unknown)
 
   if (JSON.stringify(reparsed) !== jsonStr) {
     fail('Reparsed data is not the same as the source!')
@@ -111,7 +111,7 @@ if (argv.includes('--ast')) {
 const isWindows = process.platform === 'win32' || process.platform === 'cygwin'
 
 const RAW_PATH = process.env['PATH']
-if (!RAW_PATH) throw new Error('Failed to fetch PATH system variable')
+if (RAW_PATH === undefined) throw new Error('Failed to fetch PATH system variable')
 
 const PATH = RAW_PATH.split(delimiter).map((entry) =>
   entry.startsWith('"') && entry.endsWith('"') ? entry.substr(1, entry.length - 2) : entry

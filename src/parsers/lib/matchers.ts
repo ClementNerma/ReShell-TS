@@ -152,7 +152,7 @@ export function eos(error?: ErrInputData): Parser<void> {
  * @param pos Indicate where the error should be located (before or after the parser's match)
  * @returns
  */
-export function failWithPrecedenceIf<T>(parser: Parser<T>, error: string, pos: 'before' | 'after'): Parser<any> {
+export function failWithPrecedenceIf<T>(parser: Parser<T>, error: string, pos: 'before' | 'after'): Parser<never> {
   const before = pos === 'before'
 
   return (start, input, context) => {

@@ -37,7 +37,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
   let previousStmt: { at: CodeSection; metadata: StatementMetadata } | null = null
 
   for (const stmt of flattenStatementChains(chain)) {
-    if (previousStmt?.metadata.neverEnds) {
+    if (previousStmt?.metadata.neverEnds === true) {
       ctx.emitDiagnostic(
         diagnostic(
           stmt.at,
@@ -80,7 +80,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           typeExpectation: expectedType
             ? {
                 type: expectedType,
-                from: vartype!.at,
+                from: vartype?.at ?? null,
               }
             : null,
         })
@@ -185,7 +185,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         if (!thenCheck.ok) return thenCheck
 
-        let blocksMetadata: StatementChainMetadata[] = []
+        const blocksMetadata: StatementChainMetadata[] = []
 
         for (const { cond, body } of elif) {
           const condCheck = resolveExprOrTypeAssertionType(cond, {
@@ -465,19 +465,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         }
 
         if (!ctx.fnExpectation.failureType) {
-          return expr ? err(stmt.at, 'current function does not have a failure type') : success({ neverEnds: true })
-        }
-
-        if (!expr) {
-          return err(stmt.at, {
-            message: `missing failure value (expected \`${rebuildType(ctx.fnExpectation.failureType.type)}\`)`,
-            also: [
-              {
-                at: ctx.fnExpectation.failureType.from,
-                message: 'failure type expectation originates here',
-              },
-            ],
-          })
+          return err(stmt.at, 'current function does not have a failure type')
         }
 
         const resolved = resolveExprType(expr, {

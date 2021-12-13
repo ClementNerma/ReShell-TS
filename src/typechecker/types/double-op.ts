@@ -154,7 +154,7 @@ export const resolveDoubleOpType: Typechecker<
     case 'comparison':
       switch (op.parsed.op.parsed) {
         case 'Eq':
-        case 'NotEq':
+        case 'NotEq': {
           const type = leftExprType.type
 
           if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path') {
@@ -164,6 +164,7 @@ export const resolveDoubleOpType: Typechecker<
           checkRightOperandType = leftExprType
           producedType = { type: 'bool' }
           break
+        }
 
         case 'GreaterThan':
         case 'GreaterThanOrEqualTo':
@@ -183,7 +184,7 @@ export const resolveDoubleOpType: Typechecker<
 
   const rightExprType = resolveExprElementType(right, {
     ...ctx,
-    typeExpectation: checkRightOperandType ? { type: checkRightOperandType, from: op.at } : null,
+    typeExpectation: { type: checkRightOperandType, from: op.at },
   })
 
   if (!rightExprType.ok) return rightExprType

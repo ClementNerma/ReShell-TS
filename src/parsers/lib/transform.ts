@@ -33,7 +33,7 @@ export function mapErr<T>(
 }
 
 export function silence<T>(parser: Parser<T>): Parser<void> {
-  return map(parser, (_) => {})
+  return map(parser, () => void 0)
 }
 
 export function unify(parser: Parser<unknown>): Parser<string> {

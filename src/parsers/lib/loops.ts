@@ -15,7 +15,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
     let next = { ...start }
 
-    while (true) {
+    for (;;) {
       const result = parser(next, input, context)
 
       if (!result.ok) {
@@ -23,7 +23,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
           return result
         }
 
-        if (interMadeExpectation) {
+        if (interMadeExpectation !== false) {
           return withErr(result, interMadeExpectation)
         }
 
@@ -62,7 +62,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
         matched.push(interData.matched)
 
-        if (options?.interExpect) {
+        if (options.interExpect !== false) {
           interMadeExpectation = options.interExpect
         }
       }
@@ -98,7 +98,7 @@ export function takeWhileN<T>(
     const parsed = take(start, input, context)
     return parsed.ok
       ? parsed.data.parsed.length < options.minimum
-        ? err(parsed.data.at.start, parsed.data.at.next, context, options?.notEnoughMatchError)
+        ? err(parsed.data.at.start, parsed.data.at.next, context, options.notEnoughMatchError)
         : { ok: true, data: parsed.data }
       : parsed
   }

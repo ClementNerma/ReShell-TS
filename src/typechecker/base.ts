@@ -66,6 +66,6 @@ export const err = (at: CodeSection, err: DiagnosticInput): TypecheckerErr => ({
   ...diagnostic(at, err, DiagnosticLevel.Error),
 })
 
-export const ensureCoverage = (value: never): never => {
+export const ensureCoverage = (_: never): never => {
   throw new Error('Internal error: reached a theorically unreachable statement')
 }

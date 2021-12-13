@@ -39,7 +39,7 @@ export function enumMatchingTypechecker<T, X>(
     inspect?.(check.data, matchWith)
 
     if (variant.parsed === '_') {
-      if (usedFallback) {
+      if (usedFallback !== false) {
         return err(variant.at, {
           message: 'cannot use the fallback pattern twice',
           also: [{ at: usedFallback, message: 'fallback pattern already used here' }],
@@ -73,7 +73,7 @@ export function enumMatchingTypechecker<T, X>(
     toMatch.splice(relevant, 1)
   }
 
-  if (toMatch.length > 0 && !usedFallback) {
+  if (toMatch.length > 0 && usedFallback === false) {
     return err(arms.at, `missing arms for variants: ${toMatch.map((v) => v.parsed).join(', ')}`)
   }
 

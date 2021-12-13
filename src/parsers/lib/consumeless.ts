@@ -11,7 +11,7 @@ import {
   phantomSuccess,
   success,
   withErr,
-  WithErrData
+  WithErrData,
 } from './base'
 
 export function inspectOk<T>(parser: Parser<T>, inspector: (result: ParserSucess<T>) => void): Parser<T> {
@@ -31,11 +31,11 @@ export function inspectErr<T>(parser: Parser<T>, inspector: (result: ParserErr) 
 }
 
 export function nothing(): Parser<void> {
-  return (start, _, __) => phantomSuccess(start)
+  return (start) => phantomSuccess(start)
 }
 
 export function always<T>(value: T): Parser<T> {
-  return (start, _, __) => success(start, start, value, '')
+  return (start) => success(start, start, value, '')
 }
 
 export function fail<T>(error?: ErrInputData): Parser<T> {

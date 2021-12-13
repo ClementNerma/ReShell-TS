@@ -8,7 +8,7 @@ export function nativeLibraryScope(): Scope {
     type: 'var',
     at: nativeLibAt,
     mutable: false,
-    varType: { type: 'list', itemsType: { type: 'unknown' } }
+    varType: { type: 'list', itemsType: { type: 'unknown' } },
   })
 
   return nativeLib
@@ -18,11 +18,11 @@ const nativeLibAt: CodeSection = {
   start: {
     file: { type: 'internal', path: 'native library' },
     col: 0,
-    line: 0
+    line: 0,
   },
   next: {
     file: { type: 'internal', path: 'native library' },
     col: 0,
-    line: 0
-  }
+    line: 0,
+  },
 }

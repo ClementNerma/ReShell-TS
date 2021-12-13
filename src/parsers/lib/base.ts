@@ -41,14 +41,14 @@ export function success<T>(
   }
 }
 
-export function phantomSuccess(start: CodeLoc): Extract<ParserResult<void>, { ok: true }>
+export function phantomSuccess(start: CodeLoc, phantomValue?: void): Extract<ParserResult<void>, { ok: true }>
 export function phantomSuccess<T>(start: CodeLoc, phantomValue: T): Extract<ParserResult<T>, { ok: true }>
-export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<ParserResult<T>, { ok: true }> {
+export function phantomSuccess<T>(start: CodeLoc, phantomValue: T): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
     data: {
       matched: '',
-      parsed: phantomValue!,
+      parsed: phantomValue,
       at: { start, next: start },
     },
   }

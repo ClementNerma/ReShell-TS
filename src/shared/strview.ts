@@ -226,7 +226,7 @@ class EmptyStrView extends StrView {
     return ''.match(regex)
   }
 
-  public offset(addOffset: number): StrView {
+  public offset(): StrView {
     return this
   }
 

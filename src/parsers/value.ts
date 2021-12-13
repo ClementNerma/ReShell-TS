@@ -37,7 +37,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact('"'),
       takeWhile(
         or<ComputedStringSegment>([
-          map(match(/([^\\"\$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
+          map(match(/([^\\"$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
           map(
             combine(
               combine(

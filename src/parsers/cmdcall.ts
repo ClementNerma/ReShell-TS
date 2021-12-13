@@ -21,7 +21,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
       or([
         map(
           combine(failIfMatches(keyword, 'cannot use reserved keyword here'), cmdName, callEndDetector),
-          ([_, name, __]) => ({
+          ([_, name]) => ({
             name,
             args: [],
           })

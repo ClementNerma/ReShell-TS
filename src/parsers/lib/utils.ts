@@ -15,7 +15,7 @@ export function withLatelyDeclared<T>(parser: () => Parser<T>): Parser<T> {
 function _sumUpDiagnostics(diags: Diagnostic[]): string {
   return diags
     .map((diag) => {
-      const file = matchUnion(diag.error.at.start.file, 'type', {
+      const file: string = matchUnion(diag.error.at.start.file, 'type', {
         entrypoint: () => '<entrypoint>',
         internal: ({ path }) => `<internal:${path}>`,
         file: ({ path }) => `file:${path}`,
@@ -26,8 +26,9 @@ function _sumUpDiagnostics(diags: Diagnostic[]): string {
     .join(' >> ')
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types
 function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: string | undefined): Parser<unknown> {
-  const parserName = `${alias ?? originalFn.name ?? '?'}`
+  const parserName = `${alias ?? (originalFn.name || '?')}`
   const trimStr = (str: string) => (str.length < 80 ? str : str.substr(0, 80) + '...').replace(/\n/g, '\\n')
 
   let call = 0
@@ -54,19 +55,29 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
 export function logUsage<F extends Function>(fn: F & ((...args: any[]) => Parser<any>)): F
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
 export function logUsage<F extends Function>(alias: string, fn: F & ((...args: any[]) => Parser<any>)): F
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
 export function logUsage<F extends Function>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fnOrAlias: string | (F & ((...args: any[]) => Parser<any>)),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   fn?: F & ((...args: any[]) => Parser<any>)
 ): F {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return ((...args: any[]): Parser<any> =>
     typeof fnOrAlias === 'string'
-      ? _logUsageHandler(fn!, fn!(...args), fnOrAlias)
-      : _logUsageHandler(fnOrAlias, fnOrAlias(...args), undefined)) as any as F
+      ? // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-non-null-assertion
+        _logUsageHandler(fn!, fn!(...args), fnOrAlias)
+      : // eslint-disable-next-line @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
+        _logUsageHandler(fnOrAlias, fnOrAlias(...args), undefined)) as any as F
 }
 
+// eslint-disable-next-line @typescript-eslint/ban-types, @typescript-eslint/no-explicit-any
 export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>): F {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return _logUsageHandler(fn, fn, alias) as any as F
 }
 

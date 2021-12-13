@@ -73,7 +73,8 @@ export function mappedCasesComposed<S extends object>(): <DN extends keyof S, E 
   error?: OrErrorStrategyData
 ) => Parser<S> {
   return (discriminant, firstResolver, cases, error) =>
-    or<S>([firstResolver, mappedCases<any>()(discriminant, cases)], error)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+    or<S>([firstResolver, mappedCases<S>()(discriminant, cases as any)], error)
 }
 
 export function mappedCases<S extends object>(): <DN extends keyof S>(

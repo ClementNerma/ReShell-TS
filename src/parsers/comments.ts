@@ -2,7 +2,7 @@ import { StrView } from '../shared/strview'
 import { Parser, success } from './lib/base'
 
 export const commentStripper: Parser<StrView> = (start, input) => {
-  let lines = input.toFullStringSlow().split(/\n/) // SLOW
+  const lines = input.toFullStringSlow().split(/\n/) // SLOW
 
   const output = lines.map((line) => {
     if (!line.includes('#')) {

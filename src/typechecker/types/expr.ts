@@ -69,11 +69,7 @@ export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> 
       }
 
       if (!ctx.fnExpectation.failureType) {
-        return expr ? err(expr.at, 'unexpected value (no return value expected)') : success(ctx.typeExpectation.type)
-      }
-
-      if (!expr) {
-        return err(exprOrNever.at, 'missing return value')
+        return err(expr.at, 'this value does not have a failure type')
       }
 
       const check = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.failureType })
@@ -86,12 +82,13 @@ export const resolveExprOrTypeAssertionType: Typechecker<
   { type: 'expr'; resolved: ValueType } | { type: 'assertion'; assertionScope: Scope; inverted: boolean }
 > = (expr, ctx) => {
   switch (expr.parsed.type) {
-    case 'expr':
+    case 'expr': {
       const resolved = resolveExprType(expr.parsed.inner, ctx)
       return resolved.ok ? success({ type: 'expr', resolved: resolved.data }) : resolved
+    }
 
     case 'assertion':
-    case 'invertedAssertion':
+    case 'invertedAssertion': {
       const subject = getTypedEntityInScope(expr.parsed.varname, 'var', ctx)
       if (!subject.ok) return subject
 
@@ -138,6 +135,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       ])
 
       return success({ type: 'assertion', assertionScope, inverted: expr.parsed.type === 'invertedAssertion' })
+    }
 
     default:
       return ensureCoverage(expr.parsed)

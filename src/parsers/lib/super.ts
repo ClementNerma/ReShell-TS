@@ -11,7 +11,7 @@ export function fullLine<T>(
 ): Parser<T> {
   return map(
     combine(bol(errors?.bol), failureMaybe(parser, errors?.error), eol(errors?.eol)),
-    ([_, { parsed }, __]) => parsed
+    ([, { parsed }]) => parsed
   )
 }
 
@@ -25,7 +25,7 @@ export function fullTrimmedLine<T>(
       failureMaybe(parser, errors?.error),
       combine(maybe_s, eol(errors?.eol))
     ),
-    ([_, { parsed }, __]) => parsed
+    ([, { parsed }]) => parsed
   )
 }
 

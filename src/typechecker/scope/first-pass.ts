@@ -18,7 +18,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
   for (const stmt of flattenStatementChains(chain)) {
     switch (stmt.parsed.type) {
       case 'typeAlias':
-      case 'enumDecl':
+      case 'enumDecl': {
         const typename = stmt.parsed.typename
 
         if (ctx.scopes.length > 2 /* native library has its own scope */) {
@@ -43,8 +43,9 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
         })
 
         break
+      }
 
-      case 'fnDecl':
+      case 'fnDecl': {
         const fnName = stmt.parsed.name
         const fnUnicity = ensureScopeUnicity(fnName, ctx)
         if (!fnUnicity.ok) return fnUnicity
@@ -58,6 +59,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
           content: stmt.parsed.fnType,
         })
         break
+      }
     }
   }
 

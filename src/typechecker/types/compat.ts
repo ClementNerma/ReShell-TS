@@ -26,7 +26,7 @@ export const isTypeCompatible: Typechecker<
     const messageWithFallback =
       message ??
       `expected ${
-        ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''
+        ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''
       }\`${expectedNoDepth}\`, found \`${foundNoDepth}\``
 
     return err(atOverride ?? at, {
@@ -194,13 +194,13 @@ export const isTypeCompatible: Typechecker<
     enum: (c, r) => {
       for (const name of r.variants) {
         if (!c.variants.find((variant) => variant.parsed === name.parsed)) {
-          return expectationErr(`missing variant \`${name}\``)
+          return expectationErr(`missing variant \`${name.parsed}\``)
         }
       }
 
       for (const name of c.variants) {
         if (!r.variants.find((variant) => variant.parsed === name.parsed)) {
-          return expectationErr(`member \`${name}\` is provided but not expected`)
+          return expectationErr(`member \`${name.parsed}\` is provided but not expected`)
         }
       }
 
@@ -268,7 +268,7 @@ export const isTypeCompatible: Typechecker<
         )
 
         if (!retTypeCompat.ok) return retTypeCompat
-      } else if (!c.fnType.returnType && r.fnType.returnType) {
+      } else if (r.fnType.returnType) {
         return expectationErr(`function was expected to have a return type`)
       }
 
@@ -287,7 +287,7 @@ export const isTypeCompatible: Typechecker<
         )
 
         if (!retTypeCompat.ok) return retTypeCompat
-      } else if (!c.fnType.failureType && r.fnType.failureType) {
+      } else if (r.fnType.failureType) {
         return expectationErr(`function was expected to have a failure type`)
       }
 
@@ -313,5 +313,6 @@ export const isTypeCompatible: Typechecker<
     void: () => expectationErr('internal error: trying to compare candidate with internal type "void"'),
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
   return comparators[candidate.type](candidate as any, referent as any)
 }

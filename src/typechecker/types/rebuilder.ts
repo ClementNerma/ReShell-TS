@@ -7,13 +7,16 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
     number: () => 'number',
     string: () => 'string',
     path: () => 'path',
-    list: ({ itemsType }) => (noDepth ? 'list' : `[${rebuildType(itemsType)}]`),
-    map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
+    list: ({ itemsType }) => (noDepth === true ? 'list' : `[${rebuildType(itemsType)}]`),
+    map: ({ itemsType }) => (noDepth === true ? 'map' : `map[${rebuildType(itemsType)}]`),
     struct: ({ members }) =>
-      noDepth ? 'struct' : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
-    enum: ({ variants }) => (noDepth ? 'enum' : `enum { ${variants.map((variant) => variant.parsed).join(', ')} }`),
+      noDepth === true
+        ? 'struct'
+        : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
+    enum: ({ variants }) =>
+      noDepth === true ? 'enum' : `enum { ${variants.map((variant) => variant.parsed).join(', ')} }`,
     fn: ({ fnType: { args, returnType, failureType } }) =>
-      noDepth
+      noDepth === true
         ? 'fn'
         : `fn(${args
             .map(

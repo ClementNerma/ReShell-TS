@@ -12,7 +12,7 @@ export const resolvePropAccessType: Typechecker<
   let upToPrevPropAccessSection: CodeSection = leftAt
 
   for (const propAccess of propAccesses) {
-    while (true) {
+    for (;;) {
       if (previousIterType.type === 'aliasRef') {
         const alias = ctx.typeAliases.get(previousIterType.typeAliasName.parsed)
 
@@ -41,7 +41,7 @@ export const resolvePropAccessType: Typechecker<
     }
 
     switch (propAccess.parsed.access.type) {
-      case 'refIndex':
+      case 'refIndex': {
         if (previousIterType.type === 'list') {
           const check = resolveExprType(propAccess.parsed.access.index, {
             ...ctx,
@@ -55,7 +55,7 @@ export const resolvePropAccessType: Typechecker<
           if (!propAccess.parsed.nullable) {
             return err(upToPrevPropAccessSection, {
               message: 'cannot access index of a nullable list',
-              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
+              complements: noNullabilityTip === true ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
               also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
             })
           }
@@ -81,7 +81,7 @@ export const resolvePropAccessType: Typechecker<
           if (!propAccess.parsed.nullable) {
             return err(upToPrevPropAccessSection, {
               message: 'cannot access index of a nullable map',
-              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
+              complements: noNullabilityTip === true ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
               also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
             })
           }
@@ -97,19 +97,21 @@ export const resolvePropAccessType: Typechecker<
         } else {
           return err(upToPrevPropAccessSection, {
             message: `expected list due to index access, found \`${rebuildType(previousIterType, true)}\``,
-            complements: noNullabilityTip
-              ? []
-              : [
-                  ['expected', 'list'],
-                  ['found   ', rebuildType(previousIterType)],
-                ],
+            complements:
+              noNullabilityTip === true
+                ? []
+                : [
+                    ['expected', 'list'],
+                    ['found   ', rebuildType(previousIterType)],
+                  ],
             also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
           })
         }
 
         break
+      }
 
-      case 'refStructMember':
+      case 'refStructMember': {
         let structType: Extract<ValueType, { type: 'struct' }>
 
         if (previousIterType.type === 'struct') {
@@ -118,7 +120,7 @@ export const resolvePropAccessType: Typechecker<
           if (!propAccess.parsed.nullable) {
             return err(upToPrevPropAccessSection, {
               message: 'cannot access member of a nullable struct',
-              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?.member`']],
+              complements: noNullabilityTip === true ? [] : [['tip', 'you can use nullable indexes with `?.member`']],
             })
           }
 
@@ -148,6 +150,7 @@ export const resolvePropAccessType: Typechecker<
           ? { type: 'nullable', inner: resolvedMember.type }
           : resolvedMember.type
         break
+      }
 
       default:
         return ensureCoverage(propAccess.parsed.access)

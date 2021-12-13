@@ -41,7 +41,7 @@ export const getContinuationKeyword: <T>(action: (words: string[]) => Parser<T>)
     action($custom.continuationKeywords)
 
 export const matchStatementClose = withRuntimeTypedCtx(
-  getStatementClose((char) => (char ? lookahead(combine(maybe_s_nl, exact(char))) : fail()))
+  getStatementClose((char) => (char !== null ? lookahead(combine(maybe_s_nl, exact(char))) : fail()))
 )
 
 export const matchContinuationKeyword = withRuntimeTypedCtx(

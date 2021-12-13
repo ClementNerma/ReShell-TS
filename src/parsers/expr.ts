@@ -39,7 +39,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
           ),
           combine(maybe_s_nl, exact(')'))
         ),
-        ([_, inner, __]) => ({
+        ([_, inner]) => ({
           inner,
         })
       ),
@@ -138,7 +138,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
               ),
               combine(maybe_s_nl, exact('}', "expected a closing brace (}) to close the block's content"))
             ),
-            ([_, expr, __]) => expr
+            ([_, expr]) => expr
           )
         ),
         ([_, { parsed: trying }, { parsed: catchVarname }, { parsed: catchExpr }]) => ({

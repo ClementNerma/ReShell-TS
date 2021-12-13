@@ -154,7 +154,7 @@ export const closureTypeValidator: Typechecker<
 
     if (!c) {
       return err(at, {
-        message: `missing argument \`${arg.parsed.name}\``,
+        message: `missing argument \`${arg.parsed.name.parsed}\``,
         also: [{ at: arg.at, message: 'missing argument is defined here' }],
       })
     }
@@ -287,9 +287,10 @@ export const validateFnCall: Typechecker<
     const resolved: TypecheckerResult<void> = matchUnion(arg.parsed, 'type', {
       action: ({ name }) =>
         err(name.at, {
-          message: declaredCommand
-            ? 'no signature match this call'
-            : 'non-quoted arguments are only allowed for commands',
+          message:
+            declaredCommand === undefined
+              ? 'no signature match this call'
+              : 'non-quoted arguments are only allowed for commands',
           complements: [['tip', `if you want to reference a variable, wrap it like this: \${${name.parsed}}`]],
         }),
 

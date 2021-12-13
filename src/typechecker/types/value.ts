@@ -13,12 +13,12 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   let { typeExpectation } = ctx
 
-  if (typeExpectation?.type?.type === 'generic') {
+  if (typeExpectation?.type.type === 'generic') {
     for (const gScope of ctx.resolvedGenerics.reverse()) {
       const generic = gScope.get(typeExpectation.type.name.parsed)
 
       if (generic) {
-        typeExpectation = { from: typeExpectation?.from, type: generic }
+        typeExpectation = { from: typeExpectation.from, type: generic }
         break
       } else if (generic === null) {
         const type = resolveValueType(value, { ...ctx, typeExpectation: null })
@@ -30,7 +30,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     }
   }
 
-  while (typeExpectation?.type?.type === 'aliasRef') {
+  while (typeExpectation?.type.type === 'aliasRef') {
     const alias = ctx.typeAliases.get(typeExpectation.type.typeAliasName.parsed)
 
     if (!alias) {
@@ -45,7 +45,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     let expected: ValueType = typeExpectation.type
 
-    while (true) {
+    for (;;) {
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
@@ -73,12 +73,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
   const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['type'], PrimitiveValueType['type']>>(
     type: T
-  ): TypecheckerResult<Extract<ValueType, { type: T }> | void> => {
-    if (!typeExpectation) return success(void 0)
+  ): TypecheckerResult<Extract<ValueType, { type: T }> | null> => {
+    if (!typeExpectation) return success(null)
 
     let expected: ValueType = typeExpectation.type
 
-    while (true) {
+    for (;;) {
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
@@ -144,7 +144,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           case 'literal':
             break
 
-          case 'expr':
+          case 'expr': {
             const exprType = resolveExprType(segment.parsed.expr, { ...ctx, typeExpectation: null })
             if (!exprType.ok) return exprType
 
@@ -153,6 +153,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             }
 
             break
+          }
 
           default:
             return ensureCoverage(segment.parsed)
@@ -174,7 +175,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           case 'literal':
             break
 
-          case 'expr':
+          case 'expr': {
             const exprType = resolveExprType(segment.parsed.expr, {
               ...ctx,
               typeExpectation: {
@@ -185,6 +186,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
             if (!exprType.ok) return exprType
             break
+          }
 
           default:
             return ensureCoverage(segment.parsed)
@@ -224,7 +226,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           ...ctx,
           typeExpectation: {
             type: referenceType.data,
-            from: items[0].at ?? null,
+            from: items[0]?.at ?? null,
           },
         })
 
@@ -277,7 +279,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           ...ctx,
           typeExpectation: {
             type: referenceType.data,
-            from: entries[0].value.at ?? null,
+            from: entries[0]?.value.at ?? null,
           },
         })
 
@@ -389,10 +391,6 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         variants = enumTypeEntity.content.variants
       } else if (assert.data) {
-        if (assert.data.type !== 'enum') {
-          return err(variant.at, `expected type is not an enumeration (found \`${rebuildType(assert.data, true)}\`)`)
-        }
-
         variants = assert.data.variants
       } else {
         return err(variant.at, {
@@ -612,7 +610,7 @@ export const errIncompatibleValueType = ({
   const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
 
   return err(valueAt, {
-    message: `expected ${ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
+    message: `expected ${ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
       typeExpectation.type,
       true
     )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, true)}\``,
