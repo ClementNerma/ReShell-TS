@@ -2,7 +2,7 @@ import { CmdArg, CmdFlag, Expr } from '../shared/ast'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { maybe } from './lib/conditions'
+import { failIfMatchesAndCond, maybe } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s_nl } from './lib/littles'
 import { exact, oneOf } from './lib/matchers'
@@ -39,9 +39,12 @@ export const cmdFlag: Parser<CmdFlag> = map(
 
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   flag: cmdFlag,
-  action: toOneProp('name', cmdAction),
+  value: toOneProp(
+    'value',
+    failIfMatchesAndCond(value, (value) => value.type === 'reference')
+  ),
   expr: toOneProp('expr', cmdWrappedValue),
-  value: toOneProp('value', value),
+  action: toOneProp('name', cmdAction),
   rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
     varname,
   })),
