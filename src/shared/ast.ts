@@ -51,10 +51,10 @@ export type Statement =
   | { type: 'methodDecl'; name: Token<string>; infos: MethodInfos; fnType: FnType; body: Token<Block> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
-  | { type: 'fnCall'; content: FnCall }
   | { type: 'cmdCall'; content: CmdCall }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
+  | { type: 'runExpr'; content: Token<Expr> }
 
 export type ElIfBlock = { cond: Token<CondOrTypeAssertion>; body: Block }
 

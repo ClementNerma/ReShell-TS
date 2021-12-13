@@ -8,11 +8,10 @@ import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { enumMatchingTypechecker } from './matching'
 import { getTypedEntityInScope } from './scope/search'
-import { developTypeAliasesIn } from './types/aliases'
 import { resolveValueChainings } from './types/chaining'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveCondOrTypeAssertionType, resolveExprType } from './types/expr'
-import { resolveFnCallType, validateFnBody } from './types/fn'
+import { validateFnBody } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
 
@@ -416,23 +415,6 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       return success({ neverEnds: true })
     },
 
-    fnCall: ({ content }) => {
-      const returnType = developTypeAliasesIn(resolveFnCallType(content, ctx), ctx)
-      if (!returnType.ok) return returnType
-
-      if (returnType.data.type === 'failable') {
-        ctx.emitDiagnostic(
-          diagnostic(
-            content.name.at,
-            'this function call returns a `failable` value which is not handled',
-            DiagnosticLevel.Warning
-          )
-        )
-      }
-
-      return success({ neverEnds: false })
-    },
-
     cmdCall: ({ content }) => {
       const cmdCallCheck = cmdCallTypechecker(content, ctx)
       return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
@@ -462,5 +444,29 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
 
     // Nothing to do here, already handled in first pass
     fileInclusion: () => success({ neverEnds: false }),
+
+    runExpr: ({ content }) => {
+      if (
+        content.parsed.from.parsed.content.parsed.type !== 'value' ||
+        content.parsed.from.parsed.content.parsed.content.parsed.type !== 'fnCall'
+      ) {
+        return err(content.at, 'only function calls are allowed as statements')
+      }
+
+      const returnType = resolveExprType(content, ctx)
+      if (!returnType.ok) return returnType
+
+      if (returnType.data.type === 'failable') {
+        ctx.emitDiagnostic(
+          diagnostic(
+            content.at,
+            'this function call returns a `failable` value which is not handled',
+            DiagnosticLevel.Warning
+          )
+        )
+      }
+
+      return success({ neverEnds: false })
+    },
   })
 }

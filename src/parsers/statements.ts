@@ -12,17 +12,16 @@ import {
 } from './context'
 import { condOrTypeAssertion, expr } from './expr'
 import { fnDecl, methodDecl } from './fn'
-import { fnCall } from './fncall'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
-import { lookahead } from './lib/consumeless'
+import { lookahead, not } from './lib/consumeless'
 import { feedContext } from './lib/context'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { exact } from './lib/matchers'
-import { mappedCases } from './lib/switches'
+import { eol, exact } from './lib/matchers'
+import { mappedCases, or } from './lib/switches'
 import { map, silence, suppressErrorPrecedence } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
@@ -280,9 +279,12 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
-    fnCall: map(fnCall, (content) => ({ content })),
-
-    cmdCall: map(cmdCall, (content) => ({ content })),
+    cmdCall: map(
+      failIfMatchesElse(not(combine(identifier, or<unknown>([eol(), combine(s, not(eol()))]))), cmdCall),
+      (content) => ({
+        content,
+      })
+    ),
 
     cmdDecl: map(
       combine(
@@ -312,6 +314,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         return success(at.start, at.next, { content: sub.data.parsed }, matched)
       }
     ),
+
+    runExpr: map(expr, (_, content) => ({ content })),
   },
   'failed to parse statement'
 )

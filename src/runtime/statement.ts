@@ -6,7 +6,6 @@ import { runBlock } from './block'
 import { runPropertyAccess } from './chainings'
 import { runCmdCall } from './cmdcall'
 import { runCondOrTypeAssertion, runDoubleOp, runExpr } from './expr'
-import { executeFnCallByName } from './fncall'
 import { expectValueType } from './value'
 
 export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
@@ -290,14 +289,14 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    fnCall: ({ content: { name } }) => {
-      const result = executeFnCallByName(name, ctx)
-      return result.ok === true ? success(void 0) : result
-    },
-
     cmdCall: ({ content }) => runCmdCall(content, ctx),
 
     cmdDecl: () => success(void 0),
 
     fileInclusion: () => err(stmt.at, 'internal error: file inclusion was not flattened before running statement'),
+
+    runExpr: ({ content }) => {
+      const result = runExpr(content.parsed, ctx)
+      return result.ok === true ? success(void 0) : result
+    },
   })
