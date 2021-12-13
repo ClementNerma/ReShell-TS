@@ -204,7 +204,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             }
           }
 
-          return success({ neverReturns: neverReturns && thenCheck.data.neverReturns })
+          return success({
+            // a simple 'if' with no 'else' variant cannot never-end (e.g. `if <cond> { <throw> }` is not never-ending)
+            neverReturns: neverReturns && els !== null && thenCheck.data.neverReturns,
+          })
         },
 
         forLoop: ({ loopvar, subject, body }) => {
