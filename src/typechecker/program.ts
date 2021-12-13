@@ -1,4 +1,4 @@
-import { Program } from '../parsers/data'
+import { Program } from '../shared/parsed'
 import { Typechecker } from './base'
 import { statementChainChecker } from './statement'
 

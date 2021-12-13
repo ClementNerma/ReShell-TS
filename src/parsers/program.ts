@@ -3,8 +3,8 @@ import { then } from '../lib/conditions'
 import { takeWhile } from '../lib/loops'
 import { fullSource } from '../lib/super'
 import { withNormalizedNewlines } from '../lib/utils'
+import { Program } from '../shared/parsed'
 import { commentStripper } from './comments'
-import { Program } from './data'
 import { statementChain } from './statements'
 
 const strippedProgram: Parser<Program> = takeWhile(statementChain)

@@ -1,4 +1,4 @@
-import { Parser, Token } from '../lib/base'
+import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { failIfMatches, notFollowedBy } from '../lib/conditions'
 import { lookahead } from '../lib/consumeless'
@@ -7,7 +7,7 @@ import { takeWhile1, takeWhileN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
-import { LiteralValue } from './data'
+import { LiteralValue, Token } from '../shared/parsed'
 
 export const rawPath: Parser<Token<string>[]> = takeWhileN(
   unify(takeWhile1(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),

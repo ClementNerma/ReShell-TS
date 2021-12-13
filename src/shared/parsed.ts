@@ -1,5 +1,3 @@
-import { Token } from '../lib/base'
-
 // TODO: function calls, redirections, computed commands '$(...)', '$@(...)', '$^(...)' etc.
 // TODO: streams support
 // TODO: background tasks management
@@ -8,6 +6,15 @@ import { Token } from '../lib/base'
 // TODO: commands declaration
 // TODO: accessing struct members
 // TODO: methods or wrapping?
+
+export type CodeLoc = {
+  line: number
+  col: number
+}
+
+export type Token<T> = { parsed: T; matched: string; neutralError: boolean; start: CodeLoc; next: CodeLoc }
+
+// ============== //
 
 export type Program = Token<StatementChain>[]
 

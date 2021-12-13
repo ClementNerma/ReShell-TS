@@ -1,10 +1,10 @@
+import { CodeLoc } from '../shared/parsed'
 import {
   err,
   ErrInputData,
   neutralError,
   Parser,
   ParserErr,
-  ParserLoc,
   ParserResult,
   ParserSucess,
   ParsingContext,
@@ -37,9 +37,7 @@ export function fail<T>(error?: ErrInputData): Parser<T> {
   return (start, _, context) => err(start, context, error)
 }
 
-export function failWith<T>(
-  error: (input: string, context: ParsingContext, loc: ParserLoc) => ErrInputData
-): Parser<T> {
+export function failWith<T>(error: (input: string, context: ParsingContext, loc: CodeLoc) => ErrInputData): Parser<T> {
   return (start, input, context) => err(start, context, error(input, context, start))
 }
 

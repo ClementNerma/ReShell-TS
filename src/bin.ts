@@ -6,10 +6,10 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
-import { err, parseSource } from './lib/base'
-import { ErrorParsingFormatters, formatErr } from './lib/utils'
+import { parseSource } from './lib/base'
 import { initContext } from './parsers/context'
 import { program } from './parsers/program'
+import { ErrorParsingFormatters, formatErr } from './shared/errors'
 import { programChecker } from './typechecker/program'
 
 install()
@@ -49,7 +49,11 @@ const parsed = parseSource(iterSrc, program, initContext())
 const elapsed = Date.now() - started
 
 if (!parsed.ok) {
-  console.error(formatErr(parsed, errorFormatters))
+  console.error(
+    parsed.stack.length === 0
+      ? '<no error provided>'
+      : formatErr(parsed.stack[0], parsed.context.source.ref, errorFormatters)
+  )
   process.exit(1)
 }
 
@@ -69,7 +73,7 @@ const exec = programChecker(parsed.data, void 0)
 const elapsedTypechecker = Date.now() - startedTypechecker
 
 if (!exec.ok) {
-  console.error(formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.error, exec.also), errorFormatters))
+  console.error(formatErr(exec, iterSrc, errorFormatters))
   process.exit(1)
 }
 

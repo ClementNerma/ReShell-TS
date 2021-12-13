@@ -1,4 +1,4 @@
-import { ParserLoc } from '../../lib/base'
+import { CodeLoc } from '../../shared/parsed'
 import { err, success, TypecheckerErr, TypecheckerRaw } from '../base'
 import { Scope, ScopeFn, ScopeTypeAlias, ScopeVar } from './complete'
 import { ScopeFirstPass } from './first-pass'
@@ -10,7 +10,7 @@ export const categoryMapping: { [key in keyof Scope]: string } = {
 }
 
 export const ensureScopeUnicity: TypecheckerRaw<
-  [string, ParserLoc],
+  [string, CodeLoc],
   { scopes: Scope[]; firstPass?: ScopeFirstPass },
   void
 > = ([name, loc], { scopes, firstPass }) => {
@@ -31,7 +31,7 @@ export const ensureScopeUnicity: TypecheckerRaw<
   return success(void 0)
 }
 
-export const getTypeAliasInScope: TypecheckerRaw<[string, ParserLoc], Scope[], ScopeTypeAlias> = (
+export const getTypeAliasInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeTypeAlias> = (
   [name, loc],
   scopes
 ) => {
@@ -43,7 +43,7 @@ export const getTypeAliasInScope: TypecheckerRaw<[string, ParserLoc], Scope[], S
   return err({ message: 'Type not found in this scope', length: name.length }, loc)
 }
 
-export const getFunctionInScope: TypecheckerRaw<[string, ParserLoc], Scope[], ScopeFn> = ([name, loc], scopes) => {
+export const getFunctionInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeFn> = ([name, loc], scopes) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const scopeFn = scopes[s].functions.get(name)
     if (scopeFn) return success(scopeFn)
@@ -52,7 +52,7 @@ export const getFunctionInScope: TypecheckerRaw<[string, ParserLoc], Scope[], Sc
   return err({ message: 'Function not found in this scope', length: name.length }, loc)
 }
 
-export const getVariableInScope: TypecheckerRaw<[string, ParserLoc], Scope[], ScopeVar> = ([name, loc], scopes) => {
+export const getVariableInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeVar> = ([name, loc], scopes) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const scopeVar = scopes[s].variables.get(name)
     if (scopeVar) return success(scopeVar)
@@ -64,8 +64,8 @@ export const getVariableInScope: TypecheckerRaw<[string, ParserLoc], Scope[], Sc
 export const generateDuplicateDeclError = (
   name: string,
   category: string,
-  duplicateLoc: ParserLoc,
-  originalLoc: ParserLoc
+  duplicateLoc: CodeLoc,
+  originalLoc: CodeLoc
 ): TypecheckerErr =>
   err(
     {

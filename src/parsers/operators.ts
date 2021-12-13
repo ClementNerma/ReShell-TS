@@ -5,7 +5,7 @@ import { takeWhile1 } from '../lib/loops'
 import { oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
-import { DoubleArithOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from './data'
+import { DoubleArithOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from '../shared/parsed'
 
 export const _catchUnknownOperator: Parser<void> = silence(
   takeWhile1(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!', '<', '>']))

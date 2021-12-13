@@ -1,16 +1,15 @@
+import { CodeLoc, Token } from '../shared/parsed'
 import {
   err,
   ErrInputData,
   neutralError,
   Parser,
   ParserErr,
-  ParserLoc,
   ParserResult,
   ParserSucess,
   ParsingContext,
   sliceInput,
   success,
-  Token,
 } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
@@ -31,7 +30,7 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
 }
 
 export function failIf(
-  cond: (input: string, context: ParsingContext, start: ParserLoc) => boolean,
+  cond: (input: string, context: ParsingContext, start: CodeLoc) => boolean,
   error?: ErrInputData
 ): Parser<void> {
   return (start, input, context) =>

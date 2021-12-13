@@ -1,14 +1,5 @@
-import {
-  Parser,
-  ParserResult,
-  ParserSucess,
-  ParsingContext,
-  sliceInput,
-  success,
-  Token,
-  withErr,
-  WithErrData,
-} from './base'
+import { Token } from '../shared/parsed'
+import { Parser, ParserResult, ParserSucess, ParsingContext, sliceInput, success, withErr, WithErrData } from './base'
 
 type CombineOptions = {
   error?: WithErrData

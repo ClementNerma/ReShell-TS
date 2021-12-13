@@ -1,4 +1,4 @@
-import { StatementChain } from '../parsers/data'
+import { StatementChain } from '../shared/parsed'
 import { success, TypecheckerArr } from './base'
 import { completeScope, Scope } from './scope/complete'
 import { scopeFirstPass } from './scope/first-pass'

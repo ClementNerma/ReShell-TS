@@ -9,9 +9,6 @@ import { exact, match, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, toOneProp } from '../lib/transform'
 import { mapToken, withLatelyDeclared } from '../lib/utils'
-import { cmdFlag } from './cmdarg'
-import { cmdCall } from './cmdcall'
-import { withStatementClosingChar } from './context'
 import {
   ComputedPathSegment,
   ComputedStringSegment,
@@ -19,7 +16,10 @@ import {
   InlineChainedCmdCall,
   InlineCmdCallCapture,
   Value,
-} from './data'
+} from '../shared/parsed'
+import { cmdFlag } from './cmdarg'
+import { cmdCall } from './cmdcall'
+import { withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { literalValue, rawString } from './literals'
 import { blockBody } from './statements'

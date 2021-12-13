@@ -1,4 +1,4 @@
-import { Parser, Token } from '../lib/base'
+import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { failIfMatchesElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { not } from '../lib/consumeless'
@@ -9,6 +9,7 @@ import { bol, eol, exact } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
+import { ChainedStatement, Statement, StatementChain, Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
   matchContinuationKeyword,
@@ -16,7 +17,6 @@ import {
   withContinuationKeyword,
   withStatementClosingChar,
 } from './context'
-import { ChainedStatement, Statement, StatementChain } from './data'
 import { expr } from './expr'
 import { doubleArithOp } from './operators'
 import { propertyAccess } from './propaccess'

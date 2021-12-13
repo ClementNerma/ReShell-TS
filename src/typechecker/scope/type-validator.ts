@@ -1,5 +1,5 @@
-import { ValueType } from '../../parsers/data'
 import { matchUnion } from '../../parsers/utils'
+import { ValueType } from '../../shared/parsed'
 import { success, TypecheckerArr, TypecheckerRaw } from '../base'
 import { Scope } from './complete'
 import { getTypeAliasInScope } from './search'

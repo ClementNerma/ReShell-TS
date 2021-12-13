@@ -1,4 +1,4 @@
-import { Value, ValueType } from '../parsers/data'
+import { Value, ValueType } from '../shared/parsed'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from './base'
 import { resolveExprType, ScopedExprType } from './expr-type'
 import { Scope } from './scope/complete'

@@ -5,8 +5,8 @@ import { maybe_s, maybe_s_nl } from '../lib/littles'
 import { eol, oneOfMap } from '../lib/matchers'
 import { or } from '../lib/switches'
 import { silence } from '../lib/transform'
+import { CmdRedirOp, StatementChainOp } from '../shared/parsed'
 import { matchStatementClose } from './context'
-import { CmdRedirOp, StatementChainOp } from './data'
 
 export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
   ['&&', StatementChainOp.And],

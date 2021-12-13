@@ -1,7 +1,7 @@
 // 1. Find all declared functions and type alias
 // 2. Discover scope sequentially using the items above
 
-import { FnType, StatementChain, ValueType } from '../../parsers/data'
+import { FnType, StatementChain, ValueType } from '../../shared/parsed'
 import { located, Located, success, TypecheckerArr } from '../base'
 import { Scope } from './complete'
 import { ensureScopeUnicity } from './search'

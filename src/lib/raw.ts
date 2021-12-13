@@ -1,4 +1,5 @@
-import { FormatableExtractsInput, Parser, ParsingContext } from './base'
+import { FormatableExtractsInput } from '../shared/errors'
+import { Parser, ParsingContext } from './base'
 
 export function matches<C>(input: string, parser: Parser<unknown>, $custom: C) {
   const context: ParsingContext = { source: { ref: input }, $custom, self: () => context }

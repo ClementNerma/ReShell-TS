@@ -1,5 +1,5 @@
-import { LiteralValue, ValueType } from '../../parsers/data'
 import { matchUnion } from '../../parsers/utils'
+import { LiteralValue, ValueType } from '../../shared/parsed'
 
 export const rebuildType = (type: ValueType): string => {
   return (

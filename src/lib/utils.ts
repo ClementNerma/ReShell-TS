@@ -1,4 +1,5 @@
-import { Parser, ParserErr, sliceInput, Token } from './base'
+import { Token } from '../shared/parsed'
+import { Parser, ParserErr, sliceInput } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
   const parser = producer((start, input, context) => parser(start, input, context))
@@ -60,69 +61,4 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
 
 export function getErrorInput(err: ParserErr): string {
   return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.loc)
-}
-
-export type ErrorParsingFormatters = {
-  noErrorMessageFallback?: (text: string) => string
-  wrapper?: (error: string) => string
-  header?: (header: string) => string
-  location?: (col: string) => string
-  gutter?: (text: string) => string
-  paddingChar?: (char: string) => string
-  locationPointer?: (char: string) => string
-  failedLine?: (line: string) => string
-  errorMessage?: (message: string) => string
-  complementName?: (name: string) => string
-  complement?: (fullText: string) => string
-}
-
-export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
-  const format = (formatterName: keyof ErrorParsingFormatters, text: string) => {
-    const formatter = f?.[formatterName]
-    return formatter ? formatter(text) : text
-  }
-
-  if (err.stack.length === 0) {
-    return format('noErrorMessageFallback', '<no error provided>')
-  }
-
-  const farest = err.stack[0]
-
-  const text = [farest.error]
-    .concat(farest.also)
-    .map(({ loc, length, message, complements }) => {
-      const { line, col } = loc
-
-      const lineLen = line.toString().length
-      const linePad = ' '.repeat(lineLen)
-
-      const header = `--> At ${format('location', `${line + 1}:${col + 1}`)}:`
-
-      const failedLine = err.context.source.ref.split(/\n/)[line]
-
-      const locPtr = format('locationPointer', '^'.repeat(length ?? 1))
-
-      const paddingGutter = format('gutter', linePad + ' |')
-
-      const complementsText = complements
-        .map(
-          ([name, text]) =>
-            `\n${paddingGutter} ${' '.repeat(col)}  ${format(
-              'complement',
-              `${format('complementName', name)}: ${text}`
-            )}`
-        )
-        .join('')
-
-      return (
-        `${format('gutter', linePad)} ${format('header', header)}\n` +
-        `${paddingGutter}\n` +
-        `${format('gutter', (line + 1).toString() + ' |')} ${format('failedLine', failedLine)}\n` +
-        `${paddingGutter} ${' '.repeat(col)}${locPtr} ${format('errorMessage', message)}` +
-        complementsText
-      )
-    })
-    .join('\n\n')
-
-  return f?.wrapper?.(text) ?? text
 }

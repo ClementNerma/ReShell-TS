@@ -1,15 +1,5 @@
-import {
-  err,
-  ErrInputData,
-  Parser,
-  ParserLoc,
-  ParsingContext,
-  sliceInput,
-  success,
-  Token,
-  withErr,
-  WithErrData,
-} from './base'
+import { CodeLoc, Token } from '../shared/parsed'
+import { err, ErrInputData, Parser, ParsingContext, sliceInput, success, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
@@ -23,7 +13,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const parsed: Token<T>[] = []
     const matched: string[] = []
     let interMadeExpectation = false
-    let beforeInterMatching: ParserLoc | null = null
+    let beforeInterMatching: CodeLoc | null = null
     let lastWasNeutralError = false
 
     let loc = { ...start }

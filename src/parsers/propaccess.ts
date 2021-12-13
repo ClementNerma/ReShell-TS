@@ -6,7 +6,7 @@ import { exact } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map } from '../lib/transform'
 import { withLatelyDeclared } from '../lib/utils'
-import { NonNullablePropertyAccess, PropertyAccess } from './data'
+import { NonNullablePropertyAccess, PropertyAccess } from '../shared/parsed'
 import { expr } from './expr'
 import { identifier } from './tokens'
 

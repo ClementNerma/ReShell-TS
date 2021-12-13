@@ -1,4 +1,5 @@
-import { Parser, Token, withErr, WithErrData } from './base'
+import { Token } from '../shared/parsed'
+import { Parser, withErr, WithErrData } from './base'
 
 export function map<T, U>(
   parser: Parser<T>,
