@@ -189,6 +189,22 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           })
         },
 
+        whileLoop: ({ cond, body }) => {
+          const condCheck = resolveExprOrTypeAssertionType(cond, {
+            ...ctx,
+            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+          })
+
+          if (!condCheck.ok) return condCheck
+
+          return statementChainChecker(
+            body,
+            condCheck.data.type === 'assertion'
+              ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.assertionScope]) }
+              : ctx
+          )
+        },
+
         tryBlock: ({ body, catchVarname, catchBody }) => {
           const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
 
@@ -317,10 +333,6 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
         },
 
         cmdCall: (call) => cmdCallTypechecker(call, ctx),
-
-        _: (): TypecheckerResult<void> => {
-          throw new Error('// TODO: other statement types')
-        },
       })
 
       if (!subResult.ok) return subResult
