@@ -82,7 +82,7 @@ export const isTypeCompatible: Typechecker<
         if (!comparison.ok) return comparison
       }
 
-      for (const [name, type] of candidateMembers.entries()) {
+      for (const name of candidateMembers.keys()) {
         if (!referentMembers.has(name)) {
           return expectationErr(`member \`${name}\` is provided but not expected`)
         }
