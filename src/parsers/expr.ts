@@ -1,4 +1,5 @@
 import {
+  AssertionContent,
   CondOrTypeAssertion,
   ElIfExpr,
   Expr,
@@ -149,19 +150,35 @@ export const typeAssertionAgainst: Parser<TypeAssertionAgainst> = mappedCases<Ty
   custom: map(valueType, (_, type) => ({ type })),
 })
 
+const assertionContent: Parser<AssertionContent> = map(
+  combine(
+    oneOfMap([
+      ['isnt', true],
+      ['is', false],
+    ]),
+    failure(s, 'expected space after "is" or "isnt" keyword'),
+    failure(typeAssertionAgainst, 'expected an assertion type')
+  ),
+  ([{ parsed: inverted }, _, minimum]) => ({ inverted, minimum })
+)
+
 export const condOrTypeAssertion: Parser<CondOrTypeAssertion> = mappedCases<CondOrTypeAssertion>()('type', {
-  assertion: map(
+  directAssertion: map(combine(identifier, s, assertionContent), ([varname, _, { parsed: assertion }]) => ({
+    varname,
+    assertion,
+  })),
+
+  aliasedAssertion: map(
     combine(
-      identifier,
+      expr,
       s,
-      oneOfMap([
-        ['isnt', true],
-        ['is', false],
-      ]),
-      s,
-      typeAssertionAgainst
+      exact('as'),
+      failure(s, 'expected space after "as" keyword'),
+      failure(identifier, 'expected a type assertion alias'),
+      failure(s, 'expected space after the type assertion alias'),
+      assertionContent
     ),
-    ([varname, _, { parsed: inverted }, __, minimum]) => ({ varname, inverted, minimum })
+    ([subject, _, __, ___, alias, ____, { parsed: assertion }]) => ({ subject, alias, assertion })
   ),
 
   expr: toOneProp('inner', expr),

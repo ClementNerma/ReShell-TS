@@ -75,14 +75,24 @@ export const resolveCondOrTypeAssertionType: Typechecker<
       return resolved.ok ? success({ type: 'expr', resolved: resolved.data }) : resolved
     }
 
-    case 'assertion': {
-      const subject = getTypedEntityInScope(expr.parsed.varname, 'var', ctx)
+    case 'directAssertion':
+    case 'aliasedAssertion': {
+      const subject: TypecheckerResult<ValueType> = matchUnion(expr.parsed, 'type', {
+        directAssertion: ({ varname }) => {
+          const check = getTypedEntityInScope(varname, 'var', ctx)
+          return check.ok ? success(check.data.varType) : check
+        },
+
+        aliasedAssertion: ({ subject }) => resolveExprType(subject, ctx),
+      })
+
       if (!subject.ok) return subject
 
-      const subjectType = subject.data.varType
+      const subjectType = subject.data
+      const { minimum, inverted } = expr.parsed.assertion
 
       const assertionType: TypecheckerResult<{ normal: ValueType | null; inverted: ValueType | null }> = matchUnion(
-        expr.parsed.minimum.parsed,
+        minimum.parsed,
         'against',
         {
           null: () =>
@@ -141,18 +151,23 @@ export const resolveCondOrTypeAssertionType: Typechecker<
 
       if (!assertionType.ok) return assertionType
 
-      const normal = expr.parsed.inverted ? assertionType.data.inverted : assertionType.data.normal
-      const opposite = expr.parsed.inverted ? assertionType.data.normal : assertionType.data.inverted
+      const normal = inverted ? assertionType.data.inverted : assertionType.data.normal
+      const opposite = inverted ? assertionType.data.normal : assertionType.data.inverted
+
+      const alias: string = matchUnion(expr.parsed, 'type', {
+        directAssertion: ({ varname }) => varname.parsed,
+        aliasedAssertion: ({ alias }) => alias.parsed,
+      })
 
       return success({
         type: 'assertion',
         normalAssertionScope: normal
-          ? new Map([[expr.parsed.varname.parsed, { type: 'var', at: expr.at, mutable: false, varType: normal }]])
+          ? new Map([[alias, { type: 'var', at: expr.at, mutable: false, varType: normal }]])
           : new Map(),
         oppositeAssertionScope: opposite
-          ? new Map([[expr.parsed.varname.parsed, { type: 'var', at: expr.at, mutable: false, varType: opposite }]])
+          ? new Map([[alias, { type: 'var', at: expr.at, mutable: false, varType: opposite }]])
           : new Map(),
-        inverted: expr.parsed.inverted,
+        inverted,
       })
     }
 

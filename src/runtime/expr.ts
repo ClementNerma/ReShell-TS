@@ -1,4 +1,5 @@
 import {
+  AssertionContent,
   CondOrTypeAssertion,
   DoubleOp,
   Expr,
@@ -457,64 +458,33 @@ export const runCondOrTypeAssertion: Runner<
   | { type: 'assertion'; result: ExecValue; normalAssertionScope: Scope; oppositeAssertionScope: Scope }
 > = (cond, ctx) =>
   matchUnion(cond, 'type', {
-    assertion: ({ varname, minimum, inverted }) => {
+    directAssertion: ({ varname, assertion }) => {
       const target = getEntityInScope(varname, ctx)
       if (target.ok !== true) return target
 
-      const normalScope: Scope['entities'] = new Map()
-      const oppositeScope: Scope['entities'] = new Map()
-
-      const result: RunnerResult<boolean> = matchUnion(minimum.parsed, 'against', {
-        null: () => success(target.data.type === 'null'),
-
-        ok: () => {
-          if (target.data.type !== 'failable') {
-            return err(
-              varname.at,
-              `internal error: expected a failable value for this type assertion, found internal type "${target.data.type}"`
-            )
-          }
-
-          const targetScope = target.data.success ? normalScope : oppositeScope
-          targetScope.set(varname.parsed, target.data.value)
-          return success(target.data.success)
-        },
-
-        err: () => {
-          if (target.data.type !== 'failable') {
-            return err(
-              varname.at,
-              `internal error: expected a failable value for this type assertion, found internal type "${target.data.type}"`
-            )
-          }
-
-          const targetScope = target.data.success ? oppositeScope : normalScope
-          targetScope.set(varname.parsed, target.data.value)
-          return success(!target.data.success)
-        },
-
-        custom: ({ type }) => {
-          const cloned = checkTypeCompatibilityAndClone(minimum.at, target.data, type.parsed, ctx)
-          if (cloned.ok !== true) return cloned
-          if (cloned.data === false) return success(false)
-
-          normalScope.set(varname.parsed, cloned.data)
-
-          return success(true)
-        },
-      })
-
+      const result = runTypeAssertion({ assertion, value: target.data, alias: varname }, ctx)
       if (result.ok !== true) return result
 
       return success({
         type: 'assertion',
-        normalAssertionScope: inverted
-          ? { generics: [], functions: [], entities: oppositeScope }
-          : { generics: [], functions: [], entities: normalScope },
-        oppositeAssertionScope: inverted
-          ? { generics: [], functions: [], entities: normalScope }
-          : { generics: [], functions: [], entities: oppositeScope },
-        result: { type: 'bool', value: inverted ? !result.data : result.data },
+        result: { type: 'bool', value: result.data.result },
+        normalAssertionScope: result.data.normalAssertionScope,
+        oppositeAssertionScope: result.data.oppositeAssertionScope,
+      })
+    },
+
+    aliasedAssertion: ({ subject, alias, assertion }) => {
+      const target = runExpr(subject.parsed, ctx)
+      if (target.ok !== true) return target
+
+      const result = runTypeAssertion({ assertion, value: target.data, alias }, ctx)
+      if (result.ok !== true) return result
+
+      return success({
+        type: 'assertion',
+        result: { type: 'bool', value: result.data.result },
+        normalAssertionScope: result.data.normalAssertionScope,
+        oppositeAssertionScope: result.data.oppositeAssertionScope,
       })
     },
 
@@ -523,6 +493,76 @@ export const runCondOrTypeAssertion: Runner<
       return execExpr.ok === true ? success({ type: 'expr', result: execExpr.data }) : execExpr
     },
   })
+
+export const runTypeAssertion: Runner<
+  { assertion: AssertionContent; value: ExecValue; alias: Token<string> },
+  { result: boolean; normalAssertionScope: Scope; oppositeAssertionScope: Scope }
+> = ({ assertion, value, alias }, ctx) => {
+  const normalScope: Scope['entities'] = new Map()
+  const oppositeScope: Scope['entities'] = new Map()
+
+  const result: RunnerResult<boolean> = matchUnion(assertion.minimum.parsed, 'against', {
+    null: () => {
+      if (value.type === 'null') {
+        normalScope.set(alias.parsed, value)
+        oppositeScope.set(alias.parsed, value)
+        return success(true)
+      } else {
+        normalScope.set(alias.parsed, value)
+        oppositeScope.set(alias.parsed, value)
+        return success(false)
+      }
+    },
+
+    ok: () => {
+      if (value.type !== 'failable') {
+        return err(
+          alias.at,
+          `internal error: expected a failable value for this type assertion, found internal type "${value.type}"`
+        )
+      }
+
+      const targetScope = value.success ? normalScope : oppositeScope
+      targetScope.set(alias.parsed, value.value)
+      return success(value.success)
+    },
+
+    err: () => {
+      if (value.type !== 'failable') {
+        return err(
+          alias.at,
+          `internal error: expected a failable value for this type assertion, found internal type "${value.type}"`
+        )
+      }
+
+      const targetScope = value.success ? oppositeScope : normalScope
+      targetScope.set(alias.parsed, value.value)
+      return success(!value.success)
+    },
+
+    custom: ({ type }) => {
+      const cloned = checkTypeCompatibilityAndClone(assertion.minimum.at, value, type.parsed, ctx)
+      if (cloned.ok !== true) return cloned
+      if (cloned.data === false) return success(false)
+
+      normalScope.set(alias.parsed, cloned.data)
+
+      return success(true)
+    },
+  })
+
+  if (result.ok !== true) return result
+
+  return success({
+    normalAssertionScope: assertion.inverted
+      ? { generics: [], functions: [], entities: oppositeScope }
+      : { generics: [], functions: [], entities: normalScope },
+    oppositeAssertionScope: assertion.inverted
+      ? { generics: [], functions: [], entities: normalScope }
+      : { generics: [], functions: [], entities: oppositeScope },
+    result: assertion.inverted ? !result.data : result.data,
+  })
+}
 
 export const runExprOrNever: Runner<ExprOrNever, ExecValue> = (expr, ctx) =>
   matchUnion(expr, 'type', {

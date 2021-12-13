@@ -91,13 +91,16 @@ export type ExprOrNever = { type: 'expr'; content: Token<Expr> } | Extract<State
 
 export type CondOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; inverted: boolean; minimum: Token<TypeAssertionAgainst> }
+  | { type: 'directAssertion'; varname: Token<string>; assertion: AssertionContent }
+  | { type: 'aliasedAssertion'; subject: Token<Expr>; alias: Token<string>; assertion: AssertionContent }
 
 export type TypeAssertionAgainst =
   | { against: 'null' }
   | { against: 'ok' }
   | { against: 'err' }
   | { against: 'custom'; type: Token<ValueType> }
+
+export type AssertionContent = { inverted: boolean; minimum: Token<TypeAssertionAgainst> }
 
 export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
 
