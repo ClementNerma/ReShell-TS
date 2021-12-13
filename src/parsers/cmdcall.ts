@@ -1,6 +1,6 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { failIfElse, maybe } from '../lib/conditions'
+import { failIfMatchesElse, maybe } from '../lib/conditions'
 import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, s } from '../lib/littles'
@@ -29,7 +29,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
           combine(
             identifier,
             takeWhile(
-              failIfElse(
+              failIfMatchesElse(
                 callEndDetector,
                 failure(
                   withLatelyDeclared(() => cmdArg),

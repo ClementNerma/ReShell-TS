@@ -1,6 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
+import { failIfMatchesElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { not } from '../lib/consumeless'
 import { contextualFailIf, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
@@ -14,7 +14,7 @@ import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar,
+  withStatementClosingChar
 } from './context'
 import { ChainedStatement, Statement, StatementChain } from './data'
 import { doubleArithOp, expr } from './expr'
@@ -301,7 +301,7 @@ export const statementChainFree: Parser<StatementChain> = map(
       'This chaining operator is reserved to command calls'
     ),
     takeWhile(
-      failIfElse(
+      failIfMatchesElse(
         or([endOfStatementChain, matchContinuationKeyword]),
         map(
           combine(
@@ -341,7 +341,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
 
 export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
   or([
-    failIfElse(
+    failIfMatchesElse(
       matchStatementClose,
       withLatelyDeclared(() => statementChainFree)
     ),

@@ -4,10 +4,12 @@ import {
   neutralError,
   Parser,
   ParserErr,
+  ParserLoc,
   ParserResult,
   ParserSucess,
   ParsingContext,
   sliceInput,
+  success,
   Token,
 } from './base'
 
@@ -28,21 +30,29 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
   }
 }
 
-export function failIf(failIf: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
+export function failIf(
+  cond: (input: string, context: ParsingContext, start: ParserLoc) => boolean,
+  error?: ErrInputData
+): Parser<void> {
+  return (start, input, context) =>
+    cond(input, context, start) ? err(start, context, error) : success(start, start, void 0, '')
+}
+
+export function failIfMatches(failIf: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
   return (start, input, context) => {
     const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
     return parsed.ok ? err(start, context, error) : success(start, start, void 0, '')
   }
 }
 
-export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T> {
+export function failIfMatchesElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
     const parsed = failIf(start, input, context)
     return parsed.ok ? err(start, context) : els(start, input, context)
   }
 }
 
-export function failIfBool<T>(
+export function failIfMatchesAndCond<T>(
   parser: Parser<T>,
   cond: (value: T, token: Token<T>) => boolean,
   error?: ErrInputData
