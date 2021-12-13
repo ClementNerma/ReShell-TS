@@ -13,13 +13,13 @@ import { identifier } from './tokens'
 export const nonNullablePropertyAccess: Parser<NonNullablePropertyAccess> = mappedCases<NonNullablePropertyAccess>()(
   'type',
   {
-    refIndexOrKey: map(
+    refIndex: map(
       combine(
         exact('['),
         withLatelyDeclared(() => expr),
         exact(']')
       ),
-      ([_, indexOrKey, __]) => ({ type: 'refIndexOrKey', indexOrKey })
+      ([_, index, __]) => ({ type: 'refIndex', index })
     ),
     refStructMember: map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
   }

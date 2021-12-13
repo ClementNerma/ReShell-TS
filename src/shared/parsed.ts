@@ -70,7 +70,7 @@ export type Statement =
 export type ElIfBlock = { cond: Token<Expr>; body: Token<StatementChain>[] }
 
 export type NonNullablePropertyAccess =
-  | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }
+  | { type: 'refIndex'; index: Token<Expr> }
   | { type: 'refStructMember'; member: Token<string> }
 
 export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
