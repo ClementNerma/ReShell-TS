@@ -282,31 +282,7 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = (call, ctx) => 
 export const resolveRawFnCallType: Typechecker<{ call: FnCall; fnType: FnType }, ValueType> = (
   { call: { at, name, generics, args }, fnType },
   ctx
-) => {
-  const fnCallCheck = validateAndRegisterFnCall({ at, nameAt: name.at, fnType, generics, args }, ctx)
-
-  if (!fnCallCheck.ok) return fnCallCheck
-
-  const [returnType, gScope] = fnCallCheck.data
-
-  if (ctx.typeExpectation) {
-    const compat = isTypeCompatible(
-      {
-        at,
-        candidate: returnType,
-        typeExpectation: {
-          from: ctx.typeExpectation.from,
-          type: resolveGenerics(ctx.typeExpectation.type, ctx.resolvedGenerics.concat([gScope])),
-        },
-      },
-      ctx
-    )
-
-    if (!compat.ok) return compat
-  }
-
-  return success(returnType)
-}
+) => validateAndRegisterFnCall({ at, nameAt: name.at, fnType, generics, args }, ctx)
 
 export const validateAndRegisterFnCall: Typechecker<
   {
@@ -317,13 +293,8 @@ export const validateAndRegisterFnCall: Typechecker<
     args: Token<CmdArg>[]
     declaredCommand?: true
   },
-  [ValueType, GenericResolutionScope]
+  ValueType
 > = ({ at, nameAt, fnType, generics, args, declaredCommand }, ctx) => {
-  const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
-  const flags = new Map(
-    fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
-  )
-
   for (const generic of fnType.generics) {
     if (getContextuallyResolvedGeneric(ctx.resolvedGenerics, generic.parsed, generic.at)) {
       return err(nameAt, {
@@ -339,10 +310,13 @@ export const validateAndRegisterFnCall: Typechecker<
   }
 
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
+    callAt: at,
     name,
     orig: name.at,
     mapped: null,
   }))
+
+  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
 
   if (generics) {
     if (generics.parsed.length < fnType.generics.length) {
@@ -398,7 +372,10 @@ export const validateAndRegisterFnCall: Typechecker<
     )
   }
 
-  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
+  const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
+  const flags = new Map(
+    fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
+  )
 
   let isSupplyingRestArguments = false
   const suppliedRestArgument: Token<CmdArg>[] = []
@@ -447,7 +424,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(expr, {
           ...ctx,
           typeExpectation: {
-            type: relatedArg.parsed.type.parsed,
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
             from: relatedArg.at,
           },
         })
@@ -475,7 +452,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(directValue, {
           ...ctx,
           typeExpectation: {
-            type: flag.parsed.type.parsed,
+            type: resolveGenerics(flag.parsed.type.parsed, ctx.resolvedGenerics),
             from: flag.at,
           },
         })
@@ -491,7 +468,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveFnCallType(content.parsed, {
           ...ctx,
           typeExpectation: {
-            type: relatedArg.parsed.type.parsed,
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
             from: relatedArg.at,
           },
         })
@@ -517,7 +494,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveValueType(value, {
           ...ctx,
           typeExpectation: {
-            type: relatedArg.parsed.type.parsed,
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
             from: relatedArg.at,
           },
         })
@@ -601,10 +578,27 @@ export const validateAndRegisterFnCall: Typechecker<
     },
   })
 
-  return success([
-    fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics) : { type: 'void' },
-    gScope,
-  ])
+  const returnType: ValueType = fnType.returnType
+    ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics)
+    : { type: 'void' }
+
+  if (ctx.typeExpectation) {
+    const compat = isTypeCompatible(
+      {
+        at,
+        candidate: returnType,
+        typeExpectation: {
+          from: ctx.typeExpectation.from,
+          type: resolveGenerics(ctx.typeExpectation.type, ctx.resolvedGenerics.concat([gScope])),
+        },
+      },
+      ctx
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  return success(returnType)
 }
 
 export function getFnDeclArgType(fnDeclArg: FnDeclArg): ValueType {

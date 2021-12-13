@@ -12,6 +12,7 @@ export type TypecheckerContext = {
   typeAliases: PrecompData['typeAliases']
   resolvedGenerics: GenericResolutionScope[]
   inLoop: boolean
+  // inFnCallAt: CodeSection | null
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
   typeExpectationNature: null | string
   fnExpectation: null | {
@@ -36,6 +37,7 @@ export function createTypecheckerContext(
     typeAliasesPrelook: new Set(),
     resolvedGenerics: [],
     inLoop: false,
+    // inFnCallAt: null,
     typeExpectation: null,
     typeExpectationNature: null,
     fnExpectation: null,
@@ -67,7 +69,11 @@ export type ScopeEntity =
 
 export type ScopeMethod = { at: CodeSection; name: Token<string>; forType: Token<ValueType>; fnType: FnType }
 
-export type GenericResolutionScope = { name: Token<string>; orig: CodeSection; mapped: ValueType | null }[]
+export type GenericResolutionScope = {
+  name: Token<string>
+  orig: CodeSection
+  mapped: ValueType | null
+}[]
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (at: CodeSection, err: DiagnosticInput): TypecheckerErr => ({

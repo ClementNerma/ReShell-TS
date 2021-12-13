@@ -4,8 +4,8 @@ import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { inlineCmdCallChecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
-import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
-import { developTypeAliases } from './aliases'
+import { getContextuallyResolvedGeneric, getEntityInScope } from '../scope/search'
+import { developTypeAliases, developTypeAliasesAndNullables } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureCallValidator, resolveFnCallType } from './fn'
@@ -15,25 +15,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let { typeExpectation } = ctx
 
   if (typeExpectation?.type.type === 'generic') {
-    for (let s = ctx.resolvedGenerics.length - 1; s >= 0; s--) {
-      const generic = getResolvedGenericInSingleScope(
-        ctx.resolvedGenerics[s],
-        typeExpectation.type.name.parsed,
-        typeExpectation.type.orig
-      )
+    const generic = getContextuallyResolvedGeneric(
+      ctx.resolvedGenerics,
+      typeExpectation.type.name.parsed,
+      typeExpectation.type.orig
+    )
 
-      if (!generic) continue
+    if (generic?.mapped) {
+      typeExpectation = { from: typeExpectation.from, type: generic.mapped }
+    } else if (generic?.mapped === null) {
+      const type = resolveValueType(value, { ...ctx, typeExpectation: null })
+      if (!type.ok) return type
 
-      if (generic.mapped) {
-        typeExpectation = { from: typeExpectation.from, type: generic.mapped }
-        break
-      } else {
-        const type = resolveValueType(value, { ...ctx, typeExpectation: null })
-        if (!type.ok) return type
-
-        generic.mapped = type.data
-        return success(type.data)
-      }
+      generic.mapped = type.data
+      return success(type.data)
     }
   }
 
@@ -46,23 +41,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let developedExpectedType: ValueType | null = null
 
   if (typeExpectation) {
-    developedExpectedType = typeExpectation.type
+    const developed = developTypeAliasesAndNullables(typeExpectation.type, ctx)
+    if (!developed.ok) return developed
 
-    for (;;) {
-      if (developedExpectedType.type === 'nullable') {
-        developedExpectedType = developedExpectedType.inner
-      } else if (developedExpectedType.type === 'aliasRef') {
-        const alias = ctx.typeAliases.get(developedExpectedType.typeAliasName.parsed)
-
-        if (!alias) {
-          return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
-        }
-
-        developedExpectedType = alias.content
-      } else {
-        break
-      }
-    }
+    developedExpectedType = developed.data
   }
 
   const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {

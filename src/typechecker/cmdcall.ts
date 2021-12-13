@@ -58,7 +58,7 @@ export const cmdCallSubTypechecker: Typechecker<CmdCallSub, { found: 'fn' | 'cmd
   if (fn.ok && !unaliased) {
     const check = validateAndRegisterFnCall(
       { at: name.at, nameAt: name.at, generics: null, args, fnType: fn.data.content },
-      ctx
+      { ...ctx, typeExpectation: null }
     )
     return check.ok ? success({ found: 'fn' }) : check
   } else {
@@ -175,7 +175,7 @@ export const cmdSignatureCallValidator: Typechecker<
           },
           declaredCommand: true,
         },
-        ctx
+        { ...ctx, typeExpectation: null }
       )
 
       return check.ok ? success(void 0) : check

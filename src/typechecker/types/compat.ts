@@ -3,7 +3,7 @@ import { DiagnosticExtract } from '../../shared/diagnostics'
 import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection } from '../../shared/parsed'
 import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { getResolvedGenericInSingleScope } from '../scope/search'
+import { getContextuallyResolvedGeneric, getResolvedGenericInSingleScope } from '../scope/search'
 import { developTypeAliases } from './aliases'
 import { getFnDeclArgType } from './fn'
 import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
@@ -113,20 +113,14 @@ export const isTypeCompatible: Typechecker<
   referent = developedReferent.data
 
   if (referent.type === 'generic') {
-    for (let s = ctx.resolvedGenerics.length - 1; s >= 0; s--) {
-      const generic = getResolvedGenericInSingleScope(ctx.resolvedGenerics[s], referent.name.parsed, referent.orig)
+    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, referent.name.parsed, referent.orig)
 
-      if (generic !== undefined) {
-        if (generic.mapped === null) {
-          generic.mapped = candidate
-          return success(void 0)
-        } else {
-          return subCheck({ candidate, referent: generic.mapped })
-        }
-      }
+    if (generic?.mapped === null) {
+      generic.mapped = candidate
+      return success(void 0)
+    } else if (generic?.mapped) {
+      return subCheck({ candidate, referent: generic.mapped })
     }
-
-    // If not found, it means we are in a function body and generics are not resolvable yet
   }
 
   if (candidate.type === 'generic') {
