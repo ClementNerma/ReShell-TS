@@ -2,22 +2,22 @@ import { Token } from '../../shared/parsed'
 import { Parser, ParserErr } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
-  const parser = producer((start, input, context) => parser(start, input, context))
+  const parser = producer((start, input, ctx) => parser(start, input, ctx))
   return parser
 }
 
 export function withLatelyDeclared<T>(parser: () => Parser<T>): Parser<T> {
-  return (start, input, context) => parser()(start, input, context)
+  return (start, input, ctx) => parser()(start, input, ctx)
 }
 
 function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: string | undefined): Parser<unknown> {
   const parserName = `{${alias ?? originalFn.name ?? '?'}}`
   const trimStr = (str: string) => (str.length < 80 ? str : str.substr(0, 80) + '...').replace(/\n/g, '\\n')
 
-  return (start, input, context) => {
+  return (start, input, ctx) => {
     console.log(`${parserName} Called at line ${start.line} col ${start.col} | ${trimStr(input.littleView())}`)
 
-    const result = parser(start, input, context)
+    const result = parser(start, input, ctx)
 
     console.log(
       result.ok
@@ -48,11 +48,11 @@ export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>
 }
 
 export function withNormalizedNewlines<T>(parser: Parser<T>): Parser<T> {
-  return (start, input, context) =>
+  return (start, input, ctx) =>
     parser(
       start,
       input.withSlowMapper((str) => str.replace(/\r\n|\r/g, '\n')),
-      context
+      ctx
     )
 }
 

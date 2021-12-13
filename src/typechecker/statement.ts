@@ -39,6 +39,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           }
 
           const validation = resolveExprType(expr, {
+            ...ctx,
             scopes,
             typeExpectation: expectedType
               ? {
@@ -105,7 +106,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
                 ctx
               )
             : resolveExprType(expr, {
-                scopes: ctx.scopes,
+                ...ctx,
                 typeExpectation: {
                   type: expectedType,
                   from: varname.at,

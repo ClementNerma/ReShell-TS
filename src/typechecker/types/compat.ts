@@ -5,7 +5,7 @@ import { errIncompatibleValueType } from './value'
 
 export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSection; _path?: string[] }, void> = (
   { candidate, at, _path },
-  context
+  ctx
 ) => {
   const expectationErr = (message?: string, atOverride?: CodeSection) =>
     errIncompatibleValueType({
@@ -21,14 +21,14 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
     isTypeCompatible(
       { candidate, at, _path: path.concat([addPath]) },
-      { scopes: context.scopes, typeExpectation: { from, type: referent } }
+      { ...ctx, typeExpectation: { from, type: referent } }
     )
 
-  if (!context.typeExpectation) {
+  if (!ctx.typeExpectation) {
     return err(at, 'Internal error: type expectation is not defined in context when checking for type compatibility')
   }
 
-  const { typeExpectation } = context
+  const { typeExpectation } = ctx
   const { from } = typeExpectation
 
   let referent = typeExpectation.type
@@ -48,7 +48,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
   }
 
   if (candidate.inner.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(candidate.inner.typeAliasName, context)
+    const alias = getTypeAliasInScope(candidate.inner.typeAliasName, ctx)
 
     if (!alias.ok) {
       return expectationErr(
@@ -60,7 +60,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
   }
 
   if (referent.inner.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(referent.inner.typeAliasName, context)
+    const alias = getTypeAliasInScope(referent.inner.typeAliasName, ctx)
 
     if (!alias.ok) {
       return expectationErr(
@@ -151,13 +151,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
         const compat = isTypeCompatible(
           { candidate: cArg.type, at },
-          {
-            scopes: context.scopes,
-            typeExpectation: {
-              type: rArg.type,
-              from: rArgAt,
-            },
-          }
+          { ...ctx, typeExpectation: { type: rArg.type, from: rArgAt } }
         )
 
         if (!compat.ok) return compat
@@ -174,13 +168,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
         const retTypeCompat = isTypeCompatible(
           { candidate: c.fnType.returnType.parsed, at: c.fnType.returnType.at },
-          {
-            scopes: context.scopes,
-            typeExpectation: {
-              type: r.fnType.returnType.parsed,
-              from: r.fnType.returnType.at,
-            },
-          }
+          { ...ctx, typeExpectation: { type: r.fnType.returnType.parsed, from: r.fnType.returnType.at } }
         )
 
         if (!retTypeCompat) return retTypeCompat
@@ -195,13 +183,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
         const retTypeCompat = isTypeCompatible(
           { candidate: c.fnType.failureType.parsed, at: c.fnType.failureType.at },
-          {
-            scopes: context.scopes,
-            typeExpectation: {
-              type: r.fnType.failureType.parsed,
-              from: r.fnType.failureType.at,
-            },
-          }
+          { ...ctx, typeExpectation: { type: r.fnType.failureType.parsed, from: r.fnType.failureType.at } }
         )
 
         if (!retTypeCompat) return retTypeCompat

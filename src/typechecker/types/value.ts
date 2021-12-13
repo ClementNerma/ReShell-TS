@@ -91,7 +91,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
           case 'expr':
             const exprType = resolveExprType(segment.parsed.expr, {
-              scopes: ctx.scopes,
+              ...ctx,
               typeExpectation: {
                 type: foundType,
                 from: null,
@@ -123,7 +123,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
           case 'expr':
             const exprType = resolveExprType(segment.parsed.expr, {
-              scopes: ctx.scopes,
+              ...ctx,
               typeExpectation: {
                 type: foundType,
                 from: null,
@@ -156,7 +156,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const expectedItemType: ValueType | null = expectedListType?.itemsType ?? null
 
       const referenceType = resolveExprType(items[0], {
-        scopes: ctx.scopes,
+        ...ctx,
         typeExpectation: expectedItemType
           ? {
               type: expectedItemType,
@@ -168,7 +168,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       for (const item of items.slice(1)) {
         const itemType = resolveExprType(item, {
-          scopes: ctx.scopes,
+          ...ctx,
           typeExpectation: expectedItemType
             ? {
                 type: referenceType.data,
@@ -199,7 +199,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const expectedItemType: ValueType | null = expectedMapType?.itemsType ?? null
 
       const referenceType = resolveExprType(entries[0].value, {
-        scopes: ctx.scopes,
+        ...ctx,
         typeExpectation: expectedItemType
           ? {
               type: expectedItemType,
@@ -224,7 +224,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         keys.set(key.parsed, key)
 
         const itemType = resolveExprType(value, {
-          scopes: ctx.scopes,
+          ...ctx,
           typeExpectation: expectedItemType
             ? {
                 type: referenceType.data,
@@ -300,14 +300,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           }
 
           resolvedType = resolveExprType(value, {
-            scopes: ctx.scopes,
+            ...ctx,
             typeExpectation: {
               type: expectedMemberType,
               from: typeExpectation?.from ?? null,
             },
           })
         } else {
-          resolvedType = resolveExprType(value, { scopes: ctx.scopes, typeExpectation: null })
+          resolvedType = resolveExprType(value, { ...ctx, typeExpectation: null })
         }
 
         if (!resolvedType.ok) return resolvedType

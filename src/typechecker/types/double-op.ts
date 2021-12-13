@@ -33,7 +33,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
               doubleOps: seq.slice(0, i),
             },
           },
-          { scopes: ctx.scopes, typeExpectation: null }
+          { ...ctx, typeExpectation: null }
         )
 
         if (!leftExprType.ok) return leftExprType
@@ -47,7 +47,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
 
         return resolveDoubleOpType(
           { leftExprAt, leftExprType: leftExprType.data, op },
-          { scopes: ctx.scopes, typeExpectation: null }
+          { ...ctx, typeExpectation: null }
         )
       }
     }
@@ -65,10 +65,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
 
       const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, [seq[i + 1]])
 
-      const newLeftExprType = resolveDoubleOpType(
-        { leftExprAt, leftExprType, op },
-        { scopes: ctx.scopes, typeExpectation: null }
-      )
+      const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op }, { ...ctx, typeExpectation: null })
 
       if (!newLeftExprType.ok) return newLeftExprType
 
@@ -92,7 +89,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
 export const resolveDoubleOpType: Typechecker<
   { leftExprAt: CodeSection; leftExprType: ValueType; op: ExprDoubleOp },
   ValueType
-> = ({ leftExprAt, leftExprType, op: { op, right } }, context) => {
+> = ({ leftExprAt, leftExprType, op: { op, right } }, ctx) => {
   let checkRightOperandType: ValueType | null
   let producedType: ValueType | ((rightType: ValueType) => ValueType)
 
@@ -182,7 +179,7 @@ export const resolveDoubleOpType: Typechecker<
   }
 
   const rightExprType = resolveExprElementType(right, {
-    scopes: context.scopes,
+    ...ctx,
     typeExpectation: checkRightOperandType
       ? {
           type: checkRightOperandType,
@@ -195,7 +192,7 @@ export const resolveDoubleOpType: Typechecker<
 
   const resultType = typeof producedType === 'function' ? producedType(rightExprType.data) : producedType
 
-  if (context.typeExpectation) {
+  if (ctx.typeExpectation) {
     const compat = isTypeCompatible(
       {
         at: {
@@ -204,7 +201,7 @@ export const resolveDoubleOpType: Typechecker<
         },
         candidate: resultType,
       },
-      context
+      ctx
     )
 
     if (!compat.ok) return compat

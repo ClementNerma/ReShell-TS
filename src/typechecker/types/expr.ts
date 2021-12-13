@@ -11,7 +11,7 @@ import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) => {
   const fromType = resolveExprElementType(expr.parsed.from, {
-    scopes: ctx.scopes,
+    ...ctx,
     // Required to prevent "2 + 4 == 8" from creating an expectation for "2" to be a "bool"
     typeExpectation: expr.parsed.doubleOps.length > 0 ? null : ctx.typeExpectation,
   })
@@ -97,7 +97,7 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
     return resolveExprElementContentType(element.parsed.content, ctx)
   }
 
-  const resolved = resolveExprElementContentType(element.parsed.content, { scopes: ctx.scopes, typeExpectation: null })
+  const resolved = resolveExprElementContentType(element.parsed.content, { ...ctx, typeExpectation: null })
   if (!resolved.ok) return resolved
 
   const withPropAccesses = resolvePropAccessType(
@@ -137,7 +137,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
     ternary: ({ cond, then, elif, els }) => {
       const condType = resolveExprOrTypeAssertionType(cond, {
-        scopes: ctx.scopes,
+        ...ctx,
         typeExpectation: {
           type: { nullable: false, inner: { type: 'bool' } },
           from: null,
@@ -148,16 +148,14 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
       const thenType = resolveExprType(
         then,
-        condType.data.type === 'assertion'
-          ? { scopes: ctx.scopes.concat([condType.data.assertionScope]), typeExpectation: ctx.typeExpectation }
-          : ctx
+        condType.data.type === 'assertion' ? { ...ctx, scopes: ctx.scopes.concat([condType.data.assertionScope]) } : ctx
       )
 
       if (!thenType.ok) return thenType
 
       for (const { cond, expr } of elif) {
         const condType = resolveExprOrTypeAssertionType(cond, {
-          scopes: ctx.scopes,
+          ...ctx,
           typeExpectation: {
             type: { nullable: false, inner: { type: 'bool' } },
             from: then.at,
@@ -167,6 +165,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
         if (!condType.ok) return condType
 
         const elifType = resolveExprType(expr, {
+          ...ctx,
           scopes: condType.data.type === 'assertion' ? ctx.scopes.concat([condType.data.assertionScope]) : ctx.scopes,
           typeExpectation: { type: thenType.data, from: then.at },
         })
@@ -175,7 +174,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       }
 
       const elseType = resolveExprType(els, {
-        scopes: ctx.scopes,
+        ...ctx,
         typeExpectation: { type: thenType.data, from: then.at },
       })
 

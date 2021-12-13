@@ -1,9 +1,6 @@
 import { Program, Token } from '../shared/parsed'
-import { TypecheckerResult } from './base'
+import { Typechecker } from './base'
 import { statementChainChecker } from './statement'
 
-export const typecheckProgram = (program: Token<Program>): TypecheckerResult<void> =>
-  statementChainChecker(program.parsed, {
-    scopes: [],
-    typeExpectation: null,
-  })
+export const programChecker: Typechecker<Token<Program>, void> = (program, ctx) =>
+  statementChainChecker(program.parsed, ctx)

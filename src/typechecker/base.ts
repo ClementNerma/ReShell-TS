@@ -8,6 +8,13 @@ export type TypecheckerContext = {
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
 }
 
+export function createTypecheckerContext(): TypecheckerContext {
+  return {
+    scopes: [],
+    typeExpectation: null,
+  }
+}
+
 export type TypecheckerResult<O> = TypecheckerSuccess<O> | TypecheckerErr
 
 export type TypecheckerSuccess<O> = { ok: true; data: O }

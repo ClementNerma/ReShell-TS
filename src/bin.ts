@@ -12,7 +12,8 @@ import { parseSource } from './parsers/lib/base'
 import { StrView } from './parsers/lib/strview'
 import { program } from './parsers/program'
 import { ErrorParsingFormatters, formatErr } from './shared/errors'
-import { typecheckProgram } from './typechecker/program'
+import { createTypecheckerContext } from './typechecker/base'
+import { programChecker } from './typechecker/program'
 
 install()
 Error.stackTraceLimit = Infinity
@@ -105,7 +106,8 @@ if (argv.includes('--ast')) {
   process.exit(0)
 }
 
-const [typecheckerDuration, typechecked] = measurePerf(() => typecheckProgram(parsed.data))
+const typecheckerContext = createTypecheckerContext()
+const [typecheckerDuration, typechecked] = measurePerf(() => programChecker(parsed.data, typecheckerContext))
 
 if (!typechecked.ok) {
   console.error(formatErr(typechecked, iterSrc, errorFormatters))
