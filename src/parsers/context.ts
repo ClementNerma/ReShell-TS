@@ -48,7 +48,7 @@ export const completeGenericsDefinition = (
     if (orig) return { ok: true, data: { name, orig } }
   }
 
-  return { ok: false, err: "internal error: generic not found in parser's hierarchiesed definitions in" }
+  return { ok: false, err: 'generic was not found' }
 }
 
 export const withStatementClosingChar = <T>(statementClose: StatementClosingChar, parser: Parser<T>): Parser<T> =>
