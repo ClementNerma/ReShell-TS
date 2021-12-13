@@ -44,6 +44,9 @@ export const resolveValueChainings: Typechecker<
           })
         }
 
+        const inner: ValueType =
+          nullable && previousIterType.type === 'nullable' ? previousIterType.inner : previousIterType
+
         let method: ScopeMethod | null = null
         const candidates: ScopeMethod[] = []
 
@@ -54,7 +57,7 @@ export const resolveValueChainings: Typechecker<
             const compat = isTypeCompatible(
               {
                 at: call.name.at,
-                candidate: previousIterType,
+                candidate: inner,
                 typeExpectation: { type: method.forTypeWithoutGenerics, from: null },
               },
               ctx
@@ -77,7 +80,7 @@ export const resolveValueChainings: Typechecker<
           return err(call.name.at, {
             message: 'method was not found for the provided value type',
             complements: candidates
-              .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forTypeWithoutGenerics)])
+              .map<[string, string]>((method) => ['exists for', '(?)' + rebuildType(method.forTypeWithoutGenerics)])
               .concat([['applied on', rebuildType(developed.data)]])
               .reverse(),
           })
