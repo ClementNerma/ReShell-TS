@@ -1,37 +1,7 @@
 import { FnDeclArg, FnType, PrimitiveValueType, ValueType } from './ast'
 import { CodeSection, Token } from './parsed'
 
-let nativeLibAtCounter = 0
-const nativeLibAtMap: Map<string, CodeSection> = new Map()
-
-export const nativeLibAt = (named?: string): CodeSection => {
-  if (named === undefined) {
-    nativeLibAtCounter += 1
-
-    return {
-      start: { file: { type: 'internal', path: '<native library>' }, col: nativeLibAtCounter, line: 0 },
-      next: { file: { type: 'internal', path: '<native library>' }, col: nativeLibAtCounter, line: 1 },
-    }
-  }
-
-  const existing = nativeLibAtMap.get(named)
-  if (existing) return existing
-
-  const section = nativeLibAt()
-  nativeLibAtMap.set(named, section)
-  return section
-}
-
-export type NativeLibraryTypeAliasNames = 'LsItem' | 'LsItemType'
-
-export function buildWithNativeLibraryTypeAliasNames<T>(obj: { [name in NativeLibraryTypeAliasNames]: T }): Map<
-  string,
-  T
-> {
-  return new Map(Object.entries(obj))
-}
-
-export const nativeLibraryTypeAliases = buildWithNativeLibraryTypeAliasNames<ValueType>({
+export const nativeLibraryTypeAliases = ensureValueTypes<ValueType>()({
   LsItem: {
     type: 'struct',
     members: [
@@ -47,24 +17,12 @@ export const nativeLibraryTypeAliases = buildWithNativeLibraryTypeAliasNames<Val
   LsItemType: { type: 'enum', variants: _forgeTokens(['File', 'Dir', 'Symlink', 'Unknown']) },
 })
 
-export type NativeLibraryFnNames =
-  | 'ok'
-  | 'err'
-  | 'typed'
-  | 'toFixed'
-  | 'listAt'
-  | 'repeat'
-  | 'echo'
-  | 'dump'
-  | 'toStr'
-  | 'trace'
-  | 'ls'
+export const nativeLibraryVarTypes = ensureValueTypes<ValueType>()({
+  argv: { type: 'list', itemsType: { type: 'string' } },
+  PATH: { type: 'list', itemsType: { type: 'string' } },
+})
 
-export function buildWithNativeLibraryFunctionNames<T>(obj: { [name in NativeLibraryFnNames]: T }): Map<string, T> {
-  return new Map(Object.entries(obj))
-}
-
-export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>({
+export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   ok: _buildNativeLibraryFn({
     generics: ['T', 'E'],
     args: ({ T }) => [{ name: 'value', type: T }],
@@ -138,19 +96,33 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
   }),
 })
 
-export type NativeLibraryVarNames = 'argv' | 'PATH'
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Native library builder utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-export function buildWithNativeLibraryVarNames<T>(obj: { [name in NativeLibraryVarNames]: T }): Map<string, T> {
-  return new Map(Object.entries(obj))
+function ensureValueTypes<V>(): <K extends string>(obj: { [key in K]: V }) => { [key in K]: Token<V> } {
+  return <K extends string>(obj: { [key in K]: V }) =>
+    fromEntries<K, Token<V>>(
+      Object.entries<V>(obj).map<[K, Token<V>]>(([name, value]) => [name as K, _forgeToken(value)])
+    )
 }
 
-export const nativeLibraryVarTypes = buildWithNativeLibraryVarNames<ValueType>({
-  argv: { type: 'list', itemsType: { type: 'string' } },
-  PATH: { type: 'list', itemsType: { type: 'string' } },
-})
+function fromEntries<K extends string, P>(entries: [K, P][]): { [key in K]: P } {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+  return Object.fromEntries(entries) as any
+}
 
-function _forgeToken<T>(data: T, named?: string): Token<T> {
-  return { at: nativeLibAt(named), matched: -1, parsed: data }
+function _nativeLibAt(): CodeSection {
+  return {
+    start: { file: { type: 'internal', path: '<native library>' }, col: 0, line: 0 },
+    next: { file: { type: 'internal', path: '<native library>' }, col: 0, line: 1 },
+  }
+}
+
+function _forgeToken<T>(data: T): Token<T> {
+  return {
+    at: _nativeLibAt(),
+    matched: -1,
+    parsed: data,
+  }
 }
 
 function _forgeTokens<T>(data: T[]): Token<T>[] {
@@ -175,14 +147,10 @@ function _buildNativeLibraryFn<G extends string>({
   restArg?: string
   returnType?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
 }): FnType {
-  const fromEntries = <K extends string, P>(entries: [K, P][]): { [key in K]: P } =>
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
-    Object.fromEntries(entries) as any
-
   const forgedGenerics = fromEntries(
     (generics ?? []).map<[G, _Generic]>((name) => [
       name,
-      { type: 'generic', name: _forgeToken(name), orig: nativeLibAt() },
+      { type: 'generic', name: _forgeToken(name), orig: _nativeLibAt() },
     ])
   )
 

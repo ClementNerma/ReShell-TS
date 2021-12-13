@@ -1,69 +1,24 @@
 import { lstatSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { ValueType } from '../shared/ast'
-import { buildWithNativeLibraryFunctionNames, buildWithNativeLibraryVarNames } from '../shared/native-lib'
+import { nativeLibraryFnTypes, nativeLibraryVarTypes } from '../shared/native-lib'
 import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
 
-function withArguments<A extends { [name: string]: ValueType['type'] | { nullable: ValueType['type'] } }>(
-  at: CodeSection,
-  map: Map<string, ExecValue>,
-  expecting: A,
-  callback: (data: {
-    [name in keyof A]: Extract<
-      ExecValue,
-      A[name] extends { nullable: ValueType['type'] }
-        ? { type: 'null' } | { type: A[name]['nullable'] }
-        : { type: A[name] }
-    >
-  }) => RunnerResult<ExecValue | null>
-): RunnerResult<ExecValue> {
-  const out: object = {}
-
-  for (const [name, type] of Object.entries(expecting)) {
-    const value = map.get(name)
-
-    let expectedType: ValueType['type']
-
-    if (value === undefined)
-      return err(at, `internal error in native library executor: argument "${name}" was not found`)
-
-    if (typeof type === 'string') {
-      expectedType = type
-    } else {
-      if (value.type === 'null') {
-        continue
-      }
-
-      expectedType = type.nullable
-    }
-
-    if (value.type !== expectedType && expectedType !== 'unknown') {
-      return err(
-        at,
-        `internal error in native library executor: expected argument "${name}" to be of type "${expectedType}", found ${value.type}`
-      )
-    }
-
-    map.delete(name)
-
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-ignore
-    out[name] = value
-  }
-
-  if (map.size > 0) {
-    return err(
-      at,
-      'internal error in native library executor: unknown arguments provided: ' + [...map.keys()].join(', ')
-    )
-  }
-
-  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-  // @ts-ignore
-  return callback(out)
-}
+export const nativeLibraryVariables = makeMap<typeof nativeLibraryVarTypes, (ctx: RunnerContext) => ExecValue>({
+  argv: (ctx) => ({
+    type: 'list',
+    items: ctx.argv.map((value) => ({ type: 'string', value })),
+  }),
+  PATH: () => ({
+    type: 'list',
+    items:
+      process.env['PATH'] !== undefined
+        ? process.env['PATH'].split(':').map((entry) => ({ type: 'string', value: entry }))
+        : [],
+  }),
+})
 
 export type NativeFn = (
   input: {
@@ -74,7 +29,7 @@ export type NativeFn = (
   args: Map<string, ExecValue>
 ) => RunnerResult<ExecValue | null>
 
-export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
+export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
   ok: ({ at }, map) =>
     withArguments(at, map, { value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
 
@@ -228,16 +183,67 @@ const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: Ru
     rest: () => `<rest>`,
   })
 
-export const nativeLibraryVariables = buildWithNativeLibraryVarNames<(ctx: RunnerContext) => ExecValue>({
-  argv: (ctx) => ({
-    type: 'list',
-    items: ctx.argv.map((value) => ({ type: 'string', value })),
-  }),
-  PATH: () => ({
-    type: 'list',
-    items:
-      process.env['PATH'] !== undefined
-        ? process.env['PATH'].split(':').map((entry) => ({ type: 'string', value: entry }))
-        : [],
-  }),
-})
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Native library runtime utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+function makeMap<R extends object, O>(values: { [key in keyof R]: O }): Map<string, O> {
+  return new Map(Object.entries(values))
+}
+
+function withArguments<A extends { [name: string]: ValueType['type'] | { nullable: ValueType['type'] } }>(
+  at: CodeSection,
+  map: Map<string, ExecValue>,
+  expecting: A,
+  callback: (data: {
+    [name in keyof A]: Extract<
+      ExecValue,
+      A[name] extends { nullable: ValueType['type'] }
+        ? { type: 'null' } | { type: A[name]['nullable'] }
+        : { type: A[name] }
+    >
+  }) => RunnerResult<ExecValue | null>
+): RunnerResult<ExecValue> {
+  const out: object = {}
+
+  for (const [name, type] of Object.entries(expecting)) {
+    const value = map.get(name)
+
+    let expectedType: ValueType['type']
+
+    if (value === undefined)
+      return err(at, `internal error in native library executor: argument "${name}" was not found`)
+
+    if (typeof type === 'string') {
+      expectedType = type
+    } else {
+      if (value.type === 'null') {
+        continue
+      }
+
+      expectedType = type.nullable
+    }
+
+    if (value.type !== expectedType && expectedType !== 'unknown') {
+      return err(
+        at,
+        `internal error in native library executor: expected argument "${name}" to be of type "${expectedType}", found ${value.type}`
+      )
+    }
+
+    map.delete(name)
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    out[name] = value
+  }
+
+  if (map.size > 0) {
+    return err(
+      at,
+      'internal error in native library executor: unknown arguments provided: ' + [...map.keys()].join(', ')
+    )
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  return callback(out)
+}
