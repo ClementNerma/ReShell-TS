@@ -289,18 +289,35 @@ export const isTypeCompatible: Typechecker<
     },
 
     generic: (c, r) => {
-      return c.name.parsed !== r.name.parsed
-        ? expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
-        : isLocEq(c.orig.start, r.orig.start)
-        ? success(void 0)
-        : expectationErr(
-            `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
-            undefined,
-            [
-              { at: r.orig, message: 'expected this generic' },
-              { at: c.orig, message: 'found this generic' },
-            ]
-          )
+      if (c.name.parsed !== r.name.parsed) {
+        return expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
+      }
+
+      if (!isLocEq(c.orig.start, r.orig.start) || (c.fromFnCallAt === null) !== (r.fromFnCallAt === null)) {
+        return expectationErr(
+          `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+          undefined,
+          [
+            { at: r.orig, message: 'expected this generic' },
+            { at: c.orig, message: 'found this generic' },
+          ]
+        )
+      }
+
+      if (c.fromFnCallAt && r.fromFnCallAt && !isLocEq(c.fromFnCallAt, r.fromFnCallAt)) {
+        return expectationErr(
+          `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+          undefined,
+          [
+            { at: r.orig, message: 'expected this generic...' },
+            { at: { start: r.fromFnCallAt, next: r.fromFnCallAt }, message: '...which is defined in this call...' },
+            { at: c.orig, message: '...but found this generic...' },
+            { at: { start: c.fromFnCallAt, next: c.fromFnCallAt }, message: '... which is defined in this call' },
+          ]
+        )
+      }
+
+      return success(void 0)
     },
 
     aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),
