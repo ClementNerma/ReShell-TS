@@ -8,7 +8,7 @@ import { map, silence, toOneProp } from '../lib/transform'
 import { DoubleArithOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from './data'
 
 export const _catchUnknownOperator: Parser<void> = silence(
-  takeWhile1(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!', '<', '>', '=']))
+  takeWhile1(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!', '<', '>']))
 )
 
 export const doubleArithOp: Parser<DoubleArithOp> = map(
