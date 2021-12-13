@@ -5,7 +5,6 @@ export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
   return (
     (type.nullable ? '?' : '') +
     matchUnion(type.inner)('type', {
-      void: () => 'void',
       bool: () => 'bool',
       number: () => 'number',
       string: () => 'string',
@@ -33,6 +32,9 @@ export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
             )})`,
       aliasRef: ({ typeAliasName }) => '@' + typeAliasName.parsed,
       unknown: () => 'unknown',
+
+      // Internal types
+      void: () => 'void',
     })
   )
 }

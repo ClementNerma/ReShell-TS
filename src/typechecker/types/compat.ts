@@ -61,7 +61,6 @@ export const isTypeCompatible: Typechecker<
       referent: Extract<ValueType['inner'], { type: type }>
     ) => TypecheckerResult<void> // | boolean
   } = {
-    void: () => success(void 0),
     bool: () => success(void 0),
     number: () => success(void 0),
     string: () => success(void 0),
@@ -100,10 +99,10 @@ export const isTypeCompatible: Typechecker<
     unknown: () => {
       throw new Error('Internal error: unreachable "unknown" type comparison')
     },
+
+    // Internal types
+    void: () => expectationErr('Internal error: trying to compare candidate with internal type "void"'),
   }
 
   return comparators[candidate.inner.type](candidate.inner as any, referent.inner as any)
-
-  //   const comparison = comparators[candidate.inner.type](candidate.inner as any, referent.inner as any)
-  //   return comparison === true ? success(void 0) : comparison === false ? expectationErr() : comparison
 }

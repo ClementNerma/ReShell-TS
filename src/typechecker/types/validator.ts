@@ -5,7 +5,6 @@ import { getTypeAliasInScope } from '../scope/search'
 
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
   matchUnion(type.inner)<TypecheckerResult<void>>('type', {
-    void: () => success(void 0),
     bool: () => success(void 0),
     number: () => success(void 0),
     string: () => success(void 0),
@@ -30,6 +29,9 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
       return typeAlias.ok ? success(void 0) : typeAlias
     },
     unknown: () => success(void 0),
+
+    // Internal types
+    void: () => success(void 0),
   })
 
 export const multiTypeValidator: Typechecker<ValueType[], void> = (types, ctx) => {
