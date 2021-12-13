@@ -8,9 +8,22 @@ import { fnTypeValidator } from '../types/fn'
 import { ensureScopeUnicity } from './search'
 
 export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
-  const firstPass: Scope = { typeAliases: new Map(), functions: new Map(), variables: new Map() }
+  const typeAliases = scopeFirstPassTypeAliases(chain, ctx)
+  if (!typeAliases.ok) return typeAliases
 
-  ctx = { ...ctx, scopes: ctx.scopes.concat([firstPass]) }
+  const functions = scopeFirstPassFunctions([chain, typeAliases.data], ctx)
+  if (!functions.ok) return functions
+
+  return success({ typeAliases: typeAliases.data, functions: functions.data, variables: new Map() })
+}
+
+const scopeFirstPassTypeAliases: Typechecker<Token<StatementChain>[], Scope['typeAliases']> = (chain, ctx) => {
+  const typeAliases: Scope['typeAliases'] = new Map()
+
+  ctx = {
+    ...ctx,
+    scopes: ctx.scopes.concat([{ typeAliases: typeAliases, functions: new Map(), variables: new Map() }]),
+  }
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -65,9 +78,31 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
           const typeUnicity = ensureScopeUnicity(typename, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
-          firstPass.typeAliases.set(typename.parsed, located(typename.at, sub.parsed.content.parsed))
+          typeAliases.set(typename.parsed, located(typename.at, sub.parsed.content.parsed))
           break
+      }
+    }
+  }
 
+  return success(typeAliases)
+}
+
+const scopeFirstPassFunctions: Typechecker<[Token<StatementChain>[], Scope['typeAliases']], Scope['functions']> = (
+  [chain, typeAliases],
+  ctx
+) => {
+  const functions: Scope['functions'] = new Map()
+
+  ctx = {
+    ...ctx,
+    scopes: ctx.scopes.concat([{ typeAliases, functions, variables: new Map() }]),
+  }
+
+  for (const stmt of chain) {
+    if (stmt.parsed.type === 'empty') continue
+
+    for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
+      switch (sub.parsed.type) {
         case 'fnDecl':
           const fnName = sub.parsed.name
 
@@ -77,11 +112,11 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
           const fnTypeChecker = fnTypeValidator(sub.parsed.fnType, ctx)
           if (!fnTypeChecker.ok) return fnTypeChecker
 
-          firstPass.functions.set(fnName.parsed, located(fnName.at, sub.parsed.fnType))
+          functions.set(fnName.parsed, located(fnName.at, sub.parsed.fnType))
           break
       }
     }
   }
 
-  return success(firstPass)
+  return success(functions)
 }
