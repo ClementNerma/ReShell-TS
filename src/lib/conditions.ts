@@ -26,7 +26,7 @@ export function failIf(failIf: Parser<unknown>, error?: ErrFnData): Parser<unkno
 
 export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
-    const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
+    const parsed = failIf(start, input, context)
     return parsed.ok ? err(start, context) : els(start, input, context)
   }
 }
