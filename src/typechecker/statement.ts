@@ -117,6 +117,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           return success(void 0)
         },
 
+        // Nothing to do here, already handled in first pass
+        typeAlias: () => success(void 0),
+
         _: (): TypecheckerResult<void> => {
           throw new Error('// TODO: other statement types')
         },
