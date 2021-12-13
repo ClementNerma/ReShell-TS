@@ -80,4 +80,4 @@ if (!exec.ok) {
 console.dir(exec.data, { depth: null })
 
 infos.forEach((info) => console.log(info))
-console.log(`Executed in ${elapsedTypechecker} ms`)
+console.log(`Typechecked in ${elapsedTypechecker} ms`)
