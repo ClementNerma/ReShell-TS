@@ -6,6 +6,8 @@ export const identifier: Parser<string> = unicodeAlphanumericUnderscore
 
 export const cmdName: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
 
+export const cmdAction: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
+
 export const keyword: Parser<string> = oneOfWords([
   'if',
   'else',

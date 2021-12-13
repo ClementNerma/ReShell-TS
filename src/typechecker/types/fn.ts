@@ -25,8 +25,8 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
   }
 
   if (fnType.returnType) {
-     const check = typeValidator(fnType.returnType.parsed, ctx)
-     if (!check.ok) return check
+    const check = typeValidator(fnType.returnType.parsed, ctx)
+    if (!check.ok) return check
   }
 
   if (fnType.failureType) {
@@ -220,7 +220,7 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
     }
 
     const resolved: TypecheckerResult<void> = matchUnion(arg.parsed, 'type', {
-      escape: () => success(void 0),
+      action: ({ name }) => err(name.at, 'non-quoted arguments are only allowed for commands'),
 
       expr: ({ expr }) => {
         const relatedArg = positional.shift()

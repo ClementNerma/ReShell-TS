@@ -1,9 +1,4 @@
-import {
-  CmdDeclSubCommand,
-  CmdDeclSubCommandVariant,
-  CmdDeclSubCommandVariantContent,
-  CmdDeclSubCommandVariantSignature,
-} from '../shared/ast'
+import { CmdDeclSubCommand, CmdVariant, CmdVariantContent, CmdVariantSignature } from '../shared/ast'
 import { fnArg } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -12,11 +7,11 @@ import { failure } from './lib/errors'
 import { maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact } from './lib/matchers'
-import { mappedCases, or, OrErrorStrategy } from './lib/switches'
+import { mappedCases } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
-import { identifier } from './tokens'
+import { cmdAction } from './tokens'
 
 const cmdDeclDescription: Parser<string> = map(
   combine(
@@ -30,46 +25,45 @@ const cmdDeclDescription: Parser<string> = map(
   ([_, __, { parsed: description }]) => description
 )
 
-const cmdDeclSubCommandVariantSignature: Parser<CmdDeclSubCommandVariantSignature> =
-  mappedCases<CmdDeclSubCommandVariantSignature>()('type', {
-    subCmd: map(
-      combine(
-        exact('=>'),
-        maybe_s_nl,
-        withLatelyDeclared(() => cmdDeclSubCommand)
-      ),
-      ([_, __, { parsed: content }]) => ({ content })
+const cmdDeclSubCommandVariantSignature: Parser<CmdVariantSignature> = mappedCases<CmdVariantSignature>()('type', {
+  subCmd: map(
+    combine(
+      exact('=>'),
+      maybe_s_nl,
+      withLatelyDeclared(() => cmdDeclSubCommand)
     ),
+    ([_, __, { parsed: content }]) => ({ content })
+  ),
 
-    direct: map(
-      combine(
-        exact('('),
-        maybe_s_nl,
-        useSeparatorIf(
-          takeWhile(
-            withLatelyDeclared(() => fnArg),
-            {
-              inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
-              interExpect: 'expected another argument',
-            }
-          ),
-          combine(maybe_s_nl, exact(','), maybe_s_nl),
-          exact('...')
+  direct: map(
+    combine(
+      exact('('),
+      maybe_s_nl,
+      useSeparatorIf(
+        takeWhile(
+          withLatelyDeclared(() => fnArg),
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
+            interExpect: 'expected another argument',
+          }
         ),
-        maybe_s_nl,
-        exact(')', 'expected a closing parenthesis ")" after the arguments list')
+        combine(maybe_s_nl, exact(','), maybe_s_nl),
+        exact('...')
       ),
-      ([
-        _,
-        __,
-        {
-          parsed: [{ parsed: args }, rest],
-        },
-      ]) => ({ args, rest: rest !== null })
+      maybe_s_nl,
+      exact(')', 'expected a closing parenthesis ")" after the arguments list')
     ),
-  })
+    ([
+      _,
+      __,
+      {
+        parsed: [{ parsed: args }, rest],
+      },
+    ]) => ({ args, rest })
+  ),
+})
 
-const cmdDeclSubCommandVariantContent: Parser<CmdDeclSubCommandVariantContent> = map(
+const cmdDeclSubCommandVariantContent: Parser<CmdVariantContent> = map(
   combine(
     maybe(map(combine(cmdDeclDescription, maybe_s_nl), ([description]) => description)),
     failure(cmdDeclSubCommandVariantSignature, 'expected a signature (function type or variant content)')
@@ -94,27 +88,15 @@ export const cmdDeclSubCommand: Parser<CmdDeclSubCommand> = map(
         ([_, __, content]) => content
       )
     ),
-    takeWhile<CmdDeclSubCommandVariant>(
+    takeWhile<CmdVariant>(
       map(
         combine(
-          takeWhile1(
-            or<string>(
-              [
-                map(
-                  combine(exact('-'), maybe(exact('-')), failure(identifier, 'expected a flag name')),
-                  (_, { matched }) => matched
-                ),
-                rawString,
-              ],
-              [OrErrorStrategy.Const, 'expected an argument value (either a double-quoted string or a flag)']
-            ),
-            {
-              inter: combine(maybe_s_nl, exact('|'), maybe_s_nl),
-              interExpect:
-                'expected another argument value (either a double-quoted string or a flag) after union (|) separator',
-              noMatchError: 'expected an argument or flag name for this variant',
-            }
-          ),
+          takeWhile1(failure(cmdAction, 'expected an argument value (either a double-quoted string or a flag)'), {
+            inter: combine(maybe_s_nl, exact('|'), maybe_s_nl),
+            interExpect:
+              'expected another argument value (either a double-quoted string or a flag) after union (|) separator',
+            noMatchError: 'expected an argument or flag name for this variant',
+          }),
           maybe_s_nl,
           cmdDeclSubCommandVariantContent
         ),

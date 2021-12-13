@@ -214,6 +214,7 @@ export type CmdArg =
   // followed by a 'value' expr
   | ({ type: 'flag' } & CmdFlag)
   // | { type: 'reference'; varname: Token<string> }
+  | { type: 'action'; name: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'value'; value: Token<Value> }
   | { type: 'rest'; varname: Token<string> }
@@ -232,17 +233,17 @@ export type CmdRedirOp =
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Command declarations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type CmdDeclSubCommand = {
-  base: Token<CmdDeclSubCommandVariantContent> | null
-  variants: Token<CmdDeclSubCommandVariant>[]
+  base: Token<CmdVariantContent> | null
+  variants: Token<CmdVariant>[]
 }
 
-export type CmdDeclSubCommandVariant = { argCandidates: Token<string>[] } & CmdDeclSubCommandVariantContent
+export type CmdVariant = { argCandidates: Token<string>[] } & CmdVariantContent
 
-export type CmdDeclSubCommandVariantContent = {
+export type CmdVariantContent = {
   description: Token<string> | null
-  signature: CmdDeclSubCommandVariantSignature
+  signature: CmdVariantSignature
 }
 
-export type CmdDeclSubCommandVariantSignature =
-  | { type: 'direct'; args: Token<FnArg>[] }
+export type CmdVariantSignature =
+  | { type: 'direct'; args: Token<FnArg>[]; rest: Token<string> | null }
   | { type: 'subCmd'; content: CmdDeclSubCommand }

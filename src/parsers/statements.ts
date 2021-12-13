@@ -19,7 +19,7 @@ import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
-import { map, toOneProp } from './lib/transform'
+import { map, suppressErrorPrecedence, toOneProp } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
 import { doubleOpForAssignment } from './operators'
@@ -277,7 +277,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         takeWhile(failIfMatchesElse(exact('[]'), nonNullablePropertyAccess)),
         maybe(exact('[]')),
         maybe_s_nl,
-        combine(maybe(doubleOpForAssignment), maybe_s_nl, exact('='), maybe_s_nl),
+        combine(maybe(suppressErrorPrecedence(doubleOpForAssignment)), maybe_s_nl, exact('='), maybe_s_nl),
         failure(expr, 'expected an expression to assign')
       ),
       ([

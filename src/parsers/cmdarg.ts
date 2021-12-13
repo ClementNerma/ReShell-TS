@@ -7,9 +7,9 @@ import { failure } from './lib/errors'
 import { maybe_s_nl } from './lib/littles'
 import { exact, oneOfMap } from './lib/matchers'
 import { mappedCases } from './lib/switches'
-import { map } from './lib/transform'
+import { map, toOneProp } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
-import { identifier } from './tokens'
+import { cmdAction, identifier } from './tokens'
 import { value } from './value'
 
 // For weirdly-shaped arguments provided to external commands, users just have to put them between double quotes to treat
@@ -41,6 +41,8 @@ export const cmdFlag: Parser<CmdFlag> = map(
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   flag: cmdFlag,
 
+  action: toOneProp(cmdAction, 'name'),
+
   expr: map(
     combine(
       combine(exact('${'), maybe_s_nl),
@@ -51,15 +53,10 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
       maybe_s_nl,
       exact('}', 'expected a closing brace (}) to close the inner expression')
     ),
-    ([_, expr, __]) => ({ type: 'expr', expr })
+    ([_, expr, __]) => ({ expr })
   ),
 
-  // reference: map(combine(exact('$'), failure(identifier, 'expected a variable name')), ([_, varname]) => ({
-  //   type: 'reference',
-  //   varname,
-  // })),
-
-  value: map(value, (_, value) => ({ type: 'value', value })),
+  value: toOneProp(value, 'value'),
 
   rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
     varname,

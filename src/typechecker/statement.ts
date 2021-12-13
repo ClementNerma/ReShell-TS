@@ -476,7 +476,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         ctx.commandDeclarations.set(name.parsed, { at: name.at, content: body })
 
-        throw new Error('TODO: validating future calls')
+        return success({ neverEnds: false })
       },
 
       // Nothing to do here, already handled in first pass
