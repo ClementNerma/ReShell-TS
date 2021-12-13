@@ -162,6 +162,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!assert.ok) return assert
 
       const foundType: ValueType = { type: 'path' }
+      let firstSegment = true
       let segmentHasContent = false
       let segmentHasInnerPath = false
 
@@ -192,12 +193,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           }
 
           case 'separator':
-            if (!segmentHasContent && !segmentHasInnerPath) {
-              return err(segment.at, 'cannot use two separators one after the other')
+            if (!firstSegment && !segmentHasContent && !segmentHasInnerPath) {
+              return err(segment.at, 'cannot use two path separators (/) one after the other')
             }
 
             segmentHasContent = false
             segmentHasInnerPath = false
+            firstSegment = false
 
             break
 
