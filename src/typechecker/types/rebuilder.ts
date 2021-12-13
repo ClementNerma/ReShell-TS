@@ -1,4 +1,4 @@
-import { LiteralValue, ValueType } from '../../shared/parsed'
+import { LiteralValue, ValueType } from '../../shared/ast'
 import { matchUnion } from '../../shared/utils'
 
 export function rebuildType(type: ValueType, noDepth?: boolean): string {

@@ -1,4 +1,5 @@
-import { CmdArg, CodeSection, FnArg, FnType, Token, ValueType } from '../../shared/parsed'
+import { CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
+import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
 import { resolveExprType } from './expr'

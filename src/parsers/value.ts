@@ -5,7 +5,7 @@ import {
   InlineChainedCmdCall,
   InlineCmdCallCapture,
   Value,
-} from '../shared/parsed'
+} from '../shared/ast'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClosingChar } from './context'

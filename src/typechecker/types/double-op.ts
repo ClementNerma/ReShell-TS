@@ -1,4 +1,5 @@
-import { CodeSection, DoubleOp, ExprDoubleOp, ExprElement, Token, ValueType } from '../../shared/parsed'
+import { DoubleOp, ExprDoubleOp, ExprElement, ValueType } from '../../shared/ast'
+import { CodeSection, Token } from '../../shared/parsed'
 import { matchStr } from '../../shared/utils'
 import { err, success, Typechecker } from '../base'
 import { isTypeCompatible } from './compat'

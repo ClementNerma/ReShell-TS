@@ -1,4 +1,5 @@
-import { CodeSection, FnType, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
+import { FnType, PrimitiveTypes, StructTypeMember, Value, ValueType } from '../../shared/ast'
+import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'

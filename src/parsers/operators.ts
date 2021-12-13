@@ -1,4 +1,4 @@
-import { DoubleArithOp, DoubleComparisonOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from '../shared/parsed'
+import { DoubleArithOp, DoubleComparisonOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from '../shared/ast'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches } from './lib/conditions'

@@ -1,4 +1,5 @@
-import { FnArg, FnType, Token } from '../shared/parsed'
+import { FnArg, FnType } from '../shared/ast'
+import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { maybe } from './lib/conditions'

@@ -1,4 +1,5 @@
-import { CodeSection, PropertyAccess, Token, ValueType } from '../../shared/parsed'
+import { PropertyAccess, ValueType } from '../../shared/ast'
+import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
 import { rebuildType } from './rebuilder'

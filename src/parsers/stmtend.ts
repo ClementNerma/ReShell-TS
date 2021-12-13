@@ -1,4 +1,4 @@
-import { CmdRedirOp, StatementChainOp } from '../shared/parsed'
+import { CmdRedirOp, StatementChainOp } from '../shared/ast'
 import { matchStatementClose } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'

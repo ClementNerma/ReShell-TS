@@ -1,4 +1,4 @@
-import { NonNullableValueType, ValueType } from '../shared/parsed'
+import { NonNullableValueType, ValueType } from '../shared/ast'
 import { fnType } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'

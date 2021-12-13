@@ -1,4 +1,5 @@
-import { StatementChain, Token, ValueType } from '../shared/parsed'
+import { StatementChain, ValueType } from '../shared/ast'
+import { Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, located, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'

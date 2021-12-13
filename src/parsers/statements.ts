@@ -1,4 +1,5 @@
-import { ChainedStatement, ElIfBlock, Statement, StatementChain, Token } from '../shared/parsed'
+import { ChainedStatement, ElIfBlock, Statement, StatementChain } from '../shared/ast'
+import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
   matchContinuationKeyword,

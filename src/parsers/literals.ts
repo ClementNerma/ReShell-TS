@@ -1,4 +1,5 @@
-import { LiteralValue, Token } from '../shared/parsed'
+import { LiteralValue } from '../shared/ast'
+import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches, notFollowedBy } from './lib/conditions'

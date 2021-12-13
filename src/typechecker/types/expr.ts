@@ -1,4 +1,5 @@
-import { Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, Token, ValueType } from '../../shared/parsed'
+import { Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
+import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerContext } from '../base'
 import { getVariableInScope } from '../scope/search'

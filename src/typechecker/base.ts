@@ -1,5 +1,6 @@
+import { FnType, ValueType } from '../shared/ast'
 import { FormatableErrInput, FormatableError, formattableErr } from '../shared/errors'
-import { CodeSection, FnType, ValueType } from '../shared/parsed'
+import { CodeSection } from '../shared/parsed'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 

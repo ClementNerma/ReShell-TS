@@ -1,4 +1,5 @@
-import { CmdArg, CmdCall, CodeSection, Token, ValueType } from '../shared/parsed'
+import { CmdArg, CmdCall, ValueType } from '../shared/ast'
+import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
 import { getFunctionInScope } from './scope/search'

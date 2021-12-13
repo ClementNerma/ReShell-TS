@@ -1,4 +1,4 @@
-import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../shared/parsed'
+import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../shared/ast'
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'

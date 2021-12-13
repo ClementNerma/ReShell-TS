@@ -1,7 +1,8 @@
 // 1. Find all declared functions and type alias
 // 2. Discover scope sequentially using the items above
 
-import { StatementChain, Token } from '../../shared/parsed'
+import { StatementChain } from '../../shared/ast'
+import { Token } from '../../shared/parsed'
 import { located, Scope, success, Typechecker } from '../base'
 import { fnTypeValidator } from '../types/fn'
 import { ensureScopeUnicity } from './search'

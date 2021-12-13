@@ -1,4 +1,5 @@
-import { Program, Token } from '../shared/parsed'
+import { Program } from '../shared/ast'
+import { Token } from '../shared/parsed'
 import { Typechecker } from './base'
 import { statementChainChecker } from './statement'
 

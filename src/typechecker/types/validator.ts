@@ -1,4 +1,4 @@
-import { ValueType } from '../../shared/parsed'
+import { ValueType } from '../../shared/ast'
 import { matchUnion } from '../../shared/utils'
 import { success, Typechecker } from '../base'
 import { getTypeAliasInScope } from '../scope/search'

@@ -1,4 +1,4 @@
-import { NonNullablePropertyAccess, PropertyAccess } from '../shared/parsed'
+import { NonNullablePropertyAccess, PropertyAccess } from '../shared/ast'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'

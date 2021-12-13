@@ -1,4 +1,5 @@
-import { CodeSection, ValueType } from '../../shared/parsed'
+import { ValueType } from '../../shared/ast'
+import { CodeSection } from '../../shared/parsed'
 import { err, success, Typechecker, TypecheckerResult } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
 import { errIncompatibleValueType } from './value'
@@ -16,7 +17,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
       },
       foundType: candidate,
       valueAt: atOverride ?? at,
-      ctx
+      ctx,
     })
 
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>

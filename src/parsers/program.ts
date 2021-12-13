@@ -1,4 +1,4 @@
-import { Program } from '../shared/parsed'
+import { Program } from '../shared/ast'
 import { commentStripper } from './comments'
 import { Parser } from './lib/base'
 import { then } from './lib/conditions'

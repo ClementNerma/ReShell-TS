@@ -1,4 +1,4 @@
-import { CmdCall, CmdRedir } from '../shared/parsed'
+import { CmdCall, CmdRedir } from '../shared/ast'
 import { cmdArg } from './cmdarg'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
