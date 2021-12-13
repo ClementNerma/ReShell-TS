@@ -1,7 +1,7 @@
 import { ValueType } from '../../shared/ast'
+import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, GenericResolutionScope } from '../base'
-import { isLocEq } from '../loc-cmp'
 import { getContextuallyResolvedGeneric } from '../scope/search'
 
 /**

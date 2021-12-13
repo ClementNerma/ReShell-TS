@@ -1,9 +1,10 @@
 import { ValueType } from '../shared/ast'
+import { isLocEq } from '../shared/loc-cmp'
 import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
 
-export function cloneValueWithTypeCompatibility(
+export function checkTypeCompatibilityAndClone(
   at: CodeSection,
   value: ExecValue,
   type: ValueType,
@@ -21,7 +22,7 @@ export function cloneValueWithTypeCompatibility(
       const out: ExecValue[] = []
 
       for (const item of value.items) {
-        const check = cloneValueWithTypeCompatibility(at, item, itemsType, ctx)
+        const check = checkTypeCompatibilityAndClone(at, item, itemsType, ctx)
         if (check.ok !== true) return check
         if (check.data === false) return success(false)
 
@@ -37,7 +38,7 @@ export function cloneValueWithTypeCompatibility(
       const out = new Map<string, ExecValue>()
 
       for (const [name, entry] of value.entries) {
-        const check = cloneValueWithTypeCompatibility(at, entry, itemsType, ctx)
+        const check = checkTypeCompatibilityAndClone(at, entry, itemsType, ctx)
         if (check.ok !== true) return check
         if (check.data === false) return success(false)
 
@@ -56,7 +57,7 @@ export function cloneValueWithTypeCompatibility(
         const member = value.members.get(name)
         if (member === undefined) return success(false)
 
-        const check = cloneValueWithTypeCompatibility(at, member, type, ctx)
+        const check = checkTypeCompatibilityAndClone(at, member, type, ctx)
         if (check.ok !== true) return check
         if (check.data === false) return success(false)
 
@@ -77,12 +78,12 @@ export function cloneValueWithTypeCompatibility(
       const typeAlias = ctx.typeAliases.get(typeAliasName.parsed)
 
       return typeAlias !== undefined
-        ? cloneValueWithTypeCompatibility(at, value, typeAlias.content, ctx)
+        ? checkTypeCompatibilityAndClone(at, value, typeAlias.content, ctx)
         : err(typeAliasName.at, 'internal error: type alias was not found')
     },
 
     nullable: ({ inner }) =>
-      value.type === 'null' ? success({ type: 'null' }) : cloneValueWithTypeCompatibility(at, value, inner, ctx),
+      value.type === 'null' ? success({ type: 'null' }) : checkTypeCompatibilityAndClone(at, value, inner, ctx),
 
     failable: () => success(value.type === 'failable' ? value : false),
 
@@ -90,6 +91,16 @@ export function cloneValueWithTypeCompatibility(
 
     void: () => err(at, 'internal error: found "void" type in type assertion'),
 
-    generic: () => err(at, 'internal error: found generic in type assertion'),
+    generic: ({ name, orig }) => {
+      for (const scope of ctx.scopes.reverse()) {
+        const generic = scope.generics.find((g) => g.name === name.parsed && isLocEq(g.orig.start, orig.start))
+
+        if (generic !== undefined) {
+          return checkTypeCompatibilityAndClone(at, value, generic.resolved, ctx)
+        }
+      }
+
+      return err(name.at, 'internal error: generic was not found')
+    },
   })
 }

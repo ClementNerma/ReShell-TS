@@ -185,7 +185,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
 
       if (iterateOn.ok !== true) return iterateOn
 
-      const scope: Scope = { functions: [], entities: new Map() }
+      const scope: Scope = { generics: [], functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const value of iterateOn.data) {
@@ -209,7 +209,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
 
       const iterateOn = [...map.data.entries.entries()]
 
-      const scope: Scope = { functions: [], entities: new Map() }
+      const scope: Scope = { generics: [], functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const [key, value] of iterateOn) {
@@ -314,6 +314,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
 
     cmdCall: (/*{ content }*/) => {
       throw new Error('TODO: command calls')
+      // TODO: generics resolution
     },
 
     cmdDecl: () => success(void 0),

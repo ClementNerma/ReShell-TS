@@ -177,10 +177,12 @@ export const runValue: Runner<Value, ExecValue> = (value, ctx) =>
 
     fnCall: (/*{ name, args }*/) => {
       throw new Error('TODO: function calls')
+      // TODO: generics resolution
     },
 
     inlineCmdCallSequence: (/*{ start, sequence, capture }*/) => {
       throw new Error('TODO: inline command call sequences')
+      // TODO: generics resolution
     },
 
     reference: ({ varname }) => {

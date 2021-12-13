@@ -26,6 +26,7 @@ export const createRunnerContext = (
 })
 
 export type Scope = {
+  generics: { name: string; orig: CodeSection; resolved: ValueType }[]
   functions: string[]
   entities: Map<string, ExecValue>
 }

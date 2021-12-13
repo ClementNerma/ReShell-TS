@@ -1,4 +1,5 @@
 import { ValueType } from '../../shared/ast'
+import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchStr } from '../../shared/utils'
 import {
@@ -10,7 +11,6 @@ import {
   TypecheckerContext,
   TypecheckerResult,
 } from '../base'
-import { isLocEq } from '../loc-cmp'
 
 export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { scopes }) => {
   const orig = scopes[scopes.length - 1].get(name.parsed)

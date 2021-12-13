@@ -12,7 +12,7 @@ import { getOpPrecedence } from '../shared/constants'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
-import { cloneValueWithTypeCompatibility } from './utils'
+import { checkTypeCompatibilityAndClone } from './utils'
 import { expectValueType, runValue } from './value'
 
 export const runExpr: Runner<Expr, ExecValue> = (expr, ctx) => {
@@ -471,8 +471,8 @@ export const runCondOrTypeAssertion: Runner<
       // FIX: required due to a bug in TypeScript's typechecker
       const defTarget = target
 
-      const normalScope: Scope = { functions: [], entities: new Map() }
-      const oppositeScope: Scope = { functions: [], entities: new Map() }
+      const normalScope: Scope['entities'] = new Map()
+      const oppositeScope: Scope['entities'] = new Map()
 
       const result: RunnerResult<boolean> = matchUnion(minimum.parsed, 'against', {
         null: () => success(defTarget.type === 'null'),
@@ -486,7 +486,7 @@ export const runCondOrTypeAssertion: Runner<
           }
 
           const targetScope = defTarget.success ? normalScope : oppositeScope
-          targetScope.entities.set(varname.parsed, defTarget.value)
+          targetScope.set(varname.parsed, defTarget.value)
           return success(defTarget.success)
         },
 
@@ -499,16 +499,16 @@ export const runCondOrTypeAssertion: Runner<
           }
 
           const targetScope = defTarget.success ? oppositeScope : normalScope
-          targetScope.entities.set(varname.parsed, defTarget.value)
+          targetScope.set(varname.parsed, defTarget.value)
           return success(!defTarget.success)
         },
 
         custom: ({ type }) => {
-          const cloned = cloneValueWithTypeCompatibility(minimum.at, defTarget, type.parsed, ctx)
+          const cloned = checkTypeCompatibilityAndClone(minimum.at, defTarget, type.parsed, ctx)
           if (cloned.ok !== true) return cloned
           if (cloned.data === false) return success(false)
 
-          normalScope.entities.set(varname.parsed, cloned.data)
+          normalScope.set(varname.parsed, cloned.data)
 
           return success(true)
         },
@@ -518,8 +518,12 @@ export const runCondOrTypeAssertion: Runner<
 
       return success({
         type: 'assertion',
-        normalAssertionScope: inverted ? oppositeScope : normalScope,
-        oppositeAssertionScope: inverted ? normalScope : oppositeScope,
+        normalAssertionScope: inverted
+          ? { generics: [], functions: [], entities: oppositeScope }
+          : { generics: [], functions: [], entities: normalScope },
+        oppositeAssertionScope: inverted
+          ? { generics: [], functions: [], entities: normalScope }
+          : { generics: [], functions: [], entities: oppositeScope },
         result: { type: 'bool', value: inverted ? !result.data : result.data },
       })
     },

@@ -8,6 +8,7 @@ export const runBlock: Runner<Block> = (block, ctx) => {
     ...ctx,
     scopes: ctx.scopes.concat([
       {
+        generics: [],
         functions: [],
         entities: new Map(),
       },
