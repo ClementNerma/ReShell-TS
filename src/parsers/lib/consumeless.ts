@@ -9,7 +9,6 @@ import {
   ParserSucess,
   ParsingContext,
   phantomSuccess,
-  success,
   withErr,
   WithErrData,
 } from './base'
@@ -35,7 +34,7 @@ export function nothing(): Parser<void> {
 }
 
 export function always<T>(value: T): Parser<T> {
-  return (start) => success(start, start, value, '')
+  return (start) => phantomSuccess(start, value)
 }
 
 export function fail<T>(error?: ErrInputData): Parser<T> {
@@ -84,7 +83,7 @@ export function notFollowedBy<T>(parser: Parser<T>, options?: LookaheadOptions):
     const following = lookahead(parser)(start, input, context)
     return following.ok || following.precedence === options?.precedencePassthrough
       ? err(start, start, context, options?.error)
-      : success(start, start, void 0, '')
+      : phantomSuccess(start)
   }
 }
 
