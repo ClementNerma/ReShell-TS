@@ -241,16 +241,16 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         let resolvedType: TypecheckerResult<ValueType>
 
         if (expectedMembers) {
-          const expectedType = expectedMembers.get(name.parsed)
+          const expectedMemberType = expectedMembers.get(name.parsed)
 
-          if (!expectedType) {
+          if (!expectedMemberType) {
             return err(name.at, {
               message: `Unknown member "${name.parsed}"`,
               complements: [['Expected', rebuildType(expectedType!)]],
             })
           }
 
-          resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType })
+          resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: expectedMemberType })
         } else {
           resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: null })
         }
