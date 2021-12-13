@@ -1,4 +1,4 @@
-import { PropertyAccess, ValueChaining, ValueType } from '../../shared/ast'
+import { ExprElementContent, FnCallArg, FnDeclArg, PropertyAccess, ValueChaining, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, ScopeMethod, success, Typechecker, TypecheckerResult } from '../base'
@@ -9,11 +9,12 @@ import { resolveRawFnCallType } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueChainings: Typechecker<
-  { leftAt: CodeSection; leftType: ValueType; chainings: Token<ValueChaining>[] },
+  { left: Token<ExprElementContent>; leftType: ValueType; chainings: Token<ValueChaining>[] },
   ValueType
-> = ({ leftAt, leftType, chainings }, ctx) => {
+> = ({ left, leftType, chainings }, ctx) => {
   let previousIterType = leftType
-  let upToPreviousChaining: CodeSection = leftAt
+  let upToPreviousChaining: CodeSection = left.at
+  const previousChainings: Token<ValueChaining>[] = []
 
   for (const chaining of chainings) {
     const resolved: TypecheckerResult<ValueType> = matchUnion(chaining.parsed, 'type', {
@@ -54,7 +55,7 @@ export const resolveValueChainings: Typechecker<
               {
                 at: call.name.at,
                 candidate: previousIterType,
-                typeExpectation: { type: method.forType.parsed, from: null },
+                typeExpectation: { type: method.forTypeWithoutGenerics, from: null },
               },
               ctx
             )
@@ -80,7 +81,7 @@ export const resolveValueChainings: Typechecker<
                 at: upToPreviousChaining,
                 message: 'method not found for this expression',
                 complements: candidates
-                  .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forType.parsed)])
+                  .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forTypeWithoutGenerics)])
                   .concat([['type      ', rebuildType(developed.data)]])
                   .reverse(),
               },
@@ -88,7 +89,56 @@ export const resolveValueChainings: Typechecker<
           })
         }
 
-        const resolved = resolveRawFnCallType({ call, fnType: method.fnType }, { ...ctx, typeExpectation: null })
+        const selfArg: Token<FnDeclArg> = {
+          at: method.infos.selfArg.at,
+          matched: method.infos.selfArg.matched,
+          parsed: {
+            flag: null,
+            name: method.infos.selfArg,
+            optional: false,
+            type: method.infos.forType,
+            defaultValue: null,
+          },
+        }
+
+        const selfValue: Token<FnCallArg> = {
+          at: upToPreviousChaining,
+          matched: -1,
+          parsed: {
+            type: 'expr',
+            expr: {
+              at: upToPreviousChaining,
+              matched: -1,
+              parsed: {
+                from: {
+                  at: upToPreviousChaining,
+                  matched: -1,
+                  parsed: {
+                    content: left,
+                    chainings: previousChainings.slice(),
+                  },
+                },
+                doubleOps: [],
+              },
+            },
+          },
+        }
+
+        const resolved = resolveRawFnCallType(
+          {
+            call: {
+              ...call,
+              args: [selfValue].concat(call.args),
+            },
+            fnType: {
+              ...method.fnType,
+              generics: method.fnType.generics.concat(method.infos.generics),
+              args: [selfArg].concat(method.fnType.args),
+            },
+          },
+          { ...ctx, typeExpectation: null }
+        )
+
         if (!resolved.ok) return resolved
 
         return success(nullable ? { type: 'nullable', inner: resolved.data } : resolved.data)
@@ -98,7 +148,8 @@ export const resolveValueChainings: Typechecker<
     if (!resolved.ok) return resolved
 
     previousIterType = resolved.data
-    upToPreviousChaining = { start: leftAt.start, next: chaining.at.next }
+    upToPreviousChaining = { start: left.at.start, next: chaining.at.next }
+    previousChainings.push(chaining)
   }
 
   return success(previousIterType)

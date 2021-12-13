@@ -6,6 +6,7 @@ import {
 } from '../../shared/native-lib'
 import { PrecompData } from '../../shared/precomp'
 import { Scope } from '../base'
+import { resolveGenerics } from '../types/generics-resolver'
 
 export function nativeLibraryTypeAliasesMap(): PrecompData['typeAliases'] {
   const typeAliases: PrecompData['typeAliases'] = new Map()
@@ -26,7 +27,8 @@ export function nativeLibraryScope(): Scope {
         at: fnType.at,
         name: _forgeToken(name),
         fnType: fnType.parsed,
-        forType: fnType.parsed.method.forType,
+        infos: fnType.parsed.method,
+        forTypeWithoutGenerics: resolveGenerics(fnType.parsed.method.forType.parsed, 'unknown'),
       })
     } else {
       nativeLib.entities.set(name, { type: 'fn', at: fnType.at, content: fnType.parsed })

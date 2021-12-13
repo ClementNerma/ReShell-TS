@@ -231,10 +231,10 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       ),
       ([
         {
-          parsed: { forType, name, fnType },
+          parsed: { name, method, fnType },
         },
         { parsed: body },
-      ]) => ({ forType, name, fnType, body })
+      ]) => ({ name, infos: method, fnType, body })
     ),
 
     return: map(

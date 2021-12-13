@@ -202,7 +202,7 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
 
   const withChainings = resolveValueChainings(
     {
-      leftAt: element.parsed.content.at,
+      left: element.parsed.content,
       leftType: resolved.data,
       chainings: element.parsed.chainings,
     },

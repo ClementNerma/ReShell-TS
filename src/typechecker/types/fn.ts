@@ -39,7 +39,7 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
     usedGenericNames.set(name, at)
   }
 
-  ctx = withFnGenericsScope(fnType.generics, ctx)
+  ctx = withFnGenericsScope(fnType.generics.concat(fnType.method?.generics ?? []), ctx)
 
   const args = fnTypeArgsValidator(fnType.args, ctx)
 
@@ -623,7 +623,7 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
               fnType.method
                 ? [
                     [
-                      'self',
+                      fnType.method.selfArg.parsed,
                       {
                         type: 'var',
                         at: fnType.method.selfArg.at,

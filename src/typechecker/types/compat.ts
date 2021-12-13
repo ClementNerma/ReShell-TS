@@ -293,7 +293,7 @@ export const isTypeCompatible: Typechecker<
         return expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
       }
 
-      if (!isLocEq(c.orig.start, r.orig.start) || (c.fromFnCallAt === null) !== (r.fromFnCallAt === null)) {
+      if (!isLocEq(c.orig.start, r.orig.start)) {
         return expectationErr(
           `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
           undefined,
@@ -304,7 +304,11 @@ export const isTypeCompatible: Typechecker<
         )
       }
 
-      if (c.fromFnCallAt && r.fromFnCallAt && !isLocEq(c.fromFnCallAt, r.fromFnCallAt)) {
+      if (c.fromFnCallAt === null) {
+        return success(void 0)
+      }
+
+      if (r.fromFnCallAt && !isLocEq(c.fromFnCallAt, r.fromFnCallAt)) {
         return expectationErr(
           `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
           undefined,

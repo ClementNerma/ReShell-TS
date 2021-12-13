@@ -1,10 +1,10 @@
-import { FnDeclArg, FnType, ValueType } from '../shared/ast'
+import { FnDeclArg, FnType, MethodInfos } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { addGenericsDefinition, CustomContext } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, ifThen, maybe, useSeparatorIf } from './lib/conditions'
-import { not, notFollowedBy, nothing } from './lib/consumeless'
+import { extract, failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
+import { not, notFollowedBy } from './lib/consumeless'
 import { feedContext } from './lib/context'
 import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, s_nl, unicodeSingleLetter } from './lib/littles'
@@ -102,130 +102,140 @@ const fnGenerics: Parser<Token<string>[]> = map(
   ([_, __, { parsed: generics }]) => generics
 )
 
-const _fnGenericsArgsRetType: <O>(
-  firstArgRawParser: Parser<O>
-) => Parser<{ firstArg: Token<O>; genericsDef: Map<string, CodeSection>; fnType: FnType }> = (firstArgRawParser) =>
+type _WithFnGenerics<T> = { generics: Token<string>[]; genericsDef: Map<string, CodeSection>; data: Token<T> }
+
+const _withFnGenerics: <T>(parser: Parser<T>) => Parser<_WithFnGenerics<T>> = (parser) =>
   map(
     feedContext(
       maybe(fnGenerics),
       (context: CustomContext, generics) => addGenericsDefinition(context, generics ?? []),
-      combine(
-        combine(
-          maybe_s,
-          contextualFailure(
-            exact('('),
-            (ctx) => (ctx.$custom as CustomContext).genericsDefinitions.length > 0,
-            "expected an opening parenthesis '(' for the function's type"
-          ),
-          maybe_s_nl
-        ),
-        firstArgRawParser,
-        useSeparatorIf(
-          takeWhile(fnDeclArg, {
-            inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
-            interExpect: 'expected an argument name',
-          }),
-          combine(maybe_s_nl, exact(','), maybe_s_nl),
-          map(
-            combine(exact('...'), failure(identifier, 'expected a rest argument identifier')),
-            ([_, restArg]) => restArg
-          )
-        ),
-        combine(maybe_s_nl, exact(')', "expected a closing paren ')' after arguments list")),
-        maybe(
-          map(
-            combine(
-              maybe_s,
-              exact('->'),
-              maybe_s,
-              failure(
-                withLatelyDeclared(() => valueType),
-                'expected a return type'
-              )
-            ),
-            ([_, __, ___, returnType]) => returnType
-          )
-        )
-      ),
+      parser,
       (context) => ({ genericsDef: context.genericsDefinitions[context.genericsDefinitions.length - 1] })
     ),
-    ([
-      { parsed: generics },
-      {
-        parsed: [
-          _,
-          firstArg,
-          {
-            parsed: [{ parsed: args }, restArg],
-          },
-          ___,
-          { parsed: returnType },
-        ],
-      },
-      { genericsDef },
-    ]) => ({
-      genericsDef,
-      firstArg,
-      fnType: {
-        args,
-        generics: generics ?? [],
-        restArg: restArg !== null ? restArg.parsed : null,
-        returnType,
-        method: null,
-      },
-    })
+    ([{ parsed: generics }, data, { genericsDef }]) => ({ generics: generics ?? [], genericsDef, data })
   )
 
+const _fnGenericsArgsRetType: Parser<{ genericsDef: Map<string, CodeSection>; fnType: FnType }> = map(
+  _withFnGenerics(
+    combine(
+      combine(
+        maybe_s,
+        contextualFailure(
+          exact('('),
+          (ctx) => (ctx.$custom as CustomContext).genericsDefinitions.length > 0,
+          "expected an opening parenthesis '(' for the function's type"
+        ),
+        maybe_s_nl
+      ),
+      useSeparatorIf(
+        takeWhile(fnDeclArg, {
+          inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
+          interExpect: 'expected an argument name',
+        }),
+        combine(maybe_s_nl, exact(','), maybe_s_nl),
+        map(
+          combine(exact('...'), failure(identifier, 'expected a rest argument identifier')),
+          ([_, restArg]) => restArg
+        )
+      ),
+      combine(maybe_s_nl, exact(')', "expected a closing paren ')' after arguments list")),
+      maybe(
+        map(
+          combine(
+            maybe_s,
+            exact('->'),
+            maybe_s,
+            failure(
+              withLatelyDeclared(() => valueType),
+              'expected a return type'
+            )
+          ),
+          ([_, __, ___, returnType]) => returnType
+        )
+      )
+    )
+  ),
+  ({
+    genericsDef,
+    generics,
+    data: {
+      parsed: [
+        _,
+        {
+          parsed: [{ parsed: args }, restArg],
+        },
+        ___,
+        { parsed: returnType },
+      ],
+    },
+  }) => ({
+    genericsDef,
+    fnType: {
+      args,
+      generics,
+      restArg: restArg !== null ? restArg.parsed : null,
+      returnType,
+      method: null,
+    },
+  })
+)
+
 export const fnType: Parser<FnType> = map(
-  combine(exact('fn'), _fnGenericsArgsRetType(nothing())),
+  combine(exact('fn'), _fnGenericsArgsRetType),
   ([_, { parsed: fn }]) => fn.fnType
 )
 
 export const fnDecl: Parser<{ name: Token<string>; fnType: FnType; genericsDef: Map<string, CodeSection> }> = map(
-  combine(exact('fn'), s, identifier, _fnGenericsArgsRetType(nothing())),
+  combine(exact('fn'), s, identifier, _fnGenericsArgsRetType),
   ([_, __, name, { parsed: fn }]) => ({ name, fnType: fn.fnType, genericsDef: fn.genericsDef })
 )
 
 export const methodDecl: Parser<{
   name: Token<string>
-  forType: Token<ValueType>
-  fnType: FnType
+  method: MethodInfos
   genericsDef: Map<string, CodeSection>
+  fnType: FnType
 }> = map(
   combine(
-    exact('@method('),
-    maybe_s,
-    failure(
-      withLatelyDeclared(() => valueType),
-      'expected a type definition on which this method can be applied'
-    ),
-    combine(
-      maybe_s,
-      exact(')', 'expected a closing parenthesis ")" after the method\'s applicable type'),
-      failure(s_nl, 'expected a space or newline after closing parenthesis'),
-      exact('fn', 'expected a "fn" keyword'),
-      failure(s, 'expected a space after the "fn" keyword')
-    ),
-    failure(identifier, 'expected a function identifier'),
-    maybe_s,
-    failure(
-      _fnGenericsArgsRetType(
-        map(
-          combine(
-            exact('self', 'methods must take a first argument named "self"'),
-            maybe_s,
-            ifThen(not(exact(')')), combine(exact(','), maybe_s_nl))
-          ),
-          ([self]) => self
-        )
-      ),
-      'expected a function declaration'
+    exact('@method'),
+    _withFnGenerics(
+      combine(
+        combine(maybe_s, exact('(', 'expected an opening parenthesis'), maybe_s),
+        failure(identifier, 'expected an identifier for the "self" reference'),
+        combine(maybe_s, exact(':', 'expected a separator ":" symbol after the "self" reference name'), maybe_s),
+        failure(
+          withLatelyDeclared(() => valueType),
+          'expected a type definition on which this method can be applied'
+        ),
+        combine(
+          maybe_s,
+          exact(')', 'expected a closing parenthesis ")" after the method\'s applicable type'),
+          failure(s_nl, 'expected a space or newline after closing parenthesis'),
+          exact('fn', 'expected a "fn" keyword'),
+          failure(s, 'expected a space after the "fn" keyword')
+        ),
+        failure(identifier, 'expected a function identifier'),
+        maybe_s,
+        failure(_fnGenericsArgsRetType, 'expected a function declaration')
+      )
     )
   ),
-  ([_, __, forType, ___, name, ____, { parsed: fn }]) => ({
+  ([
+    _,
+    {
+      parsed: {
+        generics,
+        genericsDef,
+        data: {
+          parsed: [__, selfArg, ___, forType, ____, name, _____, { parsed: fn }],
+        },
+      },
+    },
+  ]) => ({
     name,
-    forType,
-    fnType: { ...fn.fnType, method: { forType, selfArg: fn.firstArg.parsed } },
-    genericsDef: fn.genericsDef,
+    method: { forType, selfArg, generics },
+    fnType: { ...fn.fnType, method: { forType, selfArg, generics } },
+    // TODO: to optimize
+    genericsDef: new Map([...fn.genericsDef.entries()].concat([...genericsDef.entries()])),
   })
 )

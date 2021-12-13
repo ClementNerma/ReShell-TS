@@ -1,5 +1,5 @@
 import { Writable } from 'stream'
-import { Block, ClosureBody, ValueType } from '../shared/ast'
+import { Block, ClosureBody, MethodInfos, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
@@ -14,14 +14,14 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
-  methods: { methodTypeRef: Token<ValueType>; body: Token<Block> }[]
+  methods: { infos: MethodInfos; body: Token<Block> }[]
   pipeTo: null | {
     stdout: Writable
     stderr: Writable
   }
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
-  fnOrCmdCalls: PrecompData['fnCalls']
+  fnOrCmdCalls: PrecompData['fnOrCmdCalls']
   closuresArgsMapping: PrecompData['closuresArgsMapping']
   platformPathSeparator: string
   argv: string[]
@@ -39,7 +39,7 @@ export const createRunnerContext = (
   pipeTo: null,
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
-  fnOrCmdCalls: precompData.fnCalls,
+  fnOrCmdCalls: precompData.fnOrCmdCalls,
   closuresArgsMapping: precompData.closuresArgsMapping,
   platformPathSeparator,
   argv,

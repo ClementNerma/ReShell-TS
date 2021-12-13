@@ -13,7 +13,7 @@ export const langTypechecker: Typechecker<Token<AST>, TypecheckerOutput> = (ast,
   return success({
     typeAliases: ctx.typeAliases,
     callbackTypes: ctx.callbackTypes,
-    fnCalls: ctx.fnOrCmdCalls,
+    fnOrCmdCalls: ctx.fnOrCmdCalls,
     closuresArgsMapping: ctx.closuresArgsMapping,
   })
 }

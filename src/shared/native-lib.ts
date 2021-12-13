@@ -250,6 +250,7 @@ function _buildNativeLibraryFn<G extends string>({
         ? {
             selfArg: _forgeToken('self'),
             forType: _forgeToken(typeof forType === 'string' ? { type: forType } : forType),
+            generics: [],
           }
         : null,
   }

@@ -1,4 +1,4 @@
-import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
+import { CmdDeclSubCommand, FnType, MethodInfos, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeLoc, CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
@@ -21,7 +21,7 @@ export type TypecheckerContext = {
   restArgs: string[]
   commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
   callbackTypes: PrecompData['callbackTypes']
-  fnOrCmdCalls: PrecompData['fnCalls']
+  fnOrCmdCalls: PrecompData['fnOrCmdCalls']
   closuresArgsMapping: PrecompData['closuresArgsMapping']
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
@@ -67,7 +67,14 @@ export type ScopeEntity =
   | { type: 'fn'; at: CodeSection; content: FnType }
   | { type: 'var'; at: CodeSection; mutable: boolean; varType: ValueType }
 
-export type ScopeMethod = { at: CodeSection; name: Token<string>; forType: Token<ValueType>; fnType: FnType }
+// TODO: remove "at" to use only "name.at"
+export type ScopeMethod = {
+  at: CodeSection
+  name: Token<string>
+  forTypeWithoutGenerics: ValueType
+  infos: MethodInfos
+  fnType: FnType
+}
 
 export type GenericResolutionScope = {
   name: Token<string>

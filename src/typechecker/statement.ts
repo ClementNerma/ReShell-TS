@@ -85,7 +85,21 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       if (propAccesses.length > 0) {
         const check = resolveValueChainings(
           {
-            leftAt,
+            left: {
+              at: varname.at,
+              matched: varname.matched,
+              parsed: {
+                type: 'value',
+                content: {
+                  at: varname.at,
+                  matched: varname.matched,
+                  parsed: {
+                    type: 'reference',
+                    varname,
+                  },
+                },
+              },
+            },
             leftType: expectedType,
             chainings: propAccesses.map((access) => ({
               at: access.at,

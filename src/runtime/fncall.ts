@@ -61,7 +61,7 @@ export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnC
     }
   }
 
-  return executePrecompFnBody({ nameAt: name.at, precomp, fn, scopeMapping, methodSelfValue: null }, ctx)
+  return executePrecompFnBody({ nameAt: name.at, precomp, fn, scopeMapping }, ctx)
 }
 
 export const executePrecompFnBody: Runner<
@@ -70,10 +70,9 @@ export const executePrecompFnBody: Runner<
     precomp: PrecompFnCall
     fn: RunnableFnContent
     scopeMapping: Map<string, string | null> | null
-    methodSelfValue: ExecValue | null
   },
   ExecValue
-> = ({ nameAt, precomp, fn, scopeMapping, methodSelfValue }, ctx) => {
+> = ({ nameAt, precomp, fn, scopeMapping }, ctx) => {
   const fnScope: Scope['entities'] = new Map()
 
   for (const [argName, content] of precomp.args) {
@@ -114,10 +113,6 @@ export const executePrecompFnBody: Runner<
     }
 
     fnScope.set(precomp.restArg.name, { type: 'rest', content: out })
-  }
-
-  if (methodSelfValue) {
-    fnScope.set('self', methodSelfValue)
   }
 
   const fnCtx: RunnerContext = {

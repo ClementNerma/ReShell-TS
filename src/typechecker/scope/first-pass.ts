@@ -4,7 +4,8 @@
 import { Block, Statement } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { err, Scope, success, Typechecker } from '../base'
-import { fnTypeValidator } from '../types/fn'
+import { fnTypeValidator, withFnGenericsScope } from '../types/fn'
+import { resolveGenerics } from '../types/generics-resolver'
 import { typeValidator } from '../types/validator'
 import { ensureScopeUnicity } from './search'
 
@@ -72,7 +73,11 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
       }
 
       case 'methodDecl': {
-        const typeCheck = typeValidator(stmt.parsed.forType.parsed, ctx)
+        const typeCheck = typeValidator(
+          stmt.parsed.infos.forType.parsed,
+          withFnGenericsScope(stmt.parsed.infos.generics, ctx)
+        )
+
         if (!typeCheck.ok) return typeCheck
 
         const fnTypeChecker = fnTypeValidator(stmt.parsed.fnType, ctx)
@@ -81,9 +86,11 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
         firstPass.methods.push({
           at: stmt.parsed.name.at,
           name: stmt.parsed.name,
-          forType: stmt.parsed.forType,
+          forTypeWithoutGenerics: resolveGenerics(stmt.parsed.infos.forType.parsed, 'unknown'),
+          infos: stmt.parsed.infos,
           fnType: stmt.parsed.fnType,
         })
+
         break
       }
     }

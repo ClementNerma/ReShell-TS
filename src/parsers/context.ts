@@ -36,11 +36,7 @@ export const mapContextProp = <P extends keyof CustomContext>(
 ): CustomContext => ({ ...context, [prop]: mapper(context[prop]) })
 
 export const addGenericsDefinition = (context: CustomContext, generics: Token<string>[]): CustomContext =>
-  generics.length === 0
-    ? context
-    : mapContextProp(context, 'genericsDefinitions', (def) =>
-        def.concat([new Map(generics.map((g) => [g.parsed, g.at]))])
-      )
+  mapContextProp(context, 'genericsDefinitions', (def) => def.concat([new Map(generics.map((g) => [g.parsed, g.at]))]))
 
 export const completeGenericsDefinition = (
   name: Token<string>,

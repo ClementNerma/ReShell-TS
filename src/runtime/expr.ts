@@ -327,7 +327,7 @@ export const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueC
       }
 
       const ref = precomp.methodTypeRef
-      const method = ctx.methods.find((method) => isLocEq(method.methodTypeRef.at.start, ref.at.start))
+      const method = ctx.methods.find((method) => isLocEq(method.infos.forType.at.start, ref.at.start))
 
       let fn: RunnableFnContent
 
@@ -343,10 +343,7 @@ export const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueC
         }
       }
 
-      return executePrecompFnBody(
-        { nameAt: call.name.at, fn, precomp, scopeMapping: null, methodSelfValue: value },
-        ctx
-      )
+      return executePrecompFnBody({ nameAt: call.name.at, fn, precomp, scopeMapping: null }, ctx)
     },
   })
 

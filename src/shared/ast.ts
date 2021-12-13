@@ -48,13 +48,7 @@ export type Statement =
       arms: Token<{ variant: Token<string>; matchWith: Token<Block> }[]>
     }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Block> }
-  | {
-      type: 'methodDecl'
-      name: Token<string>
-      forType: Token<ValueType>
-      fnType: FnType
-      body: Token<Block>
-    }
+  | { type: 'methodDecl'; name: Token<string>; infos: MethodInfos; fnType: FnType; body: Token<Block> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'fnCall'; content: FnCall }
@@ -219,7 +213,13 @@ export type FnType = {
   args: Token<FnDeclArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null
-  method: { forType: Token<ValueType>; selfArg: Token<string> } | null
+  method: MethodInfos | null
+}
+
+export type MethodInfos = {
+  forType: Token<ValueType>
+  selfArg: Token<string>
+  generics: Token<string>[]
 }
 
 export type FnDeclArg = {
