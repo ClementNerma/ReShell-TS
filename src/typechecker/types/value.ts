@@ -15,7 +15,7 @@ import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { closureCallValidator, validateFnCall } from './fn'
+import { closureCallValidator, validateAndRegisterFnCall } from './fn'
 import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
@@ -364,16 +364,22 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         if (expectedMembers) {
           const expectedMemberType = expectedMembers.get(name.parsed)
-          const expectation = typeExpectation!
+
+          if (typeExpectation === null) {
+            return err(
+              value.at,
+              'internal error: got members expectation but no global type expectation in struct typechecker'
+            )
+          }
 
           if (!expectedMemberType) {
             return err(name.at, {
               message: `unknown member \`${name.parsed}\``,
-              complements: [['expected', rebuildType(expectation.type)]],
-              also: expectation.from
+              complements: [['expected', rebuildType(typeExpectation.type)]],
+              also: typeExpectation.from
                 ? [
                     {
-                      at: expectation.from,
+                      at: typeExpectation.from,
                       message: 'type expectation originates here',
                     },
                   ]
@@ -385,7 +391,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             ...ctx,
             typeExpectation: {
               type: expectedMemberType,
-              from: typeExpectation?.from ?? null,
+              from: typeExpectation.from ?? null,
             },
           })
         } else {
@@ -471,7 +477,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     },
 
     match: ({ subject, arms }) => {
-      let exprType: { from: CodeSection; type: ValueType } | null = null
+      // FIX: required because of a TypeScript compiler bug eliminating the object type when assigning "null"
+      const opaque = <T>(value: null): T | null => value
+
+      let exprType: { from: CodeSection; type: ValueType } | null = opaque(null)
 
       const check = enumMatchingTypechecker(
         subject,
@@ -483,15 +492,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             typeExpectation: ctx.typeExpectation || !exprType ? ctx.typeExpectation : exprType,
           }),
         (type, matchWith) => {
-          if (!exprType) {
-            exprType = { from: matchWith.at, type }
-          }
+          exprType ??= { from: matchWith.at, type }
         }
       )
 
       if (!check.ok) return check
 
-      return success(exprType!.type)
+      if (exprType === null) {
+        return err(subject.at, 'unable to determine the type of this match expression')
+      }
+
+      return success(exprType.type)
     },
 
     // closure: ({ fnType, body }) => {
@@ -594,7 +605,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!compat.ok) return compat
       }
 
-      const fnCallCheck = validateFnCall(
+      const fnCallCheck = validateAndRegisterFnCall(
         { at: name.at, nameAt: name.at, fnType, generics, args, resolvedGenerics },
         ctx
       )
