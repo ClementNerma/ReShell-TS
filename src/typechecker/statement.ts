@@ -36,7 +36,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
-    const stmtAt = getStatementChainSection(stmt)
+    const stmtAt: CodeSection = { start: stmt.parsed.start.at.start, next: stmt.at.next }
 
     if (previousStmt?.metadata.neverEnds) {
       return err(stmtAt, {
@@ -458,11 +458,4 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
   const metadata: StatementMetadata = previousStmt?.metadata ?? { neverEnds: false }
 
   return success({ ...metadata, topLevelScope: currentScope })
-}
-
-function getStatementChainSection(stmt: Token<StatementChain>): CodeSection {
-  return {
-    start: stmt.parsed.type === 'empty' ? stmt.at.start : stmt.parsed.start.at.start,
-    next: stmt.at.next,
-  }
 }
