@@ -63,7 +63,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact('}'),
+      exact('}', 'Syntax error: expected a closing brace (}) to close the structure'),
       {
         inter: maybe_s_nl,
       }

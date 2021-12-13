@@ -47,7 +47,7 @@ export const literalString: Parser<LiteralString> = or<LiteralString>([
                 withLatelyDeclared(() => expr),
                 'Failed to parse the inner expression'
               ),
-              exact('}', 'Expected a closing brace (}) to close the inner expression')
+              exact('}', 'Syntax error: expected a closing brace (}) to close the inner expression')
             ),
             ([_, expr, __]) => ({ type: 'expr', expr })
           ),
