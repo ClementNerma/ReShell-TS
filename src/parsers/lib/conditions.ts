@@ -9,7 +9,6 @@ import {
   ParsingContext,
   phantomSuccess,
   sliceInput,
-  success,
 } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
@@ -34,20 +33,20 @@ export function failIf(
   error?: ErrInputData
 ): Parser<void> {
   return (start, input, context) =>
-    cond(input, context, start) ? err(start, start, context, error) : success(start, start, void 0, '')
+    cond(input, context, start) ? err(start, start, context, error) : phantomSuccess(start, void 0)
 }
 
 export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(start, parsed.data.at.next, context, error) : success(start, start, void 0, '')
+    return parsed.ok ? err(start, parsed.data.at.next, context, error) : phantomSuccess(start, void 0)
   }
 }
 
 export function failIfMatchesWith<T>(parser: Parser<T>, error: (token: Token<T>) => ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(start, parsed.data.at.next, context, error(parsed.data)) : success(start, start, void 0, '')
+    return parsed.ok ? err(start, parsed.data.at.next, context, error(parsed.data)) : phantomSuccess(start, void 0)
   }
 }
 
