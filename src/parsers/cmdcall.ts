@@ -2,8 +2,7 @@ import { CmdCall, CmdRedir } from '../shared/parsed'
 import { cmdArg } from './cmdarg'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatchesElse, maybe } from './lib/conditions'
-import { not } from './lib/consumeless'
+import { failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -19,7 +18,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
     combine(
       or([
         map(
-          combine(failure(not(keyword), 'Cannot use reserved keyword alone'), identifier, callEndDetector),
+          combine(failIfMatches(keyword, 'Cannot use reserved keyword alone'), identifier, callEndDetector),
           ([_, name, __]) => ({
             name,
             args: [],

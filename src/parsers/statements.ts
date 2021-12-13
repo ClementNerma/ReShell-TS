@@ -9,8 +9,7 @@ import {
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatchesElse, flatten, maybe, maybeFlatten } from './lib/conditions'
-import { not } from './lib/consumeless'
+import { extract, failIfMatches, failIfMatchesElse, flatten, maybe, maybeFlatten } from './lib/conditions'
 import { contextualFailIf, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -37,7 +36,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           combine(
             exact('let'),
             maybe(exact('mut')),
-            failure(not(keyword), 'Cannot use reserved keyword as a variable name'),
+            failIfMatches(keyword, 'Cannot use reserved keyword as a variable name'),
             failure(identifier, 'Expected an identifier'),
             {
               inter: s,
@@ -221,7 +220,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         exact('type'),
         s,
-        failure(not(keyword), 'Cannot use reserved keyword as a type name'),
+        failIfMatches(keyword, 'Cannot use reserved keyword as a type name'),
         failure(identifier, 'Expected a name for the type alias'),
         maybe_s,
         failure(exact('='), 'Expected an assignment (=) operator'),
