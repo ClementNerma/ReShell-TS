@@ -76,16 +76,10 @@ export const resolveValueChainings: Typechecker<
         if (!method) {
           return err(call.name.at, {
             message: 'method was not found for the provided value type',
-            also: [
-              {
-                at: upToPreviousChaining,
-                message: 'method not found for this expression',
-                complements: candidates
-                  .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forTypeWithoutGenerics)])
-                  .concat([['type      ', rebuildType(developed.data)]])
-                  .reverse(),
-              },
-            ],
+            complements: candidates
+              .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forTypeWithoutGenerics)])
+              .concat([['applied on', rebuildType(developed.data)]])
+              .reverse(),
           })
         }
 
