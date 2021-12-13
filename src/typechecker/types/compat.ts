@@ -37,8 +37,12 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
   const path = _path ?? []
 
-  if (candidate.type === 'nullable' && referent.type !== 'nullable') {
-    return expectationErr('Value should not be nullable')
+  if (candidate.type === 'nullable') {
+    return referent.type !== 'nullable'
+      ? expectationErr('Value should not be nullable')
+      : subCheck('nullable type', candidate.inner, referent.inner)
+  } else if (referent.type === 'nullable') {
+    return subCheck('nullable type', candidate, referent.inner)
   }
 
   if (referent.type === 'unknown') {
