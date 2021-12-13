@@ -9,6 +9,14 @@ export const matchUnion = <U extends { [key in D]: string }, D extends keyof U, 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
   callbacks[subject[prop]](subject as any)
 
+export const matchUnionWithFallback = <U extends { [key in D]: string }, D extends keyof U, T>(
+  subject: U,
+  prop: D,
+  callbacks: { [variant in U[D]]?: (value: Extract<U, { [key in D]: variant }>) => T } & { _: (value: U) => T }
+): T =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument
+  (callbacks[subject[prop]] ?? callbacks._)(subject as any)
+
 export const matchStr = <S extends string, T>(str: S, callbacks: { [variant in S]: () => T }): T => callbacks[str]()
 
 export const computeCodeSectionEnd = (section: CodeSection, source: StrView): CodeLoc =>
