@@ -97,7 +97,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         combine(exact('['), maybe_s_nl),
         takeWhile(
           withLatelyDeclared(() => expr),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: false }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another list item' }
         ),
         combine(maybe_s_nl, exact(']', "expected a closing bracket (]) to end the list's content"))
       ),
@@ -191,7 +191,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               'invalid argument provided'
             )
           ),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: false }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument' }
         )
       ),
       combine(maybe_s_nl, exact(')', 'expected a closing parenthesis to end the list of arguments'))
