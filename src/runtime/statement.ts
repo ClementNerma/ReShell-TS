@@ -7,7 +7,6 @@ import { runBlock } from './block'
 import { runCmdCall } from './cmdcall'
 import { runCondOrTypeAssertion, runDoubleOp, runExpr, runNonNullablePropertyAccess } from './expr'
 import { executeFnCall } from './fncall'
-import { runProgram } from './program'
 import { expectValueType } from './value'
 
 export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
@@ -321,5 +320,5 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
 
     cmdDecl: () => success(void 0),
 
-    fileInclusion: ({ content }) => runProgram(content, ctx),
+    fileInclusion: () => err(stmt.at, 'internal error: file inclusion was not flattened before running statemetn'),
   })
