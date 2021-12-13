@@ -28,7 +28,7 @@ export type NativeFn = (
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
   ok: ({ at }, map) => {
-    const args = getArguments(at, map, { value: 'unknown' }, [])
+    const args = getArguments(at, map, { value: 'unknown' })
     if (args.ok !== true) return args
 
     const { value } = args.data
@@ -36,7 +36,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 
   err: ({ at }, map) => {
-    const args = getArguments(at, map, { error: 'unknown' }, [])
+    const args = getArguments(at, map, { error: 'unknown' })
     if (args.ok !== true) return args
 
     const { error } = args.data
@@ -44,11 +44,19 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 
   typed: ({ at }, map) => {
-    const args = getArguments(at, map, { value: 'unknown' }, [])
+    const args = getArguments(at, map, { value: 'unknown' })
     if (args.ok !== true) return args
 
     const { value } = args.data
     return { ok: null, breaking: 'return', value }
+  },
+
+  toFixed: ({ at }, map) => {
+    const args = getArguments(at, map, { number: 'number', precision: 'number' })
+    if (args.ok !== true) return args
+
+    const { number, precision } = args.data
+    return { ok: null, breaking: 'return', value: { type: 'string', value: number.value.toFixed(precision.value) } }
   },
 
   echo: ({ at, pipeTo }, map) => {
