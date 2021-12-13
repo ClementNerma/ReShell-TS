@@ -529,10 +529,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!returnType.ok) return returnType
 
       return returnType.data.type === 'void'
-        ? err(
-            content.name.at,
-            'cannot call a function inside an expression when this function does not have a return type'
-          )
+        ? err(content.name.at, 'this function does not return anything')
         : success(returnType.data)
     },
 
