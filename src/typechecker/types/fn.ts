@@ -307,17 +307,21 @@ export const validateAndRegisterFnCall: Typechecker<
   ctx = { ...ctx, inFnCallAt: at.start }
 
   if (generics) {
-    if (generics.parsed.length < fnType.generics.length) {
+    const suppliableGenerics = fnType.generics.filter((g) =>
+      fnType.method ? !fnType.method.generics.includes(g) : true
+    )
+
+    if (generics.parsed.length < suppliableGenerics.length) {
       return err(
         generics.at,
-        `some generics have not been supplied (expected ${fnType.generics.length}, found ${generics.parsed.length})`
+        `some generics have not been supplied (expected ${suppliableGenerics.length}, found ${generics.parsed.length})`
       )
     }
 
-    if (generics.parsed.length > fnType.generics.length) {
+    if (generics.parsed.length > suppliableGenerics.length) {
       return err(
         generics.at,
-        `too many generics supplied (expected ${fnType.generics.length}, found ${generics.parsed.length})`
+        `too many generics supplied (expected ${suppliableGenerics.length}, found ${generics.parsed.length})`
       )
     }
 
@@ -325,7 +329,7 @@ export const validateAndRegisterFnCall: Typechecker<
       const supplied = generics.parsed[g].parsed
       if (!supplied) continue
 
-      const suppliedFor = fnType.generics[g]
+      const suppliedFor = suppliableGenerics[g]
 
       const scoped = getContextuallyResolvedGeneric(gScope, {
         // TODO: to remake more properly (set the types during the gScope's creation)
