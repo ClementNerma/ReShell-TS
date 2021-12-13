@@ -1,9 +1,10 @@
 import { lstatSync, readdirSync } from 'fs'
 import { join } from 'path'
+import { ValueType } from '../shared/ast'
 import { buildWithNativeLibraryFunctionNames, buildWithNativeLibraryVarNames } from '../shared/native-lib'
 import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { ExecValue, RunnerContext, RunnerResult } from './base'
+import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
 
 export const nativeLibraryVariables = buildWithNativeLibraryVarNames<(ctx: RunnerContext) => ExecValue>({
   argv: () => ({ type: 'list', items: process.argv.slice(2).map((value) => ({ type: 'string', value })) }),
@@ -26,31 +27,41 @@ export type NativeFn = (
 ) => RunnerResult<ExecValue>
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
-  ok: (_, args) => ({
-    ok: null,
-    breaking: 'return',
-    value: { type: 'failable', success: true, value: args.get('value')! },
-  }),
+  ok: ({ at }, map) => {
+    const args = getArguments(at, map, { value: 'unknown' })
+    if (args.ok !== true) return args
 
-  err: (_, args) => ({
-    ok: null,
-    breaking: 'return',
-    value: { type: 'failable', success: false, value: args.get('error')! },
-  }),
+    const { value } = args.data
+    return { ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }
+  },
 
-  typed: (_, args) => ({ ok: null, breaking: 'return', value: args.get('value')! }),
+  err: ({ at }, map) => {
+    const args = getArguments(at, map, { error: 'unknown' })
+    if (args.ok !== true) return args
 
-  echo: ({ pipeTo }, args) => {
-    const message = args.get('message')!
-    pipeTo.stdout.write(message.type === 'string' ? message.value : '<echo: invalid string value>')
+    const { error } = args.data
+    return { ok: null, breaking: 'return', value: { type: 'failable', success: false, value: error } }
+  },
 
-    const n = args.get('n')!
-    if (n.type !== 'bool' || !n.value) pipeTo.stdout.write('\n')
+  typed: ({ at }, map) => {
+    const args = getArguments(at, map, { value: 'unknown' })
+    if (args.ok !== true) return args
+
+    const { value } = args.data
+    return { ok: null, breaking: 'return', value }
+  },
+
+  echo: ({ at, pipeTo }, map) => {
+    const args = getArguments(at, map, { message: 'string', n: 'bool' })
+    if (args.ok !== true) return args
+
+    const { message, n } = args.data
+    pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
 
     return { ok: null, breaking: 'return', value: null }
   },
 
-  dump: ({ ctx, pipeTo }, args) => {
+  dump: ({ at, ctx, pipeTo }, map) => {
     const valueToStr = (value: ExecValue): string =>
       matchUnion(value, 'type', {
         null: () => 'null',
@@ -72,7 +83,11 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
         rest: () => `<rest>`,
       })
 
-    pipeTo.stdout.write(valueToStr(args.get('value')!) + '\n')
+    const args = getArguments(at, map, { value: 'unknown' })
+    if (args.ok !== true) return args
+
+    const { value } = args.data
+    pipeTo.stdout.write(valueToStr(value) + '\n')
 
     return { ok: null, breaking: 'return', value: null }
   },
@@ -128,3 +143,31 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     }
   },
 })
+
+function getArguments<A extends { [name: string]: ValueType['type'] }>(
+  at: CodeSection,
+  map: Map<string, ExecValue>,
+  expecting: A
+): RunnerResult<{ [name in keyof A]: Extract<ExecValue, { type: A[name] }> }> {
+  const out: object = {}
+
+  for (const [name, type] of Object.entries(expecting)) {
+    const value = map.get(name)
+    if (value === undefined)
+      return err(at, `internal error in native library executor: argument "${name}" was not found`)
+    if (value.type !== type && type !== 'unknown') {
+      return err(
+        at,
+        `internal error in native library executor: expected argument "${name}" to be of type "${type}", found ${value.type}`
+      )
+    }
+
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    out[name] = value
+  }
+
+  // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+  // @ts-ignore
+  return success(out)
+}
