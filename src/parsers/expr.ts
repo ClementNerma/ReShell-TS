@@ -1,6 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { extract, failIf } from '../lib/conditions'
+import { extract, failIf, failIfElse } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
@@ -9,7 +9,9 @@ import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, mapFull, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
+import { withStatementClose } from './context'
 import {
   DoubleArithOp,
   DoubleLogicOp,
@@ -17,6 +19,7 @@ import {
   Expr,
   ExprPropAccess,
   ExprPropAccessSequence,
+  FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
   SingleLogicOp,
@@ -111,6 +114,35 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     ([_, entries, __]) => ({
       entries: mapToken(entries, (_, { parsed }) => parsed),
     })
+  ),
+
+  fnCall: map(
+    combine(
+      identifier,
+      exact('('),
+      withStatementClose(
+        ')',
+        takeWhile(
+          failIfElse(
+            endOfInlineCmdCall,
+            failure(
+              mappedCases<FnCallArg>()('type', {
+                flag: withLatelyDeclared(() => cmdFlag),
+                expr: toOneProp(
+                  withLatelyDeclared(() => expr),
+                  'expr'
+                ),
+              }),
+              'Syntax error: invalid argument provided'
+            )
+          ),
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+        )
+      ),
+      exact(')'),
+      { inter: maybe_s }
+    ),
+    ([name, _, { parsed: args }, __]) => ({ name, args })
   ),
 
   inlineCmdCallSequence: map(

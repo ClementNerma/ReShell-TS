@@ -59,10 +59,12 @@ export type FnArg = {
 
 export type CmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
+export type CmdFlag = { short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
+
 export type CmdArg =
   // NOTE: flags may have a non-direct value, e.g. `--arg value` will be parsed as a long 'arg' flag without direct value,
   // followed by a 'value' expr
-  | { type: 'flag'; short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
+  | ({ type: 'flag' } & CmdFlag)
   | { type: 'reference'; varname: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'literal'; value: Token<LiteralValue> }
@@ -115,11 +117,14 @@ export enum InlineCmdCallCapture {
   Both,
 }
 
+export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
+
 export type Value =
   | LiteralValue
   | { type: 'list'; items: Token<Token<Expr>[]> }
   | { type: 'map'; entries: Token<{ key: Token<LiteralString>; expr: Token<Expr> }[]> }
   | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
+  | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'
       start: Token<InlineCmdCall>

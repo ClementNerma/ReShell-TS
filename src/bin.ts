@@ -31,7 +31,7 @@ if (!existsSync(path)) fail('Example not found')
 
 const source = readFileSync(path, 'utf-8')
 
-const iter = argv[1] ? parseInt(argv[1]) : 1
+const iter = argv[1] && argv[1] !== '--ast' ? parseInt(argv[1]) : 1
 
 const iterSrc = source.repeat(iter)
 
@@ -64,15 +64,19 @@ const parsed = engine.parse(iterSrc, initContext())
 const elapsed = Date.now() - started
 
 if (parsed.ok) {
-  const started = Date.now()
-  const exec = engine.execute(parsed.data, void 0)
-  const elapsed = Date.now() - started
+  if (argv[1] === '--ast') {
+    console.dir(parsed.data, { depth: null })
+  } else {
+    const started = Date.now()
+    const exec = engine.execute(parsed.data, void 0)
+    const elapsed = Date.now() - started
 
-  if (exec.ok) {
-    console.dir(exec.data, { depth: null })
+    if (exec.ok) {
+      console.dir(exec.data, { depth: null })
+    }
+
+    console.log(`Executed in ${elapsed} ms`)
   }
-
-  console.log(`Executed in ${elapsed} ms`)
 }
 
 console.log(`Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`)

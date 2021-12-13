@@ -7,7 +7,7 @@ import { exact, oneOfMap } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map } from '../lib/transform'
 import { withLatelyDeclared } from '../lib/utils'
-import { CmdArg } from './data'
+import { CmdArg, CmdFlag } from './data'
 import { expr } from './expr'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
@@ -15,29 +15,31 @@ import { identifier } from './tokens'
 // For weirdly-shaped arguments provided to external commands, users just have to put them between double quotes to treat
 // them as strings just like they are originally in other shells
 
-export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
-  flag: map(
-    combine(
-      oneOfMap([
-        ['--', false],
-        ['-', true],
-      ]),
-      failure(identifier, 'Syntax error: expected identifier after double dash'),
-      maybe(
-        map(
-          combine(
-            exact('='),
-            failure(
-              withLatelyDeclared(() => expr),
-              'Syntax error: expected an expression'
-            )
-          ),
-          ([_, expr]) => expr
-        )
+export const cmdFlag: Parser<CmdFlag> = map(
+  combine(
+    oneOfMap([
+      ['--', false],
+      ['-', true],
+    ]),
+    failure(identifier, 'Syntax error: expected identifier after double dash'),
+    maybe(
+      map(
+        combine(
+          exact('='),
+          failure(
+            withLatelyDeclared(() => expr),
+            'Syntax error: expected an expression'
+          )
+        ),
+        ([_, expr]) => expr
       )
-    ),
-    ([short, name, directValue]) => ({ short, name, directValue: directValue.parsed })
+    )
   ),
+  ([short, name, directValue]) => ({ short, name, directValue: directValue.parsed })
+)
+
+export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
+  flag: cmdFlag,
 
   expr: map(
     combine(
