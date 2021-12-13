@@ -1,25 +1,18 @@
-// TODO: function calls, redirections, computed commands '$(...)', '$@(...)', '$^(...)' etc.
-// TODO: streams support
-// TODO: background tasks management
-// TODO: detaching task from shell
-// TODO: launching sub-scripts
-// TODO: commands declaration
-// TODO: accessing struct members
-// TODO: methods or wrapping?
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Base utility types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
-export type CodeLoc = {
-  line: number
-  col: number
-}
+export type Token<T> = { parsed: T; matched: string; at: CodeSection }
 
 export type CodeSection = {
   start: CodeLoc
   next: CodeLoc
 }
 
-export type Token<T> = { parsed: T; matched: string; at: CodeSection }
+export type CodeLoc = {
+  line: number
+  col: number
+}
 
-// ============== //
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Statements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type Program = Token<StatementChain>[]
 
@@ -69,11 +62,117 @@ export type Statement =
 
 export type ElIfBlock = { cond: Token<Expr>; body: Token<StatementChain>[] }
 
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+export type ValueType = { nullable: boolean; inner: NonNullableValueType }
+
+export type NonNullableValueType =
+  | PrimitiveTypes
+  | { type: 'list'; itemsType: ValueType }
+  | { type: 'map'; itemsType: ValueType }
+  | { type: 'struct'; members: StructTypeMember[] }
+  | { type: 'fn'; fnType: FnType }
+  | { type: 'aliasRef'; typeAliasName: Token<string> }
+  | { type: 'unknown' }
+  | InternalTypes
+
+export type PrimitiveTypes = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
+
+export type InternalTypes = { type: 'void' }
+
+export type StructTypeMember = { name: string; type: ValueType }
+
+export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Expressions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
+
+export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
+
+export type ExprElementContent =
+  | { type: 'value'; content: Token<Value> }
+  | { type: 'paren'; inner: Token<Expr> }
+  | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: ElIfExpr[]; els: Token<Expr> }
+  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
+  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
+  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
+  // Internal type
+  | { type: 'synth'; inner: Token<Expr> }
+
+export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
+
+export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
+
 export type NonNullablePropertyAccess =
   | { type: 'refIndex'; index: Token<Expr> }
   | { type: 'refStructMember'; member: Token<string> }
 
-export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
+export type ExprDoubleOp = { op: Token<DoubleOp>; right: Token<ExprElement> }
+
+export type DoubleOp =
+  | { type: 'arith'; op: Token<DoubleArithOp> }
+  | { type: 'logic'; op: Token<DoubleLogicOp> }
+  | { type: 'comparison'; op: Token<DoubleComparisonOp> }
+
+export type DoubleArithOp = 'Add' | 'Sub' | 'Mul' | 'Div' | 'Rem' | 'Null'
+
+export type DoubleLogicOp = 'And' | 'Or' | 'Xor'
+
+export type DoubleComparisonOp =
+  | 'Eq'
+  | 'NotEq'
+  | 'GreaterThanOrEqualTo'
+  | 'LessThanOrEqualTo'
+  | 'GreaterThan'
+  | 'LessThan'
+
+export type SingleOp = { type: 'logic'; op: Token<SingleLogicOp> }
+
+export type SingleLogicOp = 'Not'
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Values ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+
+export type Value =
+  | LiteralValue
+  | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
+  | { type: 'computedPath'; segments: Token<ComputedPathSegment>[] }
+  | { type: 'list'; items: Token<Expr>[] }
+  | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
+  | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
+  | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
+  | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
+  | {
+      type: 'inlineCmdCallSequence'
+      start: Token<InlineCmdCall>
+      sequence: Token<InlineChainedCmdCall>[]
+      capture: Token<InlineCmdCallCapture> | null
+    }
+  | { type: 'reference'; varname: Token<string> }
+
+export type LiteralValue =
+  | { type: 'null' }
+  | { type: 'bool'; value: Token<boolean> }
+  | { type: 'number'; value: Token<number> }
+  | { type: 'string'; value: Token<string> }
+  | { type: 'path'; segments: Token<Token<string>[]> }
+
+export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
+
+export type ComputedPathSegment =
+  | { type: 'separator' }
+  | { type: 'literal'; content: Token<string> }
+  | { type: 'expr'; expr: Token<Expr> }
+
+export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
+
+export type InlineCmdCall = CmdCall
+
+export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
+
+export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type FnType = {
   named: Token<string> | null
@@ -89,6 +188,8 @@ export type FnArg = {
   type: ValueType
   defaultValue: LiteralValue | null
 }
+
+// ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type CmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
@@ -114,101 +215,3 @@ export type CmdRedirOp =
   | 'AppendStderr'
   | 'StdoutStderr'
   | 'AppendStdoutStderr'
-
-export type NonNullableValueType =
-  | PrimitiveTypes
-  | { type: 'list'; itemsType: ValueType }
-  | { type: 'map'; itemsType: ValueType }
-  | { type: 'struct'; members: StructTypeMember[] }
-  | { type: 'fn'; fnType: FnType }
-  | { type: 'aliasRef'; typeAliasName: Token<string> }
-  | { type: 'unknown' }
-  | InternalTypes
-
-export type PrimitiveTypes = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
-
-export type InternalTypes = { type: 'void' }
-
-export type StructTypeMember = { name: string; type: ValueType }
-
-export type ValueType = { nullable: boolean; inner: NonNullableValueType }
-
-export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
-
-export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
-
-export type ComputedPathSegment =
-  | { type: 'separator' }
-  | { type: 'literal'; content: Token<string> }
-  | { type: 'expr'; expr: Token<Expr> }
-
-export type InlineCmdCall = CmdCall
-
-export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
-
-export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
-
-export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
-
-export type LiteralValue =
-  | { type: 'null' }
-  | { type: 'bool'; value: Token<boolean> }
-  | { type: 'number'; value: Token<number> }
-  | { type: 'string'; value: Token<string> }
-  | { type: 'path'; segments: Token<Token<string>[]> }
-
-export type Value =
-  | LiteralValue
-  | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
-  | { type: 'computedPath'; segments: Token<ComputedPathSegment>[] }
-  | { type: 'list'; items: Token<Expr>[] }
-  | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
-  | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
-  | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
-  | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
-  | {
-      type: 'inlineCmdCallSequence'
-      start: Token<InlineCmdCall>
-      sequence: Token<InlineChainedCmdCall>[]
-      capture: Token<InlineCmdCallCapture> | null
-    }
-  | { type: 'reference'; varname: Token<string> }
-
-export type ExprElementContent =
-  | { type: 'value'; content: Token<Value> }
-  | { type: 'paren'; inner: Token<Expr> }
-  | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: ElIfExpr[]; els: Token<Expr> }
-  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
-  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
-  // Internal type
-  | { type: 'synth'; inner: Token<Expr> }
-
-export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
-
-export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
-
-export type ExprDoubleOp = { op: Token<DoubleOp>; right: Token<ExprElement> }
-
-export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
-
-export type DoubleOp =
-  | { type: 'arith'; op: Token<DoubleArithOp> }
-  | { type: 'logic'; op: Token<DoubleLogicOp> }
-  | { type: 'comparison'; op: Token<DoubleComparisonOp> }
-
-export type DoubleArithOp = 'Add' | 'Sub' | 'Mul' | 'Div' | 'Rem' | 'Null'
-
-export type DoubleLogicOp = 'And' | 'Or' | 'Xor'
-
-export type DoubleComparisonOp =
-  | 'Eq'
-  | 'NotEq'
-  | 'GreaterThanOrEqualTo'
-  | 'LessThanOrEqualTo'
-  | 'GreaterThan'
-  | 'LessThan'
-
-export type SingleOp = { type: 'logic'; op: Token<SingleLogicOp> }
-
-export type SingleLogicOp = 'Not'
