@@ -146,6 +146,7 @@ export const resolveValueChainings: Typechecker<
             suppliedGenerics: call.generics,
             args: [selfValue].concat(call.args),
             firstArgType: inner,
+            usingNullableChaining: nullable,
           },
           { ...ctx, typeExpectation: null }
         )

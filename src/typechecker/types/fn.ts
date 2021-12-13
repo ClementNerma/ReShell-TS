@@ -296,10 +296,14 @@ export const validateAndRegisterFnCall: Typechecker<
     suppliedGenerics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
     firstArgType?: ValueType
+    usingNullableChaining?: boolean
     declaredCommand?: true
   },
   ValueType
-> = ({ at, nameAt, fnType, suppliedGenerics: generics, args, firstArgType, declaredCommand }, ctx) => {
+> = (
+  { at, nameAt, fnType, suppliedGenerics: generics, args, firstArgType, usingNullableChaining, declaredCommand },
+  ctx
+) => {
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
     name,
     orig: name.at,
@@ -592,6 +596,7 @@ export const validateAndRegisterFnCall: Typechecker<
         : null,
       hasReturnType: fnType.returnType !== null,
       methodTypeRef: fnType.method ? fnType.method.forType : null,
+      propagateFirstArgNullability: usingNullableChaining ?? false,
     },
   })
 

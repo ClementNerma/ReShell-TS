@@ -70,10 +70,9 @@ export const executePrecompFnBody: Runner<
     precomp: PrecompFnCall
     fn: RunnableFnContent
     scopeMapping: Map<string, string | null> | null
-    methodCallNullabilityCheck?: boolean
   },
   ExecValue
-> = ({ nameAt, precomp, fn, scopeMapping, methodCallNullabilityCheck }, ctx) => {
+> = ({ nameAt, precomp, fn, scopeMapping }, ctx) => {
   const fnScope: Scope['entities'] = new Map()
 
   let outerFirstArg = true
@@ -93,7 +92,7 @@ export const executePrecompFnBody: Runner<
 
     if (execValue.ok !== true) return execValue
 
-    if (innerFirstArg && execValue.data.type === 'null' && methodCallNullabilityCheck === true) {
+    if (innerFirstArg && execValue.data.type === 'null' && precomp.propagateFirstArgNullability) {
       return success({ type: 'null' })
     }
 

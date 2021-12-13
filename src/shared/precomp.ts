@@ -18,6 +18,7 @@ export type PrecompFnCall = {
   } | null
   hasReturnType: boolean
   methodTypeRef: Token<ValueType> | null
+  propagateFirstArgNullability: boolean
 }
 
 export type FnCallGeneric = { name: string; orig: CodeSection; resolved: ValueType }
