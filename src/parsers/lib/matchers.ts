@@ -1,6 +1,5 @@
 import { addCols, addLoc, err, ErrInputData, Parser, phantomSuccess, success } from './base'
-import { unicodeAlphanumericUnderscore } from './littles'
-import { matches } from './raw'
+import { UNICODE_ALPHANUMERIC_UNDERSCORE } from './littles'
 
 export function exact<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
@@ -16,7 +15,7 @@ export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputDa
 
     if (match === undefined) return err(start, start, context, error)
 
-    return matches(input.offset(match.length), unicodeAlphanumericUnderscore, null)
+    return input.offset(match.length).matchShort(UNICODE_ALPHANUMERIC_UNDERSCORE)
       ? err(start, start, context, error)
       : success(start, addCols(start, match.length), match, match)
   }
@@ -26,7 +25,7 @@ export function word<S extends string>(candidate: S, error?: ErrInputData): Pars
   return (start, input, context) => {
     if (!input.startsWith(candidate)) return err(start, start, context, error)
 
-    return matches(input.offset(candidate.length), unicodeAlphanumericUnderscore, null)
+    return input.offset(candidate.length).matchShort(UNICODE_ALPHANUMERIC_UNDERSCORE)
       ? err(start, start, context, error)
       : success(start, addCols(start, candidate.length), candidate, candidate)
   }

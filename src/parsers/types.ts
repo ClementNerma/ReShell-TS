@@ -12,8 +12,8 @@ import { addComplementsIf } from './lib/raw'
 import { mappedCases, OrErrorStrategy } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
+import { startsWithLetter } from './predicates'
 import { identifier } from './tokens'
-import { startsWithLetter } from './utils'
 
 export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<NonNullableValueType>()(
   'type',

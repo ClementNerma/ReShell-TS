@@ -20,13 +20,13 @@ export const unicodeDigit: Parser<string> = match(UNICODE_DIGIT)
 
 export const unicodeNumber: Parser<string> = match(new RegExp(UNICODE_DIGIT.source + '+'))
 
-export const unicodeAlphanumeric: Parser<string> = match(
-  new RegExp(`(?:${UNICODE_LETTER.source}|${UNICODE_DIGIT.source})+`)
-)
+export const UNICODE_ALPHANUMERIC = new RegExp(`(?:${UNICODE_LETTER.source}|${UNICODE_DIGIT.source})+`)
 
-export const unicodeAlphanumericUnderscore: Parser<string> = match(
-  new RegExp(`(?:${UNICODE_LETTER.source}|${UNICODE_DIGIT.source}|_)+`)
-)
+export const unicodeAlphanumeric: Parser<string> = match(UNICODE_ALPHANUMERIC)
+
+export const UNICODE_ALPHANUMERIC_UNDERSCORE = new RegExp(`(?:${UNICODE_LETTER.source}|${UNICODE_DIGIT.source}|_)+`)
+
+export const unicodeAlphanumericUnderscore: Parser<string> = match(UNICODE_ALPHANUMERIC_UNDERSCORE)
 
 export const s: Parser<string> = match(/[^\S\r\n]+/)
 export const maybe_s: Parser<string> = match(/[^\S\r\n]*/)
