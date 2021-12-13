@@ -8,6 +8,7 @@ import {
   ParserSucess,
   ParsingContext,
   phantomSuccess,
+  success,
   withErr,
   WithErrData,
 } from './base'
@@ -74,24 +75,18 @@ export function not<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<vo
   }
 }
 
-export function notFollowedBy<T>(parser: Parser<T>, by: Parser<T>, options?: LookaheadOptions): Parser<T> {
+export function notFollowedBy<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<void> {
   return (start, input, context) => {
-    const parsed = parser(start, input, context)
-    if (!parsed.ok) return parsed
-
-    const following = lookahead(parser)(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
+    const following = lookahead(parser)(start, input, context)
     return following.ok || following.precedence === options?.precedencePassthrough
       ? err(start, start, context, options?.error)
-      : parsed
+      : success(start, start, void 0, '')
   }
 }
 
-export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<T> {
+export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
-    const parsed = parser(start, input, context)
-    if (!parsed.ok) return parsed
-
-    const following = lookahead(parser)(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
-    return following.ok ? parsed : err(start, start, context, error)
+    const following = lookahead(parser)(start, input, context)
+    return following.ok ? following : err(start, start, context, error)
   }
 }
