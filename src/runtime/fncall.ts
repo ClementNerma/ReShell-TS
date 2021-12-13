@@ -48,6 +48,8 @@ export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnC
       } else {
         return err(name.at, `internal error: expected to find a function, found internal type "${entity.type}"`)
       }
+
+      break
     }
   }
 
