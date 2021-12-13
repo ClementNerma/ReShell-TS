@@ -1,4 +1,3 @@
-import { Formatters } from '../settings'
 import { Parser, ParserErr, Token } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
@@ -47,9 +46,20 @@ export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>
   return _logUsageHandler(fn, fn, alias) as any as F
 }
 
-export function formatErr(err: ParserErr, formatters?: Formatters): string {
-  const f = formatters?.parsingError
+export type ErrorParsingFormatters = {
+  noErrorMessageFallback?: (err: ParserErr) => string
+  wrapper?: (error: string) => string
+  header?: (header: string) => string
+  lineNumber?: (line: number) => string
+  colNumber?: (col: number) => string
+  paddingChar?: (char: string) => string
+  locationPointer?: (char: string) => string
+  failedLine?: (line: string) => string
+  errorMessage?: (message: string) => string
+  tip?: (tip: string) => string
+}
 
+export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
   if (err.stack.length === 0) {
     return f?.noErrorMessageFallback?.(err) ?? '<no error provided>'
   }

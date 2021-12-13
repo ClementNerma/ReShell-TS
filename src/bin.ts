@@ -6,11 +6,11 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
-import { ProgramError, programExec } from './exec/program'
-import { Engine } from './lib/engine/main'
+import { parseSource } from './lib/base'
+import { formatErr } from './lib/utils'
 import { initContext } from './parsers/context'
-import { Program } from './parsers/data'
 import { program } from './parsers/program'
+import { programChecker } from './typechecker/program'
 
 install()
 Error.stackTraceLimit = Infinity
@@ -35,53 +35,48 @@ const iter = argv[1] && argv[1] !== '--ast' ? parseInt(argv[1]) : 1
 
 const iterSrc = source.repeat(iter)
 
-const engine = new Engine<Program, void, void, ProgramError>(program, programExec, {
-  loggers: {
-    debug: (text) => console.debug(chalk.gray(text)),
-    info: (text) => console.info(chalk.blueBright(text)),
-    warn: (text) => console.warn(chalk.yellowBright(text)),
-    error: (text) => console.error(chalk.redBright(text)),
-    fail: (text) => {
-      console.error(chalk.redBright(text))
-      process.exit(1)
-    },
-  },
-
-  formatters: {
-    parsingError: {
-      wrapper: chalk.reset,
-      header: chalk.yellowBright,
-      locationPointer: chalk.redBright,
-      errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
-      failedLine: chalk.cyanBright,
-      tip: chalk.yellowBright,
-    },
-  },
-})
-
 const started = Date.now()
-const parsed = engine.parse(iterSrc, initContext())
+const parsed = parseSource(iterSrc, program, initContext())
 const elapsed = Date.now() - started
 
-if (parsed.ok) {
-  const infos = [
-    `AST JSON weighs ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`,
-    `Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`,
-  ]
+if (!parsed.ok) {
+  console.error(
+    chalk.redBright(
+      formatErr(parsed, {
+        wrapper: chalk.reset,
+        header: chalk.yellowBright,
+        locationPointer: chalk.redBright,
+        errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
+        failedLine: chalk.cyanBright,
+        tip: chalk.yellowBright,
+      })
+    )
+  )
 
-  if (argv[1] === '--ast') {
-    console.dir(parsed.data, { depth: null })
-    infos.forEach((info) => console.log(info))
-  } else {
-    const started = Date.now()
-    const exec = engine.execute(parsed.data, void 0)
-    const elapsed = Date.now() - started
-
-    if (exec.ok) {
-      console.dir(exec.data, { depth: null })
-    }
-
-    infos.forEach((info) => console.log(info))
-    console.log(`Executed in ${elapsed} ms`)
-  }
+  process.exit(1)
 }
+
+const infos = [
+  `AST JSON weighs ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`,
+  `Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`,
+]
+
+if (argv[1] === '--ast') {
+  console.dir(parsed.data, { depth: null })
+  infos.forEach((info) => console.log(info))
+  process.exit(0)
+}
+
+const startedTypechecker = Date.now()
+const exec = programChecker(parsed.data, void 0)
+const elapsedTypechecker = Date.now() - startedTypechecker
+
+if (!exec.ok) {
+  console.dir(exec.err, { depth: null })
+  process.exit(1)
+}
+
+console.dir(exec.data, { depth: null })
+
+infos.forEach((info) => console.log(info))
+console.log(`Executed in ${elapsedTypechecker} ms`)

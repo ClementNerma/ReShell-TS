@@ -1,4 +1,4 @@
-import { ParserLoc, Token } from '../base'
+import { ParserLoc, Token } from '../lib/base'
 
 export type Executor<T, C, O, E> = (input: Token<T>, context: C) => ExecutorResult<O, E>
 
