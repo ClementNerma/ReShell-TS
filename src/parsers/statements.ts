@@ -282,7 +282,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         varname,
         _,
         { parsed: propAccesses },
-        listPush,
+        { parsed: listPush },
         __,
         {
           parsed: [prefixOp],
