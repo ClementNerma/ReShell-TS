@@ -1,5 +1,4 @@
 import {
-  CmdDecl,
   CmdDeclSubCommand,
   CmdDeclSubCommandVariant,
   CmdDeclSubCommandVariantContent,
@@ -65,7 +64,7 @@ const cmdDeclSubCommandVariantContent: Parser<CmdDeclSubCommandVariantContent> =
   ([{ parsed: description }, { parsed: signature }]) => ({ description, signature })
 )
 
-const cmdDeclSubCommand: Parser<CmdDeclSubCommand> = map(
+export const cmdDeclSubCommand: Parser<CmdDeclSubCommand> = map(
   combine(
     exact('{', 'expected an opening brace ({)'),
     maybe_s_nl,
@@ -124,15 +123,4 @@ const cmdDeclSubCommand: Parser<CmdDeclSubCommand> = map(
     exact('}', 'expected a closing brace (}) after the sub-command declaration')
   ),
   ([_, __, { parsed: base }, { parsed: variants }]) => ({ base, variants })
-)
-
-export const cmdDecl: Parser<CmdDecl> = map(
-  combine(
-    exact('@command'),
-    s,
-    failure(identifier, 'expected a command name to declare'),
-    maybe_s_nl,
-    cmdDeclSubCommand
-  ),
-  ([_, __, name, ___, { parsed: body }]) => ({ name, body })
 )

@@ -51,7 +51,7 @@ export type Statement =
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'cmdCall'; content: CmdCall }
-  | { type: 'cmdDecl'; content: CmdDecl }
+  | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
@@ -232,11 +232,6 @@ export type CmdRedirOp =
   | 'AppendStdoutStderr'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Command declarations ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-
-export type CmdDecl = {
-  name: Token<string>
-  body: CmdDeclSubCommand
-}
 
 export type CmdDeclSubCommand = {
   base: Token<CmdDeclSubCommandVariantContent> | null

@@ -1,7 +1,7 @@
 import { ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
-import { cmdDecl } from './cmddecl'
+import { cmdDeclSubCommand } from './cmddecl'
 import {
   matchContinuationKeyword,
   matchStatementClose,
@@ -301,7 +301,16 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     cmdCall: map(cmdCall(endOfCmdCallStatement), (content) => ({ content })),
 
-    cmdDecl: map(cmdDecl, (content) => ({ content })),
+    cmdDecl: map(
+      combine(
+        exact('@command'),
+        s,
+        failure(identifier, 'expected a command name to declare'),
+        maybe_s_nl,
+        cmdDeclSubCommand
+      ),
+      ([_, __, name, ___, { parsed: body }]) => ({ name, body })
+    ),
 
     fileInclusion: then(
       combine(exact('@include'), s, failure(rawString, 'expected a file path to include')),
