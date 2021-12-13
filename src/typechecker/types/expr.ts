@@ -48,7 +48,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       let assertionType: ValueType
 
       if (expr.parsed.minimum) {
-        if (subjectType.inner.type !== 'unknown') {
+        if (subjectType.type !== 'unknown') {
           return err(
             expr.at,
             `Type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
@@ -63,14 +63,14 @@ export const resolveExprOrTypeAssertionType: Typechecker<
 
         assertionType = expr.parsed.minimum.parsed
       } else {
-        if (!subjectType.nullable) {
+        if (subjectType.type !== 'nullable') {
           return err(
             expr.at,
             `"not null" type assertion only works for nullable values, but found \`${rebuildType(subjectType, true)}\``
           )
         }
 
-        assertionType = { nullable: false, inner: subjectType.inner }
+        assertionType = subjectType.inner
       }
 
       const assertionScope: Scope = {
@@ -130,14 +130,14 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
         Not: () =>
           resolveExprElementContentType(right, {
             ...ctx,
-            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+            typeExpectation: { type: { type: 'bool' }, from: null },
           }),
       }),
 
     ternary: ({ cond, then, elif, els }) => {
       const condType = resolveExprOrTypeAssertionType(cond, {
         ...ctx,
-        typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+        typeExpectation: { type: { type: 'bool' }, from: null },
       })
 
       if (!condType.ok) return condType
@@ -152,7 +152,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       for (const { cond, expr } of elif) {
         const condType = resolveExprOrTypeAssertionType(cond, {
           ...ctx,
-          typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: then.at },
+          typeExpectation: { type: { type: 'bool' }, from: then.at },
         })
 
         if (!condType.ok) return condType

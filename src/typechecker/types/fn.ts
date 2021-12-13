@@ -68,7 +68,7 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
     }
   }
 
-  return typeValidator({ nullable: false, inner: { type: 'fn', fnType } }, ctx)
+  return typeValidator({ type: 'fn', fnType }, ctx)
 }
 
 export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; args: Token<CmdArg>[] }, void> = (
@@ -106,7 +106,7 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
         flags.delete(name.parsed)
 
         if (!directValue) {
-          return !flag.parsed.type.nullable && flag.parsed.type.inner.type === 'bool'
+          return flag.parsed.type.type !== 'nullable' && flag.parsed.type.type === 'bool'
             ? success(void 0)
             : err(
                 name.at,
@@ -232,10 +232,7 @@ export function fnScopeCreator(fnType: FnType): Scope {
         arg.parsed.name.parsed,
         located(arg.at, {
           mutable: false,
-          type: {
-            nullable: arg.parsed.optional || arg.parsed.type.nullable,
-            inner: arg.parsed.type.inner,
-          },
+          type: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
         }),
       ])
     ),

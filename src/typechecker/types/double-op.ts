@@ -100,7 +100,7 @@ export const resolveDoubleOpType: Typechecker<
     case 'arith':
       switch (op.parsed.op.parsed) {
         case 'Add':
-          if (leftExprType.nullable || (leftExprType.inner.type !== 'number' && leftExprType.inner.type !== 'string')) {
+          if (leftExprType.type !== 'number' && leftExprType.type !== 'string') {
             return errCannotApplyOperator(op.parsed.op, 'number | string', leftExprType, leftExprAt)
           }
 
@@ -112,7 +112,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'Mul':
         case 'Div':
         case 'Rem':
-          if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
+          if (leftExprType.type !== 'number') {
             return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
           }
 
@@ -121,7 +121,7 @@ export const resolveDoubleOpType: Typechecker<
           break
 
         case 'Null':
-          if (!leftExprType.nullable) {
+          if (leftExprType.type !== 'nullable') {
             return err(op.at, {
               message: 'This operator can only be applied on nullable values',
               also: [{ at: leftExprAt, message: 'This expression is not nullable' }],
@@ -140,7 +140,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'And':
         case 'Or':
         case 'Xor':
-          if (leftExprType.nullable || leftExprType.inner.type !== 'bool') {
+          if (leftExprType.type !== 'bool') {
             return errCannotApplyOperator(op.parsed.op, 'bool', leftExprType, leftExprAt)
           }
 
@@ -155,26 +155,26 @@ export const resolveDoubleOpType: Typechecker<
       switch (op.parsed.op.parsed) {
         case 'Eq':
         case 'NotEq':
-          const type = leftExprType.inner.type
+          const type = leftExprType.type
 
-          if (leftExprType.nullable || (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path')) {
+          if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path') {
             return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
-          producedType = { nullable: false, inner: { type: 'bool' } }
+          producedType = { type: 'bool' }
           break
 
         case 'GreaterThan':
         case 'GreaterThanOrEqualTo':
         case 'LessThan':
         case 'LessThanOrEqualTo':
-          if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
+          if (leftExprType.type !== 'number') {
             return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
-          producedType = { nullable: false, inner: { type: 'bool' } }
+          producedType = { type: 'bool' }
           break
       }
 

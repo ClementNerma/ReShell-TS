@@ -147,7 +147,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         ifBlock: ({ cond, then: body, elif, els }) => {
           const condCheck = resolveExprOrTypeAssertionType(cond, {
             ...ctx,
-            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+            typeExpectation: { type: { type: 'bool' }, from: null },
           })
 
           if (!condCheck.ok) return condCheck
@@ -166,7 +166,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           for (const { cond, body } of elif) {
             const condCheck = resolveExprOrTypeAssertionType(cond, {
               ...ctx,
-              typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+              typeExpectation: { type: { type: 'bool' }, from: null },
             })
 
             if (!condCheck.ok) return condCheck
@@ -219,11 +219,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           const subjectType = resolveExprType(subject, ctx)
           if (!subjectType.ok) return subjectType
 
-          if (subjectType.data.nullable) {
-            return err(subject.at, 'cannot iterate over nullable value')
-          }
-
-          if (subjectType.data.inner.type !== 'list') {
+          if (subjectType.data.type !== 'list') {
             return err(subject.at, 'cannot iterate over non-list values')
           }
 
@@ -235,7 +231,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
                 functions: new Map(),
                 typeAliases: new Map(),
                 variables: new Map([
-                  [loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data.inner.itemsType })],
+                  [loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data.itemsType })],
                 ]),
               },
             ]),
@@ -251,7 +247,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         whileLoop: ({ cond, body }) => {
           const condCheck = resolveExprOrTypeAssertionType(cond, {
             ...ctx,
-            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
+            typeExpectation: { type: { type: 'bool' }, from: null },
           })
 
           if (!condCheck.ok) return condCheck

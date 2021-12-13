@@ -54,15 +54,14 @@ export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<Statemen
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-export type ValueType = { nullable: boolean; inner: NonNullableValueType }
-
-export type NonNullableValueType =
+export type ValueType =
   | PrimitiveTypes
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
   | { type: 'struct'; members: StructTypeMember[] }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
+  | { type: 'nullable'; inner: ValueType }
   | { type: 'unknown' }
   | InternalTypes
 

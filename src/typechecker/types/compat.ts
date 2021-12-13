@@ -37,20 +37,20 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
   const path = _path ?? []
 
-  if (candidate.nullable && !referent.nullable) {
+  if (candidate.type === 'nullable' && referent.type !== 'nullable') {
     return expectationErr('Value should not be nullable')
   }
 
-  if (referent.inner.type === 'unknown') {
+  if (referent.type === 'unknown') {
     return success(void 0)
   }
 
-  if (candidate.inner.type === 'unknown') {
+  if (candidate.type === 'unknown') {
     return expectationErr()
   }
 
-  if (candidate.inner.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(candidate.inner.typeAliasName, ctx)
+  if (candidate.type === 'aliasRef') {
+    const alias = getTypeAliasInScope(candidate.typeAliasName, ctx)
 
     if (!alias.ok) {
       return expectationErr(
@@ -58,11 +58,11 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
       )
     }
 
-    candidate = { nullable: candidate.nullable || alias.data.content.nullable, inner: alias.data.content.inner }
+    candidate = alias.data.content
   }
 
-  if (referent.inner.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(referent.inner.typeAliasName, ctx)
+  if (referent.type === 'aliasRef') {
+    const alias = getTypeAliasInScope(referent.typeAliasName, ctx)
 
     if (!alias.ok) {
       return expectationErr(
@@ -70,17 +70,17 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
       )
     }
 
-    referent = { nullable: referent.nullable || alias.data.content.nullable, inner: alias.data.content.inner }
+    referent = alias.data.content
   }
 
-  if (candidate.inner.type !== referent.inner.type) {
+  if (candidate.type !== referent.type) {
     return expectationErr()
   }
 
   const comparators: {
-    [type in ValueType['inner']['type']]: (
-      candidate: Extract<ValueType['inner'], { type: type }>,
-      referent: Extract<ValueType['inner'], { type: type }>
+    [type in ValueType['type']]: (
+      candidate: Extract<ValueType, { type: type }>,
+      referent: Extract<ValueType, { type: type }>
     ) => TypecheckerResult<void> // | boolean
   } = {
     bool: () => success(void 0),
@@ -207,9 +207,21 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
       throw new Error('Internal error: unreachable "unknown" type comparison')
     },
 
+    nullable: (c, r) =>
+      isTypeCompatible(
+        { at, candidate: c.inner },
+        {
+          ...ctx,
+          typeExpectation: {
+            type: r.inner,
+            from: typeExpectation.from,
+          },
+        }
+      ),
+
     // Internal types
     void: () => expectationErr('Internal error: trying to compare candidate with internal type "void"'),
   }
 
-  return comparators[candidate.inner.type](candidate.inner as any, referent.inner as any)
+  return comparators[candidate.type](candidate as any, referent as any)
 }

@@ -12,8 +12,8 @@ export const resolvePropAccessType: Typechecker<
   let upToPrevPropAccessSection: CodeSection = leftAt
 
   for (const propAccess of propAccesses) {
-    if (previousIterType.inner.type === 'aliasRef') {
-      const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
+    if (previousIterType.type === 'aliasRef') {
+      const alias = getTypeAliasInScope(previousIterType.typeAliasName, ctx)
 
       if (!alias.ok) {
         return err(
@@ -22,15 +22,24 @@ export const resolvePropAccessType: Typechecker<
         )
       }
 
-      previousIterType = {
-        nullable: previousIterType.nullable || alias.data.content.nullable,
-        inner: alias.data.content.inner,
-      }
+      previousIterType = alias.data.content
     }
 
     switch (propAccess.parsed.access.type) {
       case 'refIndex':
-        if (previousIterType.inner.type !== 'list') {
+        if (previousIterType.type === 'list') {
+          previousIterType = previousIterType.itemsType
+        } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'list') {
+          if (!propAccess.parsed.nullable) {
+            return err(upToPrevPropAccessSection, {
+              message: 'cannot access index of a nullable list',
+              complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?[index]`']],
+              also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+            })
+          }
+
+          previousIterType = { type: 'nullable', inner: previousIterType.inner.itemsType }
+        } else {
           return err(upToPrevPropAccessSection, {
             message: `expected list due to index access, found \`${rebuildType(previousIterType, true)}\``,
             complements: noNullabilityTip
@@ -43,19 +52,23 @@ export const resolvePropAccessType: Typechecker<
           })
         }
 
-        if (previousIterType.nullable && !propAccess.parsed.nullable) {
-          return err(upToPrevPropAccessSection, {
-            message: 'cannot access index of a nullable list',
-            complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?[index]`']],
-            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
-          })
-        }
-
-        previousIterType = { ...previousIterType.inner.itemsType, nullable: propAccess.parsed.nullable }
         break
 
       case 'refStructMember':
-        if (previousIterType.inner.type !== 'struct') {
+        let structType: Extract<ValueType, { type: 'struct' }>
+
+        if (previousIterType.type === 'struct') {
+          structType = previousIterType
+        } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'struct') {
+          if (!propAccess.parsed.nullable) {
+            return err(upToPrevPropAccessSection, {
+              message: 'cannot access member of a nullable struct',
+              complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?.member`']],
+            })
+          }
+
+          structType = previousIterType.inner
+        } else {
           return err(upToPrevPropAccessSection, {
             message: `expected struct due to member access, found \`${rebuildType(previousIterType, true)}\``,
             complements: [
@@ -66,15 +79,8 @@ export const resolvePropAccessType: Typechecker<
           })
         }
 
-        if (previousIterType.nullable && !propAccess.parsed.nullable) {
-          return err(upToPrevPropAccessSection, {
-            message: 'cannot access member of a nullable struct',
-            complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?.member`']],
-          })
-        }
-
         const expectedMember = propAccess.parsed.access.member
-        const resolvedMember = previousIterType.inner.members.find(({ name }) => name === expectedMember.parsed)
+        const resolvedMember = structType.members.find(({ name }) => name === expectedMember.parsed)
 
         if (!resolvedMember) {
           return err(expectedMember.at, {
@@ -83,7 +89,9 @@ export const resolvePropAccessType: Typechecker<
           })
         }
 
-        previousIterType = { ...resolvedMember.type, nullable: propAccess.parsed.nullable }
+        previousIterType = propAccess.parsed.nullable
+          ? { type: 'nullable', inner: resolvedMember.type }
+          : resolvedMember.type
         break
 
       default:

@@ -58,11 +58,7 @@ export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
   })
 
 function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerResult<void> {
-  if (type.nullable) {
-    return err(at, 'command arguments cannot be nullable')
-  }
-
-  if (type.inner.type !== 'string' && type.inner.type !== 'path') {
+  if (type.type !== 'string' && type.type !== 'path') {
     return err(at, `expected \`string\` or \`path\`, found \`${rebuildType(type, true)}\``)
   }
 
