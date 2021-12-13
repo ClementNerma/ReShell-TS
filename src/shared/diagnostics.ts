@@ -75,7 +75,10 @@ export function formatErr(
 
       const { line, col } = at.start
 
-      const header = `--> At ${format('filePath', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
+      const header = format(
+        'header',
+        `--> At ${format('filePath', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
+      )
 
       if (at.start.file.type === 'internal') {
         return `${header}\n<internal file>`
@@ -114,7 +117,7 @@ export function formatErr(
       const paddingGutter = format('gutter', linePad + ' | ')
 
       const upToError: string[] = [
-        `${format('gutter', linePad)}${addLinesPadding}${format('header', header)}`,
+        `${format('gutter', linePad)}${addLinesPadding}${header}`,
         `${paddingGutter}`,
         `${format('gutter', padLineNb(line) + ' | ')}${addLinesPadding}${format(
           'failedLine',
