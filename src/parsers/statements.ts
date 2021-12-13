@@ -10,7 +10,7 @@ import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken } from '../lib/utils'
 import { cmdCall } from './cmdcall'
 import { ChainedStatement, Statement, StatementChain } from './data'
-import { expr } from './expr'
+import { doubleArithOp, expr } from './expr'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { fnDecl, valueType } from './types'
@@ -49,6 +49,26 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         mutable: mapToken(mv.parsed.mutable, (str) => !!str),
         varname: mv.parsed.varname,
         vartype: flattenMaybeToken(vartype),
+        expr,
+      })
+    ),
+
+    assignment: map(
+      combine(
+        identifier,
+        combine(maybe(doubleArithOp), exact('=', 'Syntax error: expected an assignment')),
+        failure(expr, 'Syntax error: expected an expression'),
+        { inter: maybe_s }
+      ),
+      ([
+        varname,
+        {
+          parsed: [prefixOp, _],
+        },
+        expr,
+      ]) => ({
+        varname,
+        prefixOp: flattenMaybeToken(prefixOp),
         expr,
       })
     ),

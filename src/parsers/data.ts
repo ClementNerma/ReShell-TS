@@ -32,6 +32,12 @@ export type Statement =
       mutable: Token<boolean>
       expr: Token<Expr>
     }
+  | {
+      type: 'assignment'
+      varname: Token<string>
+      prefixOp: Token<DoubleArithOp> | null
+      expr: Token<Expr>
+    }
   | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr> }
   | { type: 'whileLoop'; cond: Token<Expr> }
   | { type: 'ifBlock'; cond: Token<Expr> }
