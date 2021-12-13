@@ -10,7 +10,7 @@ import { statementChain } from './statements'
 const strippedProgram: Parser<Program> = takeWhile(statementChain)
 
 export const program: Parser<Program> = withNormalizedNewlines(
-  then(commentStripper, ({ data }, context) =>
+  then(commentStripper, (_, data, context) =>
     fullSource(strippedProgram, { eos: 'Unexpected end of input' })(data.at.start, data.parsed, context)
   )
 )

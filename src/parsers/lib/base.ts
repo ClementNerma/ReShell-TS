@@ -21,6 +21,7 @@ export type ParserErr = {
 
 export type ParsingContext = Readonly<{
   sourceServer: SourceFilesServer
+  currentFilePath: string
   currentFile: StrView
   $custom: unknown
   self: () => ParsingContext
@@ -90,8 +91,32 @@ export function addCols(start: CodeLoc, cols: number): CodeLoc {
 }
 
 export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T>, $custom: unknown): ParserResult<T> {
-  const context: ParsingContext = { sourceServer, currentFile: sourceServer.entrypoint(), $custom, self: () => context }
+  const context: ParsingContext = {
+    sourceServer,
+    currentFilePath: sourceServer.entrypointFilename,
+    currentFile: sourceServer.entrypoint(),
+    $custom,
+    self: () => context,
+  }
   return parser({ file: { ref: null }, line: 0, col: 0 }, sourceServer.entrypoint(), context)
+}
+
+export function parseFile<T>(
+  sourceServer: SourceFilesServer,
+  filename: string,
+  content: StrView,
+  parser: Parser<T>,
+  $custom: unknown
+): ParserResult<T> {
+  const context: ParsingContext = {
+    sourceServer,
+    currentFilePath: filename,
+    currentFile: content,
+    $custom,
+    self: () => context,
+  }
+
+  return parser({ file: { ref: filename }, line: 0, col: 0 }, content, context)
 }
 
 export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)

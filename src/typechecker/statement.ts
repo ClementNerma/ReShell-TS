@@ -1,7 +1,7 @@
 import { StatementChain, ValueType } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, located, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { err, located, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
@@ -14,7 +14,10 @@ import { typeValidator } from './types/validator'
 
 export type StatementChainMetadata = {
   neverEnds: boolean
+  topLevelScope: Scope
 }
+
+type StatementMetadata = Omit<StatementChainMetadata, 'topLevelScope'>
 
 export const statementChainChecker: Typechecker<Token<StatementChain>[], StatementChainMetadata> = (chain, ctx) => {
   const firstPass = scopeFirstPass(chain, ctx)
@@ -28,7 +31,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
   ctx = { ...ctx, scopes }
 
-  let previousStmt: { at: CodeSection; metadata: StatementChainMetadata } | null = null
+  let previousStmt: { at: CodeSection; metadata: StatementMetadata } | null = null
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -48,8 +51,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
     }
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      const stmtMetadata: TypecheckerResult<StatementChainMetadata> = matchUnion(sub.parsed, 'type', {
-        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementChainMetadata> => {
+      const stmtMetadata: TypecheckerResult<StatementMetadata> = matchUnion(sub.parsed, 'type', {
+        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementMetadata> => {
           // const unicity = ensureScopeUnicity({ name: varname }, ctx)
           // if (!unicity.ok) return unicity
 
@@ -414,6 +417,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           const cmdCallCheck = cmdCallTypechecker(call, ctx)
           return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
         },
+
+        // Nothing to do here, already handled in first pass
+        fileInclusion: () => success({ neverEnds: false }),
       })
 
       if (!stmtMetadata.ok) return stmtMetadata
@@ -422,7 +428,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
     }
   }
 
-  return success(previousStmt?.metadata ?? { neverEnds: false })
+  const metadata: StatementMetadata = previousStmt?.metadata ?? { neverEnds: false }
+
+  return success({ ...metadata, topLevelScope: currentScope })
 }
 
 function getStatementChainSection(stmt: Token<StatementChain>): CodeSection {

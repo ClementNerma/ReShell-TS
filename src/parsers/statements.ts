@@ -9,9 +9,9 @@ import {
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
-import { Parser } from './lib/base'
+import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
+import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
 import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
@@ -20,7 +20,9 @@ import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
+import { rawString } from './literals'
 import { doubleOp } from './operators'
+import { program } from './program'
 import { nonNullablePropertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
@@ -285,6 +287,51 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ),
 
     cmdCall: cmdCall(endOfCmdCallStatement),
+
+    fileInclusion: then(
+      combine(
+        exact('@include'),
+        s,
+        failure(rawString, 'Expected a file path to import'),
+        maybe(
+          map(
+            combine(
+              combine(
+                s,
+                exact('import', 'Expected the "import" keyword'),
+                maybe_s_nl,
+                exact('{', 'Expected an opening brace ({)'),
+                maybe_s_nl
+              ),
+              takeWhile(identifier, {
+                inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+                interMatchingMakesExpectation: 'Expected an identifier to import',
+              }),
+              maybe_s_nl,
+              exact('}', 'Expected a closing brace (})')
+            ),
+            ([_, { parsed: imports }]) => imports
+          )
+        )
+      ),
+      (
+        [_, __, { parsed: filePath }, { parsed: imports }],
+        { at, parsed: [___, ____, filePathToken], matched },
+        context
+      ) => {
+        const fileContent = context.sourceServer.read(filePath, context.currentFilePath)
+
+        if (fileContent === false) {
+          return err(filePathToken.at.start, filePathToken.at.next, context, 'file was not found')
+        }
+
+        const sub = parseFile(context.sourceServer, filePath, fileContent, program, context.$custom)
+
+        if (!sub.ok) return sub
+
+        return success(at.start, at.next, { content: sub.data.parsed, imports }, matched)
+      }
+    ),
   },
   'Failed to parse statement'
 )

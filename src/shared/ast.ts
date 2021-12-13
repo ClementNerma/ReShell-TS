@@ -48,6 +48,7 @@ export type Statement =
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
   | ({ type: 'cmdCall' } & CmdCall)
+  | { type: 'fileInclusion'; content: Program; imports: Token<string>[] | null }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
 

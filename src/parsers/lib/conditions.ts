@@ -1,15 +1,6 @@
 import { CodeLoc, Token } from '../../shared/parsed'
 import { StrView } from '../../shared/strview'
-import {
-  err,
-  ErrInputData,
-  Parser,
-  ParserErr,
-  ParserResult,
-  ParserSucess,
-  ParsingContext,
-  phantomSuccess,
-} from './base'
+import { err, ErrInputData, Parser, ParserErr, ParserResult, ParsingContext, phantomSuccess } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
@@ -115,11 +106,11 @@ export function extract<T>(parser: Parser<Token<T>[]>): Parser<T[]> {
 
 export function then<T, U>(
   parser: Parser<T>,
-  then: (parsed: ParserSucess<T>, context: ParsingContext) => ParserResult<U>
+  then: (parsed: T, token: Token<T>, context: ParsingContext) => ParserResult<U>
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? then(parsed, context) : parsed
+    return parsed.ok ? then(parsed.data.parsed, parsed.data, context) : parsed
   }
 }
 
