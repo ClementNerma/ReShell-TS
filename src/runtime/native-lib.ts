@@ -353,7 +353,7 @@ function withArguments<
     let expectedType: ValueType['type']
 
     if (value === undefined)
-      return err(at, `internal error in native library executor: argument "${name}" was not found`)
+      return err(at, `internal error: native library assertion failed: argument \`${name}\` was not found`)
 
     if (typeof type === 'string') {
       expectedType = type
@@ -368,7 +368,7 @@ function withArguments<
     if (value.type !== expectedType && expectedType !== 'unknown') {
       return err(
         at,
-        `internal error in native library executor: expected argument "${name}" to be of type "${expectedType}", found ${value.type}`
+        `internal error: native library assertion failed: expected argument \`${name}\` to be of type "${expectedType}", found ${value.type}`
       )
     }
 
@@ -382,7 +382,7 @@ function withArguments<
   if (map.size > 0) {
     return err(
       at,
-      'internal error in native library executor: unknown arguments provided: ' + [...map.keys()].join(', ')
+      'internal error: native library assertion failed: unknown arguments provided: ' + [...map.keys()].join(', ')
     )
   }
 
