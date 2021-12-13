@@ -1,25 +1,56 @@
-// TODO: <little optimization> store length in class so when a comparison is done, if pattern < length fail immediatly
+export abstract class StrView {
+  public abstract firstChar(): string
+  public abstract littleView(): string
+  public abstract empty(): boolean
+  public abstract startsWith(pattern: string): boolean
+  public abstract startsWithChar(char: string): boolean
+  public abstract matchFirstChar(regex: RegExp): RegExpMatchArray | null
+  public abstract matchShort(regex: RegExp): RegExpMatchArray | null
+  public abstract offset(addOffset: number): StrView
+  public abstract toFullStringSlow(): string
+  public abstract withSlowMapper(mapper: (input: string) => string): StrView
 
-export class StrView {
+  static create(input: string, offset = 0, segmentSize = 128): StrView {
+    if (input.length === 0) return new EmptyStrView()
+
+    if (offset && offset >= input.length) {
+      throw new Error('String view cannot start past input length')
+    }
+
+    const segments = new Array(Math.floor(input.length / segmentSize))
+      .fill(0)
+      .map((_, i) => input.substr(i * segmentSize, segmentSize))
+
+    const rem = input.length % segmentSize
+
+    if (rem > 0) {
+      segments.push(input.substr(input.length - rem, rem))
+    }
+
+    return new SegmentedStrView(segments, input.length, offset, segmentSize)
+  }
+}
+
+class SegmentedStrView extends StrView {
   private readonly isLastSegment: boolean
   private readonly firstSegment: number
   private readonly firstSegmentOffset: number
   private readonly firstSegmentRem: number
-  // private readonly lastSegmentLen: number
-  // public readonly length: number
 
-  private constructor(
+  constructor(
     private readonly segments: string[],
-    private readonly offsetInside = 0,
-    private readonly segmentSize = 1024
+    private readonly total: number,
+    private readonly offsetInside: number,
+    private readonly segmentSize: number
   ) {
+    super()
+
     this.firstSegment = Math.floor(offsetInside / this.segmentSize)
     this.isLastSegment = this.firstSegment === this.segments.length - 1
     this.firstSegmentOffset = offsetInside % this.segmentSize
     this.firstSegmentRem = this.isLastSegment
       ? this.segments[this.firstSegment].length - this.firstSegmentOffset
       : this.segmentSize - this.firstSegmentOffset
-    // this.lastSegmentLen = this.segments[this.segments.length - 1].length
   }
 
   public firstChar(): string {
@@ -90,8 +121,10 @@ export class StrView {
     return match
   }
 
-  public offset(addOffset: number) {
-    return new StrView(this.segments, this.offsetInside + addOffset, this.segmentSize)
+  public offset(addOffset: number): StrView {
+    return this.offsetInside + addOffset === this.total - 1
+      ? new EmptyStrView()
+      : new SegmentedStrView(this.segments, this.total, this.offsetInside + addOffset, this.segmentSize)
   }
 
   public toFullStringSlow(): string {
@@ -103,22 +136,46 @@ export class StrView {
   }
 
   // TODO: function to match longer regexps at once
+}
 
-  static create(input: string, offset = 0, segmentSize = 128) {
-    if (offset && offset >= input.length) {
-      throw new Error('String view cannot start past input length')
-    }
+class EmptyStrView extends StrView {
+  public firstChar(): string {
+    return ''
+  }
 
-    const segments = new Array(Math.floor(input.length / segmentSize))
-      .fill(0)
-      .map((_, i) => input.substr(i * segmentSize, segmentSize))
+  public littleView(): string {
+    return ''
+  }
 
-    const rem = input.length % segmentSize
+  public empty(): boolean {
+    return true
+  }
 
-    if (rem > 0) {
-      segments.push(input.substr(input.length - rem, rem))
-    }
+  public startsWith(pattern: string): boolean {
+    return pattern === ''
+  }
 
-    return new StrView(segments, offset, segmentSize)
+  public startsWithChar(char: string): boolean {
+    return char === ''
+  }
+
+  public matchFirstChar(regex: RegExp): RegExpMatchArray | null {
+    return ''.match(regex)
+  }
+
+  public matchShort(regex: RegExp): RegExpMatchArray | null {
+    return ''.match(regex)
+  }
+
+  public offset(addOffset: number): StrView {
+    return this
+  }
+
+  public toFullStringSlow(): string {
+    return ''
+  }
+
+  public withSlowMapper(mapper: (input: string) => string): StrView {
+    return StrView.create(mapper(''))
   }
 }
