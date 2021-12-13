@@ -1,5 +1,5 @@
 import { Token } from '../../shared/parsed'
-import { Parser, ParsingContext, withErr, WithErrData } from './base'
+import { Parser, ParserErr, ParsingContext, withErr, WithErrData } from './base'
 
 export function map<T, U>(
   parser: Parser<T>,
@@ -14,14 +14,13 @@ export function map<T, U>(
   }
 }
 
-export function mapFull<T, U>(
+export function mapErr<T>(
   parser: Parser<T>,
-  mapper: (value: T, parsed: Token<T>, context: ParsingContext) => Token<U>,
-  error?: WithErrData
-): Parser<U> {
+  mapper: (err: ParserErr, context: ParsingContext) => ParserErr
+): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? { ok: true, data: mapper(parsed.data.parsed, parsed.data, context) } : withErr(parsed, error)
+    return parsed.ok ? parsed : mapper(parsed, context)
   }
 }
 
@@ -35,4 +34,8 @@ export function unify(parser: Parser<unknown>): Parser<string> {
 
 export function toOneProp<P extends string, T>(parser: Parser<T>, prop: P): Parser<{ [prop in P]: Token<T> }> {
   return map(parser, (_, value) => ({ [prop]: value } as { [prop in P]: Token<T> }))
+}
+
+export function suppressErrorPrecedence<T>(parser: Parser<T>): Parser<T> {
+  return mapErr(parser, (err) => ({ ...err, precedence: false }))
 }
