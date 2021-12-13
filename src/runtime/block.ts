@@ -9,13 +9,13 @@ export const runBlock: Runner<Block> = (block, ctx) => {
   for (const { parsed: chain } of block) {
     if (chain.type === 'empty') continue
 
-    let result = runStatement(chain.start.parsed, ctx)
+    let result = runStatement(chain.start, ctx)
 
     for (const { parsed: chained } of chain.sequence) {
       result = matchStr(chained.op.parsed, {
-        And: () => (result.ok === true ? runStatement(chained.chainedStatement.parsed, ctx) : result),
-        Or: () => (result.ok === true ? success(void 0) : runStatement(chained.chainedStatement.parsed, ctx)),
-        Then: () => runStatement(chained.chainedStatement.parsed, ctx),
+        And: () => (result.ok === true ? runStatement(chained.chainedStatement, ctx) : result),
+        Or: () => (result.ok === true ? success(void 0) : runStatement(chained.chainedStatement, ctx)),
+        Then: () => runStatement(chained.chainedStatement, ctx),
       })
 
       if (result.ok === null) return result

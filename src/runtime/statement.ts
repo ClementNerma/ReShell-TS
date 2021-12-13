@@ -1,6 +1,7 @@
 import { spawnSync } from 'child_process'
 import { Statement } from '../shared/ast'
-import { CodeSection } from '../shared/parsed'
+import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
+import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
@@ -11,8 +12,8 @@ import { executeFnCall } from './fncall'
 import { runProgram } from './program'
 import { expectValueType } from './value'
 
-export const runStatement: Runner<Statement> = (stmt, ctx) =>
-  matchUnion(stmt, 'type', {
+export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
+  matchUnion(stmt.parsed, 'type', {
     variableDecl: ({ varname, expr }) => {
       const scope = ctx.scopes[ctx.scopes.length - 1]
       const evaluated = runExpr(expr.parsed, ctx)
@@ -332,21 +333,28 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
         commands.push([sub.name.parsed, strArgs])
       }
 
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
+      // HACK: This code is neither multi-platform nor properly escaping arguments
+      // Find another way to perform piping as the current pseudo-TTY libs are not
+      // good enough for extended usage.
       const generated = commands
         .map(([name, args]) => `${name} ${args.map((arg) => escapeCmdArg(arg)).join(' ')}`)
         .join(' | ')
 
       const cmd = spawnSync('sh', ['-c', generated], { stdio: 'inherit' })
+      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-      if (cmd.error) {
-        console.log('SPAWNERR')
-      } else if (cmd.status !== null && cmd.status !== 0) {
-        console.log('FAILED ' + cmd.status.toString())
-      } else {
-        // console.log('OK')
-      }
-
-      return success(void 0)
+      return cmd.error
+        ? {
+            ok: false,
+            diag: diagnostic(stmt.at, 'spawn error: ' + cmd.error.message, DiagnosticLevel.Error),
+          }
+        : cmd.status !== null && cmd.status !== 0
+        ? {
+            ok: false,
+            diag: diagnostic(stmt.at, 'command failed with status ' + cmd.status.toString(), DiagnosticLevel.Error),
+          }
+        : success(void 0)
     },
 
     cmdDecl: () => success(void 0),

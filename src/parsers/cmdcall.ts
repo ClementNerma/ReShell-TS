@@ -2,7 +2,7 @@ import { CmdArg, CmdCall, CmdCallSub, CmdRedir } from '../shared/ast'
 import { cmdArg } from './cmdarg'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatches, failIfMatchesElse, filterNullables, maybe } from './lib/conditions'
+import { failIfMatches, failIfMatchesElse, filterNullables, maybe, notFollowedBy } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -22,10 +22,10 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
       maybe(
         map(
           combine(
-            exact('|'),
+            notFollowedBy(exact('|'), exact('|')),
             maybe_s_nl,
             takeWhile(cmdCallSub(callEndDetector), {
-              inter: combine(maybe_s, exact('|'), maybe_s_nl),
+              inter: combine(maybe_s, notFollowedBy(exact('|'), exact('|')), maybe_s_nl),
               interExpect: 'expected a command to pipe the previous one into',
             })
           ),
