@@ -109,7 +109,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
                         content: {
                           at: expr.at,
                           matched: expr.matched,
-                          parsed: { type: 'rebuilt', inner: expr },
+                          parsed: { type: 'synth', inner: expr },
                         },
                         propAccess: [],
                       },

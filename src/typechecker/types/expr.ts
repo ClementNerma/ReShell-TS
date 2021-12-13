@@ -121,5 +121,5 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
     value: ({ content }) => resolveValueType(content, ctx),
 
     // Internal
-    rebuilt: ({ inner }) => resolveExprType(inner, ctx),
+    synth: ({ inner }) => resolveExprType(inner, ctx),
   })

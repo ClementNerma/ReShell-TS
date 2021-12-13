@@ -248,7 +248,7 @@ function buildExprDoubleOp(
           at: exprAt,
           matched: '// TODO',
           parsed: {
-            type: 'rebuilt',
+            type: 'synth',
             inner: {
               at: exprAt,
               matched: '// TODO',

@@ -157,7 +157,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
       value: map(value, (_, content) => ({ content })),
 
       // Internal
-      rebuilt: never(),
+      synth: never(),
     },
     'Failed to parse expression'
   )

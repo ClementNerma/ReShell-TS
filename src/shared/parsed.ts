@@ -182,7 +182,7 @@ export type ExprElementContent =
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
   // Internal type
-  | { type: 'rebuilt'; inner: Token<Expr> }
+  | { type: 'synth'; inner: Token<Expr> }
 
 export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
 
