@@ -38,7 +38,7 @@ export const commentStripper: Parser<string> = (start, input) => {
       }
     }
 
-    return line.substr(0, commentStartsAt)
+    return commentStartsAt === -1 ? line : line.substr(0, commentStartsAt)
   })
 
   return success(start, { line: lines.length - 1, col: lines[lines.length - 1].length }, output.join('\n'), input)
