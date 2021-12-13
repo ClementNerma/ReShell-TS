@@ -86,10 +86,10 @@ export function extract<T>(parser: Parser<Token<T>[]>): Parser<T[]> {
   }
 }
 
-export function then<T>(
+export function then<T, U>(
   parser: Parser<T>,
-  then: (parsed: ParserSucess<T>, context: ParsingContext) => ParserResult<T>
-): Parser<T> {
+  then: (parsed: ParserSucess<T>, context: ParsingContext) => ParserResult<U>
+): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok ? then(parsed, context) : parsed
