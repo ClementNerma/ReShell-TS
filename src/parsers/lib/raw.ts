@@ -1,4 +1,4 @@
-import { FormatableExtractsInput } from '../shared/errors'
+import { FormatableExtractsInput } from '../../shared/errors'
 import { Parser, ParsingContext } from './base'
 
 export function matches<C>(input: string, parser: Parser<unknown>, $custom: C) {

@@ -1,10 +1,10 @@
-import { Parser } from '../lib/base'
-import { combine } from '../lib/combinations'
-import { fail, lookahead } from '../lib/consumeless'
-import { withRuntimeTypedCtx, withTypedCtx } from '../lib/context'
-import { maybe_s_nl } from '../lib/littles'
-import { exact } from '../lib/matchers'
-import { or } from '../lib/switches'
+import { Parser } from './lib/base'
+import { combine } from './lib/combinations'
+import { fail, lookahead } from './lib/consumeless'
+import { withRuntimeTypedCtx, withTypedCtx } from './lib/context'
+import { maybe_s_nl } from './lib/littles'
+import { exact } from './lib/matchers'
+import { or } from './lib/switches'
 
 export type StatementClosingChar = '}' | ']' | ')'
 

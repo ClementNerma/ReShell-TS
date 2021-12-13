@@ -1,4 +1,4 @@
-import { Token } from '../shared/parsed'
+import { Token } from '../../shared/parsed'
 import { Parser, ParserErr, sliceInput } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {

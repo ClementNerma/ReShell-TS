@@ -1,12 +1,12 @@
-import { Parser } from '../lib/base'
-import { combine } from '../lib/combinations'
-import { lookahead } from '../lib/consumeless'
-import { maybe_s, maybe_s_nl } from '../lib/littles'
-import { eol, oneOfMap } from '../lib/matchers'
-import { or } from '../lib/switches'
-import { silence } from '../lib/transform'
 import { CmdRedirOp, StatementChainOp } from '../shared/parsed'
 import { matchStatementClose } from './context'
+import { Parser } from './lib/base'
+import { combine } from './lib/combinations'
+import { lookahead } from './lib/consumeless'
+import { maybe_s, maybe_s_nl } from './lib/littles'
+import { eol, oneOfMap } from './lib/matchers'
+import { or } from './lib/switches'
+import { silence } from './lib/transform'
 
 export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
   ['&&', 'And'],

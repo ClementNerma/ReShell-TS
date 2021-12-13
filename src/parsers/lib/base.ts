@@ -1,5 +1,5 @@
-import { FormatableExtract, FormatableExtractsInput, formattableExtract } from '../shared/errors'
-import { CodeLoc, Token } from '../shared/parsed'
+import { FormatableExtract, FormatableExtractsInput, formattableExtract } from '../../shared/errors'
+import { CodeLoc, Token } from '../../shared/parsed'
 
 export type ParserResult<T> = ParserSucess<T> | ParserErr
 

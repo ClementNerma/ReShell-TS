@@ -1,6 +1,6 @@
-import { Parser } from '../lib/base'
-import { unicodeAlphanumericUnderscore } from '../lib/littles'
-import { oneOfWords } from '../lib/matchers'
+import { Parser } from './lib/base'
+import { unicodeAlphanumericUnderscore } from './lib/littles'
+import { oneOfWords } from './lib/matchers'
 
 export const identifier: Parser<string> = unicodeAlphanumericUnderscore
 

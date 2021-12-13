@@ -1,4 +1,4 @@
-import { Parser, success } from '../lib/base'
+import { Parser, success } from './lib/base'
 
 export const commentStripper: Parser<string> = (start, input) => {
   let lines = input.split(/\n/)

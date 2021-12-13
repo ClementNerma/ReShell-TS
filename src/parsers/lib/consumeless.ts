@@ -1,4 +1,4 @@
-import { CodeLoc } from '../shared/parsed'
+import { CodeLoc } from '../../shared/parsed'
 import {
   err,
   ErrInputData,

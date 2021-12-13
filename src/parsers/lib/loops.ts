@@ -1,4 +1,4 @@
-import { CodeLoc, Token } from '../shared/parsed'
+import { CodeLoc, Token } from '../../shared/parsed'
 import { err, ErrInputData, Parser, ParsingContext, sliceInput, success, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
