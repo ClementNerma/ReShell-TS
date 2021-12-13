@@ -96,15 +96,16 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             break
 
           case 'expr':
-            const exprType = resolveExprType(segment.parsed.expr, {
-              ...ctx,
-              typeExpectation: {
-                type: foundType,
-                from: null,
-              },
-            })
-
+            const exprType = resolveExprType(segment.parsed.expr, { ...ctx, typeExpectation: null })
             if (!exprType.ok) return exprType
+
+            if (
+              exprType.data.nullable ||
+              (exprType.data.inner.type !== 'string' && exprType.data.inner.type !== 'number')
+            ) {
+              return err(segment.at, `expected \`string\` or \`number\`, found \`${rebuildType(exprType.data, true)}\``)
+            }
+
             break
 
           default:
