@@ -150,17 +150,13 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
             ),
-            ([member, _, value]) => ({ member, value })
+            ([name, _, value]) => ({ name, value })
           ),
-          {
-            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
       exact('}', 'Expected a closing brace (}) to close the structure'),
-      {
-        inter: maybe_s_nl,
-      }
+      { inter: maybe_s_nl }
     ),
     ([_, members, __]) => ({
       members: mapToken(members, (_, { parsed }) => parsed),
