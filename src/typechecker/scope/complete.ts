@@ -25,7 +25,7 @@ export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope
           const varname = sub.parsed.varname.parsed
 
           if (scope.variables.has(varname)) {
-            return err('A variable with this name was already declared in this scope', sub.start)
+            return err('A variable with this name was already declared in this scope', sub.parsed.varname.start)
           }
 
           let vartype: ValueType
