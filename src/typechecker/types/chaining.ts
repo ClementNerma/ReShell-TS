@@ -5,7 +5,7 @@ import { ensureCoverage, err, ScopeMethod, success, Typechecker, TypecheckerResu
 import { developTypeAliasesAndNullables } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { resolveRawFnCallType } from './fn'
+import { validateAndRegisterFnCall } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueChainings: Typechecker<
@@ -44,8 +44,13 @@ export const resolveValueChainings: Typechecker<
           })
         }
 
-        const inner: ValueType =
-          nullable && previousIterType.type === 'nullable' ? previousIterType.inner : previousIterType
+        let inner = previousIterType
+
+        if (nullable) {
+          while (inner.type === 'nullable') {
+            inner = inner.inner
+          }
+        }
 
         let method: ScopeMethod | null = null
         const candidates: ScopeMethod[] = []
@@ -80,7 +85,10 @@ export const resolveValueChainings: Typechecker<
           return err(call.name.at, {
             message: 'method was not found for the provided value type',
             complements: candidates
-              .map<[string, string]>((method) => ['exists for', '(?)' + rebuildType(method.forTypeWithoutGenerics)])
+              .map<[string, string]>((method) => [
+                'exists for',
+                (nullable ? '?' : '') + rebuildType(method.forTypeWithoutGenerics),
+              ])
               .concat([['applied on', rebuildType(developed.data)]])
               .reverse(),
           })
@@ -121,17 +129,18 @@ export const resolveValueChainings: Typechecker<
           },
         }
 
-        const resolved = resolveRawFnCallType(
+        const resolved = validateAndRegisterFnCall(
           {
-            call: {
-              ...call,
-              args: [selfValue].concat(call.args),
-            },
+            at: call.at,
+            nameAt: call.name.at,
             fnType: {
               ...method.fnType,
               generics: method.fnType.generics.concat(method.infos.generics),
               args: [selfArg].concat(method.fnType.args),
             },
+            generics: call.generics,
+            args: [selfValue].concat(call.args),
+            firstArgType: inner,
           },
           { ...ctx, typeExpectation: null }
         )

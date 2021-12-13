@@ -276,13 +276,17 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = (call, ctx) => 
     fnType = type.data.fnType
   }
 
-  return resolveRawFnCallType({ call, fnType }, ctx)
+  return validateAndRegisterFnCall(
+    {
+      at: call.at,
+      nameAt: call.name.at,
+      fnType,
+      generics: call.generics,
+      args: call.args,
+    },
+    ctx
+  )
 }
-
-export const resolveRawFnCallType: Typechecker<{ call: FnCall; fnType: FnType }, ValueType> = (
-  { call: { at, name, generics, args }, fnType },
-  ctx
-) => validateAndRegisterFnCall({ at, nameAt: name.at, fnType, generics, args }, ctx)
 
 export const validateAndRegisterFnCall: Typechecker<
   {
@@ -291,10 +295,11 @@ export const validateAndRegisterFnCall: Typechecker<
     fnType: FnType
     generics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
+    firstArgType?: ValueType
     declaredCommand?: true
   },
   ValueType
-> = ({ at, nameAt, fnType, generics, args, declaredCommand }, ctx) => {
+> = ({ at, nameAt, fnType, generics, args, firstArgType, declaredCommand }, ctx) => {
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
     name,
     orig: name.at,
@@ -379,7 +384,12 @@ export const validateAndRegisterFnCall: Typechecker<
   const suppliedRestArgument: Token<CmdArg>[] = []
   const suppliedArgsScope = new Map<string, FnCallPrecompArg>()
 
+  let outerFirstArg = true
+
   for (const arg of args) {
+    const innerFirstArg = outerFirstArg
+    outerFirstArg = false
+
     if (!isSupplyingRestArguments && positional.length === 0 && fnType.restArg !== null) {
       isSupplyingRestArguments = true
     }
@@ -419,15 +429,24 @@ export const validateAndRegisterFnCall: Typechecker<
         const relatedArg = positional.shift()
         if (!relatedArg) return err(expr.at, 'argument was not expected (all arguments have already been supplied)')
 
-        const resolved = resolveExprType(expr, {
-          ...ctx,
-          typeExpectation: {
-            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx, max),
-            from: relatedArg.at,
-          },
-        })
+        const typeExpectation: TypecheckerContext['typeExpectation'] = {
+          type: resolveGenerics(relatedArg.parsed.type.parsed, ctx, max),
+          from: relatedArg.at,
+        }
 
-        return resolved.ok ? success([relatedArg.parsed.name.parsed, { type: 'expr', expr }]) : resolved
+        const compat: TypecheckerResult<unknown> =
+          innerFirstArg && firstArgType
+            ? isTypeCompatible(
+                {
+                  at: expr.at,
+                  candidate: firstArgType,
+                  typeExpectation,
+                },
+                ctx
+              )
+            : resolveExprType(expr, { ...ctx, typeExpectation })
+
+        return compat.ok ? success([relatedArg.parsed.name.parsed, { type: 'expr', expr }]) : compat
       },
 
       flag: ({ name, directValue }) => {
