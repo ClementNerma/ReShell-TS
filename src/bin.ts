@@ -71,28 +71,31 @@ if (!parsed.ok) {
   process.exit(1)
 }
 
-const [jsonStrDuration, jsonStr] = measurePerf(() => JSON.stringify(parsed.data))
+const infos = [`Parsed              | ${ms(parsingDuration)} | ${kb(source.length * iter)}`]
 
-const [compressDuration, compressed1] = measurePerf(() => deflateSync(jsonStr, { level: 3 }))
-const [decompressDuration, decompressed1] = measurePerf(() => inflateSync(compressed1))
+if (argv.includes('--compression-perf')) {
+  const [jsonStrDuration, jsonStr] = measurePerf(() => JSON.stringify(parsed.data))
 
-if (decompressed1.toString('utf-8') !== jsonStr /* || decompressed9.toString('utf-8') !== jsonStr*/) {
-  fail('Decompressed data is not the same as the source!')
+  const [compressDuration, compressed1] = measurePerf(() => deflateSync(jsonStr, { level: 3 }))
+  const [decompressDuration, decompressed1] = measurePerf(() => inflateSync(compressed1))
+
+  if (decompressed1.toString('utf-8') !== jsonStr /* || decompressed9.toString('utf-8') !== jsonStr*/) {
+    fail('Decompressed data is not the same as the source!')
+  }
+
+  const [jsonParseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
+
+  if (JSON.stringify(reparsed) !== jsonStr) {
+    fail('Reparsed data is not the same as the source!')
+  }
+
+  infos.push(
+    `Minimified AST JSON | ${ms(jsonStrDuration)} | ${kb(JSON.stringify(parsed.data).length)}`,
+    `Compression         | ${ms(compressDuration)} | ${kb(compressed1.byteLength)}`,
+    `Decompression       | ${ms(decompressDuration)} |`,
+    `JSON AST parsing    | ${ms(jsonParseDuration)} |`
+  )
 }
-
-const [jsonParseDuration, reparsed] = measurePerf(() => JSON.parse(jsonStr))
-
-if (JSON.stringify(reparsed) !== jsonStr) {
-  fail('Reparsed data is not the same as the source!')
-}
-
-const infos = [
-  `Parsed              | ${ms(parsingDuration)} | ${kb(source.length * iter)}`,
-  `Minimified AST JSON | ${ms(jsonStrDuration)} | ${kb(JSON.stringify(parsed.data).length)}`,
-  `Compression         | ${ms(compressDuration)} | ${kb(compressed1.byteLength)}`,
-  `Decompression       | ${ms(decompressDuration)} |`,
-  `JSON AST parsing    | ${ms(jsonParseDuration)} |`,
-]
 
 if (argv.includes('--ast-perf')) {
   infos.forEach((info) => console.log(info))
