@@ -89,12 +89,6 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
   }),
 
   // Strings
-  len: _buildNativeLibraryFn({
-    methodFor: () => 'string',
-    args: () => [],
-    returnType: () => 'number',
-  }),
-
   includes: _buildNativeLibraryFn({
     methodFor: () => 'string',
     args: () => [{ name: 'lookup', type: 'string' }],
@@ -199,6 +193,21 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
     args: () => [{ name: 'message', type: 'string' }],
     returnType: ({ T }) => T,
   }),
+
+  // Common on multiple types
+  len: [
+    _buildNativeLibraryFn({
+      methodFor: () => 'string',
+      args: () => [],
+      returnType: () => 'number',
+    }),
+
+    _buildNativeLibraryFn({
+      methodFor: () => ({ type: 'list', itemsType: { type: 'unknown' } }),
+      args: () => [],
+      returnType: () => 'number',
+    }),
+  ],
 })
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Native library builder utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //

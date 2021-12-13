@@ -125,8 +125,6 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
   ),
 
   // Strings
-  len: withArguments({ self: 'string' }, ({ self }) => success({ type: 'number', value: self.value.length })),
-
   includes: withArguments({ self: 'string', lookup: 'string' }, ({ self, lookup }) =>
     success({ type: 'bool', value: self.value.includes(lookup.value) })
   ),
@@ -235,6 +233,15 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
 
   expect: withArguments({ self: 'unknown', message: 'string' }, ({ self, message }, { at }) =>
     self.type !== 'null' ? success(self) : err(at, message.value)
+  ),
+
+  // On multiple types
+  len: withArguments({ self: 'unknown' }, ({ self }, { at }) =>
+    self.type === 'string'
+      ? success({ type: 'number', value: self.value.length })
+      : self.type === 'list'
+      ? success({ type: 'number', value: self.items.length })
+      : wrongMixedType(at)
   ),
 })
 
@@ -357,6 +364,10 @@ function withArguments<
     // @ts-ignore
     return callback(out, input)
   }
+}
+
+function wrongMixedType(at: CodeSection): RunnerResult<ExecValue> {
+  return err(at, 'internal error: native library assertion failed: wrong mixed type')
 }
 
 export function expectValueType<T extends ExecValue['type']>(
