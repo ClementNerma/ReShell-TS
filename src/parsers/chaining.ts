@@ -5,6 +5,7 @@ import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { maybe } from './lib/conditions'
 import { followedBy } from './lib/consumeless'
+import { maybe_s_nl } from './lib/littles'
 import { exact, oneOf } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map } from './lib/transform'
@@ -13,8 +14,8 @@ import { identifier } from './tokens'
 
 export const valueChaining: Parser<ValueChaining> = mappedCases<ValueChaining>()('type', {
   method: map(
-    combine(maybe(exact('?')), exact('.'), followedBy(combine(identifier, oneOf(['::', '(']))), fnCall),
-    ([{ parsed: nullable }, _, __, { parsed: call }]) => ({ nullable: nullable !== null, call })
+    combine(maybe_s_nl, maybe(exact('?')), exact('.'), followedBy(combine(identifier, oneOf(['::', '(']))), fnCall),
+    ([_, { parsed: nullable }, __, ___, { parsed: call }]) => ({ nullable: nullable !== null, call })
   ),
 
   propertyAccess: or([
