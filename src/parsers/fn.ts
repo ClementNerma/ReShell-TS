@@ -12,7 +12,7 @@ import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
-import { getErrorInput, withLatelyDeclared } from './lib/utils'
+import { withLatelyDeclared } from './lib/utils'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { valueType } from './types'
@@ -53,17 +53,7 @@ export const fnArg: Parser<FnArg> = map(
           combine(maybe_s_nl, exact('='), maybe_s_nl),
           failure(
             withLatelyDeclared(() => literalValue),
-            (err) => ({
-              message: 'expected a literal value',
-              complements: [
-                [
-                  'tip',
-                  getErrorInput(err).startsWith('"')
-                    ? "literal strings must be single-quoted (')"
-                    : 'lists, maps and structures are not literal values',
-                ],
-              ],
-            })
+            'expected a literal value'
           )
         ),
         ([_, { parsed: defaultValue }]) => defaultValue

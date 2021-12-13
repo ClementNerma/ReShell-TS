@@ -1,5 +1,6 @@
 import { Diagnostic } from '../../shared/diagnostics'
 import { Token } from '../../shared/parsed'
+import { StrView } from '../../shared/strview'
 import { matchUnion } from '../../shared/utils'
 import { Parser, ParserErr } from './base'
 
@@ -99,10 +100,18 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
 }
 
 // TODO: SLOW
-export function getErrorInput(err: ParserErr): string {
+export function getErrorInput(err: ParserErr): string | false {
+  const file: StrView | false = matchUnion(err.start.file, 'type', {
+    entrypoint: () => err.context.sourceServer.entrypoint(),
+    internal: () => false,
+    file: ({ path }) => err.context.sourceServer.read(path),
+  })
+
+  if (file === false) return file
+
   return err.next.line === err.start.line
-    ? err.context.currentFileContent.toFullStringSlow().substr(err.next.col - err.start.col)
-    : err.context.currentFileContent
+    ? file.toFullStringSlow().substr(err.next.col - err.start.col)
+    : file
         .toFullStringSlow()
         .split('\n')
         .slice(err.next.line - err.start.line)
