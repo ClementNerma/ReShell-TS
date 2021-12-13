@@ -1,4 +1,4 @@
-import { err, ErrorMapping, Parser, ParserLoc, sliceInput, success, Token, withErr } from './base'
+import { err, ErrorMapping, Parser, ParserLoc, ParsingContext, sliceInput, success, Token, withErr } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
@@ -19,9 +19,9 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     let iter = 0
 
     while (true) {
-      const iterContext = {
+      const iterContext: ParsingContext = {
         ...context,
-        loopData: { iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
+        loopData: { firstIter: iter === 0, iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
       }
 
       const result = parser(loc, input, iterContext)
@@ -106,7 +106,7 @@ export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
     while (input.length > 0) {
       const result = parser(loc, input, {
         ...context,
-        loopData: { iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
+        loopData: { firstIter: iter === 0, iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
       })
 
       if (!result.ok) {

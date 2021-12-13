@@ -55,7 +55,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
     for (let i = 0; i < parsers.length; i++) {
       const combinationContext: ParsingContext = {
         ...context,
-        combinationData: { iter: i, lastWasNeutralError, soFar: { start, matched, parsed } },
+        combinationData: { firstIter: i === 0, iter: i, lastWasNeutralError, soFar: { start, matched, parsed } },
       }
 
       const result = (parsers[i] as Parser<unknown>)(loc, input, combinationContext)

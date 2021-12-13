@@ -34,6 +34,7 @@ export type ParsingContext = Readonly<{
 }>
 
 export type LoopContext = Readonly<{
+  firstIter: boolean
   iter: number
   lastWasNeutralError: boolean
   soFar: Readonly<{

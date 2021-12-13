@@ -117,7 +117,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         map(
           combine(
             // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
-            contextualFailure(identifier, (ctx) => ctx.loopData?.iter !== 0, 'Expected an argument name'),
+            contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
             maybe(exact('?')),
             exact(':', "Expected a semicolon (:) separator for the argument's type"),
             failure(valueType, 'Expected a type for the argument'),

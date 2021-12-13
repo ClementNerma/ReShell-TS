@@ -59,7 +59,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 message: "Expected either an identifier or the end of the map's content",
                 tip: 'Key names in map values must be written between quotes',
               }),
-              contextualFailure(literalString, (ctx) => ctx.loopData?.iter !== 0, 'Expected a map key name'),
+              contextualFailure(literalString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
               exact(':'),
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
@@ -90,7 +90,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             combine(
               contextualFailure(
                 identifier,
-                (ctx) => ctx.loopData?.iter !== 0,
+                (ctx) => !ctx.loopData!.firstIter,
                 'Expected either a member name, or a closing brace (}) to close the structure'
               ),
               exact(':'),
