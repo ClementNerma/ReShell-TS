@@ -34,6 +34,20 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     success({ type: 'number', value: max.type === 'null' ? Math.random() : Math.floor(Math.random() * max.value) })
   ),
 
+  // Lists
+  seq: withArguments({ from: 'number', to: 'number' }, ({ from, to }) => {
+    const fromInt = Math.floor(from.value)
+    const toInt = Math.floor(to.value)
+
+    return success({
+      type: 'list',
+      items:
+        fromInt > toInt
+          ? []
+          : new Array(toInt - fromInt).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i })),
+    })
+  }),
+
   // Failables
   ok: withArguments({ value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
 

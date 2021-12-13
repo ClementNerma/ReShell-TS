@@ -29,6 +29,15 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'number',
   }),
 
+  // Lists
+  seq: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'from', type: 'number' },
+      { name: 'to', type: 'number' },
+    ],
+    returnType: () => ({ type: 'list', itemsType: { type: 'number' } }),
+  }),
+
   // Failables
   ok: _buildNativeLibraryFn({
     generics: ['T', 'E'],

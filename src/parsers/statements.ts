@@ -1,4 +1,4 @@
-import { ElIfBlock, ForLoopSubject, Statement } from '../shared/ast'
+import { ElIfBlock, Statement } from '../shared/ast'
 import { blockWithBraces } from './block'
 import { propertyAccess } from './chaining'
 import { cmdCall } from './cmdcall'
@@ -23,7 +23,7 @@ import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact } from './lib/matchers'
 import { mappedCases } from './lib/switches'
-import { map, silence, suppressErrorPrecedence, toOneProp } from './lib/transform'
+import { map, silence, suppressErrorPrecedence } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
 import { enumMatchingBlock } from './matching'
@@ -133,13 +133,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           exact('in', 'expected "in" keyword'),
           failure(s, 'expected a space after the "in" keyword')
         ),
-        mappedCases<ForLoopSubject>()('type', {
-          range: map(combine(exact('seq'), s, expr, combine(s, exact('to'), s), expr), ([_, __, from, ___, to]) => ({
-            from,
-            to,
-          })),
-          expr: toOneProp('expr', failure(expr, 'expected an expression to iterate on')),
-        }),
+        failure(expr, 'expected an expression to iterate on'),
         maybe_s_nl,
         withLatelyDeclared(() => blockWithBraces)
       ),

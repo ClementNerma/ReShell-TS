@@ -227,44 +227,20 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     forLoop: ({ loopVar, subject, body }) => {
-      const subjectType: TypecheckerResult<ValueType> = matchUnion(subject.parsed, 'type', {
-        expr: ({ expr }) => {
-          const subjectType = resolveExprType(expr, ctx)
-          if (!subjectType.ok) return subjectType
-
-          if (subjectType.data.type === 'list') {
-            return success(subjectType.data.itemsType)
-          } else if (subjectType.data.type === 'map') {
-            return err(subject.at, {
-              message: 'cannot iterate directly on maps',
-              complements: [['tip', 'you can iterate on maps using: for key, value in <a map>']],
-            })
-          } else {
-            return err(
-              subject.at,
-              `cannot iterate over non-list/map values (found \`${rebuildType(subjectType.data, { noDepth: true })}\`)`
-            )
-          }
-        },
-
-        range: ({ from, to }) => {
-          const fromType = resolveExprType(from, {
-            ...ctx,
-            typeExpectation: { from: null, type: { type: 'number' } },
-          })
-          if (!fromType.ok) return fromType
-
-          const toType = resolveExprType(to, {
-            ...ctx,
-            typeExpectation: { from: null, type: { type: 'number' } },
-          })
-          if (!toType.ok) return toType
-
-          return success({ type: 'number' })
-        },
-      })
-
+      const subjectType = resolveExprType(subject, ctx)
       if (!subjectType.ok) return subjectType
+
+      if (subjectType.data.type === 'map') {
+        return err(subject.at, {
+          message: 'cannot iterate directly on maps',
+          complements: [['tip', 'you can iterate on maps using: for key, value in <a map>']],
+        })
+      } else if (subjectType.data.type !== 'list') {
+        return err(
+          subject.at,
+          `cannot iterate over non-list/map values (found \`${rebuildType(subjectType.data, { noDepth: true })}\`)`
+        )
+      }
 
       const check = blockChecker(body, {
         ...ctx,

@@ -151,47 +151,18 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
     },
 
     forLoop: ({ loopVar, subject, body }) => {
-      const iterateOn: RunnerResult<ExecValue[]> = matchUnion(subject.parsed, 'type', {
-        range: ({ from, to }) => {
-          const resultFrom = runExpr(from.parsed, ctx)
-          if (resultFrom.ok !== true) return resultFrom
+      const result = runExpr(subject.parsed, ctx)
+      if (result.ok !== true) return result
 
-          const fromValue = expectValueType(from.at, resultFrom.data, 'number')
-          if (fromValue.ok !== true) return fromValue
+      const list = expectValueType(subject.at, result.data, 'list')
+      if (list.ok !== true) return list
 
-          const resultTo = runExpr(to.parsed, ctx)
-          if (resultTo.ok !== true) return resultTo
-
-          const toValue = expectValueType(from.at, resultTo.data, 'number')
-          if (toValue.ok !== true) return toValue
-
-          const fromInt = Math.floor(fromValue.data.value)
-          const toInt = Math.floor(toValue.data.value)
-
-          return success(
-            fromInt > toInt
-              ? []
-              : new Array(toInt - fromInt).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i }))
-          )
-        },
-
-        expr: ({ expr }) => {
-          const result = runExpr(expr.parsed, ctx)
-          if (result.ok !== true) return result
-
-          const list = expectValueType(expr.at, result.data, 'list')
-          if (list.ok !== true) return list
-
-          return success(list.data.items.slice())
-        },
-      })
-
-      if (iterateOn.ok !== true) return iterateOn
+      const iterateOn = list.data.items.slice()
 
       const scope: Scope = { generics: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
-      for (const value of iterateOn.data) {
+      for (const value of iterateOn) {
         scope.entities.set(loopVar.parsed, value)
 
         const result = runBlock(body, ctx)
