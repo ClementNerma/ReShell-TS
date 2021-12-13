@@ -28,4 +28,4 @@ export const endOfInlineCmdCall: Parser<void> = lookahead(
   combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, matchStatementClose]))
 )
 
-export const endOfCmdCall: Parser<void> = lookahead(or<unknown>([combine(maybe_s, eol()), endOfInlineCmdCall]))
+export const endOfCmdCallStatement: Parser<void> = or([lookahead(combine(maybe_s, eol())), endOfInlineCmdCall])

@@ -1,18 +1,15 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { ifThenElse, maybe } from '../lib/conditions'
-import { fail, lookahead, not } from '../lib/consumeless'
+import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
-import { maybe_s, maybe_s_nl, s } from '../lib/littles'
+import { maybe_s, maybe_s_nl } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
 import { exact, oneOf } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, mapFull, silence, toOneProp } from '../lib/transform'
-import { flattenMaybeToken, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
-import { cmdArg } from './cmdarg'
+import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { cmdCall } from './cmdcall'
 import {
-  CmdArg,
-  CmdRedir,
   DoubleArithOp,
   DoubleLogicOp,
   DoubleOp,
@@ -20,76 +17,32 @@ import {
   ExprPropAccess,
   ExprPropAccessSequence,
   InlineChainedCmdCall,
-  InlineCmdCall,
   SingleLogicOp,
   SingleOp,
   Value,
 } from './data'
-import { literalPath, literalValue } from './literals'
-import { cmdRedirOp, endOfInlineCmdCall, statementChainOp } from './stmtend'
+import { literalValue } from './literals'
+import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
-
-export const inlineCmdCall: Parser<InlineCmdCall> = map(
-  combine(
-    or([
-      map(combine(identifier, lookahead(endOfInlineCmdCall)), ([name, _]) => ({
-        name,
-        args: [],
-      })),
-      map(
-        combine(
-          identifier,
-          takeWhile(
-            ifThenElse<CmdArg>(
-              lookahead(endOfInlineCmdCall),
-              fail(),
-              failure(
-                withLatelyDeclared(() => cmdArg),
-                'Syntax error: invalid argument provided'
-              )
-            ),
-            {
-              inter: s,
-            }
-          ),
-          {
-            inter: s,
-          }
-        ),
-        ([name, args]) => ({
-          name,
-          args: args.parsed ?? [],
-        })
-      ),
-    ]),
-    maybe(
-      map(
-        combine(
-          cmdRedirOp,
-          maybe_s,
-          failure(literalPath, 'Syntax error: expected a valid path after redirection operator')
-        ),
-        ([op, _, path]): CmdRedir => ({ op, path })
-      )
-    ),
-    { inter: maybe_s }
-  ),
-  ([nameAndArgs, redir]) => ({ ...nameAndArgs.parsed, redir: flattenMaybeToken(redir) }),
-  'Syntax error: expected inline command call'
-)
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   reference: toOneProp(identifier, 'varname'),
   inlineCmdCallSequence: map(
     combine(
       exact('$('),
-      inlineCmdCall,
+      failure(
+        withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
+        'Syntax error: expected inline command call'
+      ),
       takeWhile<InlineChainedCmdCall>(
         map(
           combine(
             maybe_s,
             statementChainOp,
-            failure(inlineCmdCall, 'Syntax error: expected inline command call after chaining operator'),
+            failure(
+              withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
+              'Syntax error: expected inline command call after chaining operator'
+            ),
             { inter: maybe_s_nl }
           ),
           ([_, op, chainedCmdCall]) => ({ op, chainedCmdCall })

@@ -41,7 +41,7 @@ export type Statement =
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'fnOpen'; name: Token<string>; fnType: FnType }
   | { type: 'return'; expr: Token<Expr | null> }
-  | { type: 'cmdCall'; name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
+  | ({ type: 'cmdCall' } & CmdCall)
 
 export type FnType = {
   named: Token<string> | null
@@ -56,6 +56,8 @@ export type FnArg = {
   type: Token<ValueType>
   defaultValue: Token<LiteralValue> | null
 }
+
+export type CmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
 export type CmdArg =
   // NOTE: flags may have a non-direct value, e.g. `--arg value` will be parsed as a long 'arg' flag without direct value,
@@ -105,7 +107,7 @@ export type LiteralString =
 
 export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
 
-export type InlineCmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
+export type InlineCmdCall = CmdCall
 
 export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
 

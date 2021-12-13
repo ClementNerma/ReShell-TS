@@ -1,20 +1,18 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { flatten, ifThen, ifThenElse, maybe, maybeFlatten } from '../lib/conditions'
-import { fail, lookahead, not } from '../lib/consumeless'
+import { flatten, ifThen, maybe, maybeFlatten } from '../lib/conditions'
+import { lookahead, not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
-import { takeWhile } from '../lib/loops'
 import { bol, eol, exact, match } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken, selfRef } from '../lib/utils'
-import { cmdArg } from './cmdarg'
+import { cmdCall } from './cmdcall'
 import { matchStatementClose } from './context'
-import { CmdArg, CmdRedir, Statement, StatementChain } from './data'
+import { Statement, StatementChain } from './data'
 import { expr } from './expr'
-import { literalPath } from './literals'
-import { cmdRedirOp, endOfCmdCall, statementChainOp } from './stmtend'
+import { endOfCmdCallStatement, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { fnDecl, valueType } from './types'
 
@@ -103,46 +101,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     fnOpen: map(fnDecl, (fn) => fn),
 
-    cmdCall: map(
-      combine(
-        or([
-          map(combine(identifier, lookahead(endOfCmdCall)), ([name, _]) => ({ name, args: [] })),
-          map(
-            combine(
-              identifier,
-              takeWhile(
-                ifThenElse<CmdArg>(endOfCmdCall, fail(), failure(cmdArg, 'Syntax error: invalid argument provided')),
-                {
-                  inter: s,
-                }
-              ),
-              {
-                inter: s,
-              }
-            ),
-            ([name, args]) => ({
-              name,
-              args: args.parsed ?? [],
-            })
-          ),
-        ]),
-        maybe(
-          map(
-            combine(
-              cmdRedirOp,
-              maybe_s,
-              failure(literalPath, 'Syntax error: expected a valid path after redirection operator')
-            ),
-            ([op, _, path]): CmdRedir => ({ op, path })
-          )
-        ),
-        { inter: maybe_s }
-      ),
-      ([nameAndArgs, redir]) => ({
-        ...nameAndArgs.parsed,
-        redir: flattenMaybeToken(redir),
-      })
-    ),
+    cmdCall: cmdCall(endOfCmdCallStatement),
   },
   'Syntax error: expected statement'
 )
