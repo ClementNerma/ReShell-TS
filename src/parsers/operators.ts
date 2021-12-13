@@ -2,6 +2,7 @@ import { DoubleArithOp, DoubleComparisonOp, DoubleLogicOp, DoubleOp, SingleLogic
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches } from './lib/conditions'
+import { never } from './lib/consumeless'
 import { takeWhile1 } from './lib/loops'
 import { oneOf, oneOfMap } from './lib/matchers'
 import { mappedCases } from './lib/switches'
@@ -57,6 +58,12 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
   arith: toOneProp(doubleArithOp, 'op'),
   logic: toOneProp(doubleLogicOp, 'op'),
   comparison: toOneProp(doubleComparisonLogicOp, 'op'),
+})
+
+export const doubleOpForAssignment: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
+  arith: toOneProp(doubleArithOp, 'op'),
+  logic: toOneProp(doubleLogicOp, 'op'),
+  comparison: never(),
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
