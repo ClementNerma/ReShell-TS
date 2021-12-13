@@ -42,21 +42,6 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
         ([op, _, right]) => ({ op, right })
       ),
 
-      // "(" expr ")"
-      paren: map(
-        combine(
-          combine(exact('('), maybe_s_nl),
-          failure(
-            withLatelyDeclared(() => expr),
-            'expected an expression after an opening parenthesis'
-          ),
-          combine(maybe_s_nl, exact(')'))
-        ),
-        ([_, inner, __]) => ({
-          inner,
-        })
-      ),
-
       // if <cond> { <then> } else { <else> }
       ternary: map(
         combine(
@@ -150,6 +135,21 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
 
       // value
       value: map(value, (_, content) => ({ content })),
+
+      // "(" expr ")"
+      paren: map(
+        combine(
+          combine(exact('('), maybe_s_nl),
+          failure(
+            withLatelyDeclared(() => expr),
+            'expected an expression after an opening parenthesis'
+          ),
+          combine(maybe_s_nl, exact(')'))
+        ),
+        ([_, inner, __]) => ({
+          inner,
+        })
+      ),
 
       // Internal
       synth: never(),
