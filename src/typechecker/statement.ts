@@ -409,6 +409,19 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           return resolved.ok ? success({ neverEnds: true }) : resolved
         },
 
+        panic: ({ message }) => {
+          if (message !== null) {
+            const check = resolveExprType(message, {
+              ...ctx,
+              typeExpectation: { from: null, type: { type: 'string' } },
+            })
+
+            if (!check.ok) return check
+          }
+
+          return success({ neverEnds: true })
+        },
+
         cmdCall: (call) => {
           const cmdCallCheck = cmdCallTypechecker(call, ctx)
           return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
