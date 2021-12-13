@@ -139,9 +139,7 @@ export const isTypeCompatible: Typechecker<
     }
 
     // If not found, it means we are in a function body and generics are not resolvable yet
-  }
-
-  if (referent.type !== 'generic') {
+  } else {
     if (candidate.type === 'nullable') {
       return referent.type !== 'nullable'
         ? expectationErr('value should not be nullable')
