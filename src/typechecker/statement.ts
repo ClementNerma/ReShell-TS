@@ -309,7 +309,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         },
 
         // Nothing to do here, already handled in first pass
-        typeAlias: () => success({ neverReturns: true }),
+        typeAlias: () => success({ neverReturns: false }),
 
         fnDecl: ({ fnType, body }) => {
           return statementChainChecker(body, {
