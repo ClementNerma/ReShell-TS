@@ -207,7 +207,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             return err(subject.at, 'cannot iterate over non-list values')
           }
 
-          return statementChainChecker(body, {
+          const check = statementChainChecker(body, {
             ...ctx,
             inLoop: true,
             scopes: scopes.concat([
@@ -220,6 +220,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               },
             ]),
           })
+
+          if (!check.ok) return check
+
+          return check.data.neverReturns
+            ? err(stmt.at, 'This loop always return or break')
+            : success({ neverReturns: false })
         },
 
         whileLoop: ({ cond, body }) => {
@@ -230,12 +236,16 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!condCheck.ok) return condCheck
 
-          return statementChainChecker(body, {
+          const check = statementChainChecker(body, {
             ...ctx,
             inLoop: true,
             scopes:
               condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.assertionScope]) : ctx.scopes,
           })
+
+          if (!check.ok) return check
+
+          return check.data.neverReturns ? err(stmt.at, 'This loop never returns') : success({ neverReturns: false })
         },
 
         break: () => {
