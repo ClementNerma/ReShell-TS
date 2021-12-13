@@ -8,27 +8,20 @@ import { or } from '../lib/switches'
 
 export type StatementClosingChar = '}' | ']' | ')'
 
-type CtxMapper = ($custom: CustomContext) => CustomContext
 type CtxAction<T> = ($custom: CustomContext) => Parser<T>
 
 export type CustomContext = {
-  statementClose: StatementClosingChar[]
+  statementClose: StatementClosingChar | null
   continuationKeywords: string[]
 }
 
 export const initContext: () => CustomContext = () => ({
-  statementClose: [],
+  statementClose: null,
   continuationKeywords: [],
 })
 
-export const withStatementClose = <T>(char: StatementClosingChar, parser: Parser<T>): Parser<T> =>
-  withTypedCtx<T, CustomContext>(
-    ($custom) => ({
-      ...$custom,
-      statementClose: $custom.statementClose.concat([char]),
-    }),
-    parser
-  )
+export const withStatementClose = <T>(statementClose: StatementClosingChar, parser: Parser<T>): Parser<T> =>
+  withTypedCtx<T, CustomContext>(($custom) => ({ ...$custom, statementClose }), parser)
 
 export const withContinuationKeyword = <T>(continuationKeywords: string[], parser: Parser<T>): Parser<T> =>
   withTypedCtx<T, CustomContext>(
@@ -41,7 +34,7 @@ export const withContinuationKeyword = <T>(continuationKeywords: string[], parse
 
 export const getStatementClose: <T>(action: (char: string | null) => Parser<T>) => CtxAction<T> =
   (action) => ($custom) =>
-    action($custom.statementClose[$custom.statementClose.length - 1] ?? null)
+    action($custom.statementClose)
 
 export const getContinuationKeyword: <T>(action: (words: string[]) => Parser<T>) => CtxAction<T> =
   (action) => ($custom) =>

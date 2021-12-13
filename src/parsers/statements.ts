@@ -62,6 +62,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
       failure(expr, 'Expected a condition'),
       map(
         combine(
+          maybe_s_nl,
           exact('{', 'Expected an opening brace ({) for the "if"\'s body'),
           withStatementClose(
             '}',
@@ -73,15 +74,17 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
           exact('}', "Expected a closing brace (}) to close the block's content"),
           { inter: maybe_s_nl }
         ),
-        ([_, { parsed: body }, __]) => body
+        ([_, __, { parsed: body }]) => body
       ),
       takeWhile(
         map(
           combine(
+            maybe_s_nl,
             exact('elif'),
             failure(expr, 'Expected a condition for the "elif" statement'),
             map(
               combine(
+                maybe_s_nl,
                 exact('{', 'Expected an opening brace ({) for the "elif" body'),
                 withStatementClose(
                   '}',
@@ -93,11 +96,11 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
                 exact('}', "Expected a closing brace (}) to close the block's content"),
                 { inter: maybe_s_nl }
               ),
-              ([_, { parsed: body }, __]) => body
+              ([_, __, { parsed: body }]) => body
             ),
             { inter: maybe_s_nl }
           ),
-          ([_, cond, { parsed: body }]) => ({ cond, body })
+          ([_, __, cond, { parsed: body }]) => ({ cond, body })
         ),
         { inter: maybe_s_nl }
       ),
@@ -107,6 +110,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
             exact('else'),
             map(
               combine(
+                maybe_s_nl,
                 exact('{', 'Expected an opening brace ({) for the "else" body'),
                 withStatementClose(
                   '}',
@@ -115,14 +119,13 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
                 exact('}', "Expected a closing brace (}) to close the block's content"),
                 { inter: maybe_s_nl }
               ),
-              ([_, { parsed: body }, __]) => body
+              ([_, __, { parsed: body }]) => body
             ),
             { inter: maybe_s_nl }
           ),
           ([_, { parsed: body }]) => body
         )
-      ),
-      { inter: maybe_s_nl }
+      )
     ),
     ([_, cond, { parsed: body }, { parsed: elif }, { parsed: els }]) => ({ cond, body, elif, els })
   ),
