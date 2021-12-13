@@ -14,7 +14,6 @@ import { ErrorParsingFormatters, formatErr } from './shared/errors'
 import { SourceFilesServer } from './shared/files-server'
 import { createTypecheckerContext } from './typechecker/base'
 import { programChecker } from './typechecker/program'
-import path = require('path/posix')
 
 install()
 Error.stackTraceLimit = 100
