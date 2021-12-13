@@ -194,31 +194,26 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
   }
 
   if (fnType.failureType !== null) {
-    if (ctx.expectedFailureWriter) {
-      if (ctx.expectedFailureWriter.ref === null) {
-        ctx.expectedFailureWriter.ref = {
-          at,
-          content: fnType.failureType.parsed,
-        }
-      } else {
-        const compat = isTypeCompatible(
-          { at, candidate: fnType.failureType.parsed },
-          {
-            ...ctx,
-            typeExpectation: {
-              type: ctx.expectedFailureWriter.ref.content,
-              from: ctx.expectedFailureWriter.ref.at,
-            },
-            typeExpectationNature: 'failure type',
-          }
-        )
+    if (!ctx.expectedFailureWriter) {
+      return err(at, 'cannot call a failable function without try/catch')
+    }
 
-        if (!compat.ok) return compat
+    if (ctx.expectedFailureWriter.ref === null) {
+      ctx.expectedFailureWriter.ref = {
+        at,
+        content: fnType.failureType.parsed,
       }
-    } else if (ctx.fnExpectation?.failureType) {
+    } else {
       const compat = isTypeCompatible(
         { at, candidate: fnType.failureType.parsed },
-        { ...ctx, typeExpectation: ctx.fnExpectation.failureType, typeExpectationNature: 'failure type' }
+        {
+          ...ctx,
+          typeExpectation: {
+            type: ctx.expectedFailureWriter.ref.content,
+            from: ctx.expectedFailureWriter.ref.at,
+          },
+          typeExpectationNature: 'failure type',
+        }
       )
 
       if (!compat.ok) return compat
