@@ -2,6 +2,9 @@ import { ValueType } from '../../shared/ast'
 import { DiagnosticExtract } from '../../shared/diagnostics'
 import { CodeSection } from '../../shared/parsed'
 import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { isLocEq } from '../loc-cmp'
+import { getResolvedGenericInSingleScope } from '../scope/search'
+import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
 export const isTypeCompatible: Typechecker<
@@ -130,18 +133,14 @@ export const isTypeCompatible: Typechecker<
 
   if (referent.type === 'generic') {
     for (const gScope of ctx.resolvedGenerics.reverse()) {
-      const generic = gScope.get(referent.name.parsed)
+      const generic = getResolvedGenericInSingleScope(gScope, referent.name.parsed, referent.orig)
 
       if (generic !== undefined) {
-        if (generic === null) {
-          gScope.set(referent.name.parsed, candidate)
+        if (generic.mapped === null) {
+          generic.mapped = candidate
           return success(void 0)
         } else {
-          return subCheck({
-            candidate,
-            referent: generic,
-            referentAt: from,
-          })
+          return subCheck({ candidate, referent: generic.mapped })
         }
       }
     }
@@ -157,25 +156,28 @@ export const isTypeCompatible: Typechecker<
     }
   }
 
-  if (candidate.type === 'generic' && fillKnownGenerics) {
-    const set = fillKnownGenerics.get(candidate.name.parsed)
+  if (candidate.type === 'generic') {
+    if (fillKnownGenerics) {
+      const set = getResolvedGenericInSingleScope(fillKnownGenerics, candidate.name.parsed, candidate.orig)
 
-    if (set === undefined) {
-      return expectationErr('internal error: candidate generic is unknown although filling map was provided')
-    }
+      if (set === undefined) {
+        return expectationErr('internal error: candidate generic is unknown although filling map was provided')
+      }
 
-    if (set === null) {
-      fillKnownGenerics.set(candidate.name.parsed, referent)
-      return success(void 0)
+      if (set.mapped === null) {
+        set.mapped = referent
+        return success(void 0)
+      } else {
+        const compat = subCheck({ candidate: referent, referent: set.mapped, referentAt: at })
+
+        if (!compat.ok) return compat
+      }
     } else {
-      const compat = subCheck({
-        candidate: referent,
-        candidateAt: from ?? undefined,
-        referent: set,
-        referentAt: at,
-      })
+      const resolved = resolveGenerics(candidate, ctx.resolvedGenerics)
 
-      if (!compat.ok) return compat
+      if (isResolvedGenericDifferent(resolved, candidate)) {
+        return subCheck({ candidate: resolved, referent })
+      }
     }
   }
 
@@ -288,7 +290,7 @@ export const isTypeCompatible: Typechecker<
 
         const retTypeCompat = subCheck({
           candidate: c.fnType.returnType.parsed,
-          candidateAt: c.fnType.returnType.at,
+          // candidateAt: c.fnType.returnType.at,
           referent: r.fnType.returnType.parsed,
           referentAt: r.fnType.returnType.at,
         })
@@ -310,7 +312,7 @@ export const isTypeCompatible: Typechecker<
     failable: (c, r) => {
       const successCheck = subCheck({
         candidate: c.successType.parsed,
-        candidateAt: c.successType.at,
+        // candidateAt: c.successType.at,
         referent: r.successType.parsed,
         referentAt: r.successType.at,
       })
@@ -318,8 +320,8 @@ export const isTypeCompatible: Typechecker<
       if (!successCheck.ok) return successCheck
 
       const failureCheck = subCheck({
-        candidateAt: c.failureType.at,
         candidate: c.failureType.parsed,
+        // candidateAt: c.failureType.at,
         referent: r.failureType.parsed,
         referentAt: r.failureType.at,
       })
@@ -332,17 +334,16 @@ export const isTypeCompatible: Typechecker<
     generic: (c, r) => {
       return c.name.parsed !== r.name.parsed
         ? expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
-        : success(void 0)
-      // : isLocEq(c.name.at.start, r.name.at.start)
-      // ? success(void 0)
-      // : expectationErr(
-      //     `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
-      //     undefined,
-      //     [
-      //       { at: r.name.at, message: 'expected this generic' },
-      //       { at: c.name.at, message: 'found this generic' },
-      //     ]
-      //   )
+        : isLocEq(c.orig.start, r.orig.start)
+        ? success(void 0)
+        : expectationErr(
+            `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+            undefined,
+            [
+              { at: r.orig, message: 'expected this generic' },
+              { at: c.orig, message: 'found this generic' },
+            ]
+          )
     },
 
     aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),

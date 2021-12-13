@@ -3,6 +3,8 @@ import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import { cmdDeclSubCommand } from './cmddecl'
 import {
+  CustomContext,
+  mapContextProp,
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
@@ -14,6 +16,7 @@ import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
 import { lookahead } from './lib/consumeless'
+import { feedContext } from './lib/context'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
@@ -183,17 +186,24 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     match: enumMatchingBlock,
 
     fnDecl: map(
-      combine(
+      feedContext(
         withLatelyDeclared(() => fnDecl),
-        maybe_s_nl,
-        withLatelyDeclared(() => blockBody)
+        (context: CustomContext, { genericsDef }) =>
+          mapContextProp(context, 'genericsDefinitions', (def) => def.concat(genericsDef)),
+        map(
+          combine(
+            maybe_s_nl,
+            withLatelyDeclared(() => blockBody)
+          ),
+          ([_, body]) => body
+        ),
+        (_) => void 0
       ),
       ([
         {
           parsed: { name, fnType },
         },
-        _,
-        body,
+        { parsed: body },
       ]) => ({ name, fnType, body })
     ),
 

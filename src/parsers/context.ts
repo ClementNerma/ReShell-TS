@@ -1,5 +1,7 @@
+import { CodeSection, Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
+import { FailableMapped } from './lib/conditions'
 import { fail, lookahead } from './lib/consumeless'
 import { withRuntimeTypedCtx, withTypedCtx } from './lib/context'
 import { maybe_s_nl } from './lib/littles'
@@ -13,12 +15,39 @@ type CtxAction<T> = ($custom: CustomContext) => Parser<T>
 export type CustomContext = {
   statementClose: StatementClosingChar | null
   continuationKeywords: string[]
+  genericsDefinitions: Map<string, CodeSection>[]
 }
 
 export const initContext: () => CustomContext = () => ({
   statementClose: null,
   continuationKeywords: [],
+  genericsDefinitions: [],
 })
+
+export const mapContextProp = <P extends keyof CustomContext>(
+  context: CustomContext,
+  prop: P,
+  mapper: (value: CustomContext[P]) => CustomContext[P]
+): CustomContext => ({ ...context, [prop]: mapper(context[prop]) })
+
+export const addGenericsDefinition = (context: CustomContext, generics: Token<string>[]): CustomContext =>
+  generics.length === 0
+    ? context
+    : mapContextProp(context, 'genericsDefinitions', (def) =>
+        def.concat([new Map(generics.map((g) => [g.parsed, g.at]))])
+      )
+
+export const completeGenericsDefinition = (
+  name: Token<string>,
+  context: CustomContext
+): FailableMapped<{ name: Token<string>; orig: CodeSection }> => {
+  for (const defs of context.genericsDefinitions.reverse()) {
+    const orig = defs.get(name.parsed)
+    if (orig) return { ok: true, data: { name, orig } }
+  }
+
+  return { ok: false, err: "internal error: generic not found in parser's hierarchiesed definitions in" }
+}
 
 export const withStatementClosingChar = <T>(statementClose: StatementClosingChar, parser: Parser<T>): Parser<T> =>
   withTypedCtx<T, CustomContext>(($custom) => ({ ...$custom, statementClose }), parser)

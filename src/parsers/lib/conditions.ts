@@ -151,6 +151,23 @@ export function thenErr<T>(parser: Parser<T>, thenErr: (parsed: ParserErr) => Pa
   }
 }
 
+export type FailableMapped<U> = { ok: true; data: U } | { ok: false; err: ErrInputData }
+
+export function failable<T, U>(
+  parser: Parser<T>,
+  then: (parsed: T, token: Token<T>, context: ParsingContext) => FailableMapped<U>
+): Parser<U> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    if (!parsed.ok) return parsed
+
+    const mapped = then(parsed.data.parsed, parsed.data, context)
+    return mapped.ok
+      ? success(start, parsed.data.at.next, mapped.data, parsed.data.matched)
+      : err(start, parsed.data.at.next, context, mapped.err)
+  }
+}
+
 export function accelerateWithLookahead<T>(lookahead: Parser<unknown>, parser: Parser<T>): Parser<T> {
   return (start, input, context) => {
     const lookaheadResult = lookahead(start, input, context)

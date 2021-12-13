@@ -1,4 +1,4 @@
-import { Token } from './parsed'
+import { CodeSection, Token } from './parsed'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Statements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
@@ -76,7 +76,7 @@ export type ValueType =
   | { type: 'nullable'; inner: ValueType }
   | { type: 'failable'; successType: Token<ValueType>; failureType: Token<ValueType> }
   | { type: 'unknown' }
-  | { type: 'generic'; name: Token<string> }
+  | { type: 'generic'; name: Token<string>; orig: CodeSection }
   | InternalTypes
 
 export type PrimitiveValueType = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }

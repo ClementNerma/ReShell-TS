@@ -1,6 +1,16 @@
-import { Token } from '../../shared/parsed'
+import { ValueType } from '../../shared/ast'
+import { CodeSection, Token } from '../../shared/parsed'
 import { matchStr } from '../../shared/utils'
-import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import {
+  err,
+  GenericResolutionScope,
+  ScopeEntity,
+  success,
+  Typechecker,
+  TypecheckerContext,
+  TypecheckerResult,
+} from '../base'
+import { isLocEq } from '../loc-cmp'
 
 export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { scopes }) => {
   const orig = scopes[scopes.length - 1].get(name.parsed)
@@ -10,7 +20,7 @@ export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { sco
         message: `a ${getEntityCategoryName(orig.type)} with this name was previously declared in this scope`,
         also: [
           {
-            at: orig.at,
+            at: orig.type === 'generic' ? orig.name.at : orig.at,
             message: 'original declaration occurs here',
           },
         ],
@@ -58,4 +68,25 @@ export function getEntityCategoryName(type: ScopeEntity['type']): string {
     fn: () => 'function',
     var: () => 'variable',
   })
+}
+
+export function getContextuallyResolvedGeneric(
+  resolvedGenerics: TypecheckerContext['resolvedGenerics'],
+  name: string,
+  orig: CodeSection
+): { mapped: ValueType | null } | undefined {
+  for (const gScope of resolvedGenerics.reverse()) {
+    const got = getResolvedGenericInSingleScope(gScope, name, orig)
+    if (got) return got
+  }
+
+  return undefined
+}
+
+export function getResolvedGenericInSingleScope(
+  gScope: GenericResolutionScope,
+  name: string,
+  orig: CodeSection
+): { mapped: ValueType | null } | undefined {
+  return gScope.find((c) => c.name.parsed === name && isLocEq(orig.start, c.orig.start))
 }

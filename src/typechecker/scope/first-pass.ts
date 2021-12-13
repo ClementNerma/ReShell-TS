@@ -5,6 +5,7 @@ import { Statement, StatementChain } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { err, Scope, success, Typechecker } from '../base'
 import { fnTypeValidator } from '../types/fn'
+import { typeValidator } from '../types/validator'
 import { ensureScopeUnicity } from './search'
 
 export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
@@ -32,6 +33,11 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
             message: 'a type alias has already been declared with this name',
             also: [{ at: orig.at, message: 'original declaration occurs here' }],
           })
+        }
+
+        if (stmt.parsed.type === 'typeAlias') {
+          const check = typeValidator(stmt.parsed.content.parsed, ctx)
+          if (!check.ok) return check
         }
 
         ctx.typeAliases.set(typename.parsed, {

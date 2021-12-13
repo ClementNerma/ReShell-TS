@@ -1,8 +1,9 @@
 import { ValueType } from '../shared/ast'
+import { completeGenericsDefinition, CustomContext } from './context'
 import { fnType } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract } from './lib/conditions'
+import { extract, failable } from './lib/conditions'
 import { never } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s_nl } from './lib/littles'
@@ -116,9 +117,9 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
 
       aliasRef: toOneProp('typeAliasName', identifier),
 
-      generic: map(
+      generic: failable(
         combine(exact(':'), failure(identifier, 'expected a generic identifier after (:) symbol')),
-        ([_, name]) => ({ name })
+        (_, { parsed: [__, name] }, context) => completeGenericsDefinition(name, context.$custom as CustomContext)
       ),
 
       // Internal types

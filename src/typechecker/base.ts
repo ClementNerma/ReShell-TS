@@ -50,12 +50,12 @@ export type Scope = Map<string, ScopeEntity>
 
 export type ScopeEntity =
   | { type: 'fn'; at: CodeSection; content: FnType }
-  | { type: 'generic'; at: CodeSection; name: Token<string> }
+  | { type: 'generic'; name: Token<string> }
   | ({ type: 'var'; at: CodeSection } & ScopeVar)
 
 export type ScopeVar = { mutable: boolean; varType: ValueType }
 
-export type GenericResolutionScope = Map<string, ValueType | null>
+export type GenericResolutionScope = { name: Token<string>; orig: CodeSection; mapped: ValueType | null }[]
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (at: CodeSection, err: DiagnosticInput): TypecheckerErr => ({

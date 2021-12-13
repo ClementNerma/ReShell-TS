@@ -12,10 +12,11 @@ import {
 } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
-import { getEntityInScope } from '../scope/search'
+import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureTypeValidator, validateFnCall } from './fn'
+import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -23,16 +24,22 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
   if (typeExpectation?.type.type === 'generic') {
     for (const gScope of ctx.resolvedGenerics.reverse()) {
-      const generic = gScope.get(typeExpectation.type.name.parsed)
+      const generic = getResolvedGenericInSingleScope(
+        gScope,
+        typeExpectation.type.name.parsed,
+        typeExpectation.type.orig
+      )
 
-      if (generic) {
-        typeExpectation = { from: typeExpectation.from, type: generic }
+      if (!generic) continue
+
+      if (generic.mapped) {
+        typeExpectation = { from: typeExpectation.from, type: generic.mapped }
         break
-      } else if (generic === null) {
+      } else {
         const type = resolveValueType(value, { ...ctx, typeExpectation: null })
         if (!type.ok) return type
 
-        gScope.set(typeExpectation.type.name.parsed, type.data)
+        generic.mapped = type.data
         return success(type.data)
       }
     }
@@ -544,10 +551,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         )
       }
 
-      let resolvedGenerics: GenericResolutionScope = new Map()
+      let resolvedGenerics: GenericResolutionScope = []
 
       if (ctx.typeExpectation && fnType.generics.length > 0) {
-        resolvedGenerics = new Map(fnType.generics.map((g) => [g.parsed, null]))
+        resolvedGenerics = fnType.generics.map((g) => ({ name: g, orig: g.at, mapped: null }))
 
         const compat = isTypeCompatible(
           {
@@ -562,20 +569,29 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!compat.ok) return compat
       }
 
-      const returnType = validateFnCall({ at: name.at, fnType, generics, args, resolvedGenerics }, ctx)
+      const fnCallCheck = validateFnCall({ at: name.at, fnType, generics, args, resolvedGenerics }, ctx)
 
-      if (!returnType.ok) return returnType
+      if (!fnCallCheck.ok) return fnCallCheck
+
+      const [returnType, gScope] = fnCallCheck.data
 
       if (ctx.typeExpectation) {
         const compat = isTypeCompatible(
-          { at: name.at, candidate: returnType.data, typeExpectation: ctx.typeExpectation },
+          {
+            at: name.at,
+            candidate: returnType,
+            typeExpectation: {
+              from: ctx.typeExpectation.from,
+              type: resolveGenerics(ctx.typeExpectation.type, ctx.resolvedGenerics.concat([gScope])),
+            },
+          },
           ctx
         )
 
         if (!compat.ok) return compat
       }
 
-      return success(returnType.data)
+      return success(returnType)
     },
 
     inlineCmdCallSequence: ({ start, sequence }) => {
