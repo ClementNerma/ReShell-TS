@@ -3,82 +3,94 @@
 
 import { StatementChain } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
-import { err, Scope, success, Typechecker } from '../base'
+import { ensureCoverage, err, Scope, success, Typechecker } from '../base'
 import { statementChainChecker } from '../statement'
 import { fnTypeValidator } from '../types/fn'
-import { ensureScopeUnicity, getEntityInScope } from './search'
+import { ensureScopeUnicity } from './search'
 
 export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
-  const withFileInclusions = scopeFirstPassFileInclusions(chain, ctx)
-  if (!withFileInclusions.ok) return withFileInclusions
-
-  const firstPass = withFileInclusions.data
-
-  const typeAliases = completeScopeFirstPassTypeAliases([chain, firstPass], ctx)
-  if (!typeAliases.ok) return typeAliases
-
-  const functions = completeScopeFirstPassFunctions([chain, firstPass], ctx)
-  if (!functions.ok) return functions
-
-  return success(firstPass)
-}
-
-const scopeFirstPassFileInclusions: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
-  const currentScope: Scope = new Map()
+  const firstPass: Scope = new Map()
 
   ctx = {
     ...ctx,
-    scopes: ctx.scopes.concat([currentScope]),
+    scopes: ctx.scopes.concat([firstPass]),
   }
-
-  for (const stmt of chain) {
-    if (stmt.parsed.type === 'empty') continue
-
-    for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      if (sub.parsed.type !== 'fileInclusion') {
-        continue
-      }
-
-      const check = statementChainChecker(sub.parsed.content, ctx)
-      if (!check.ok) return check
-
-      if (sub.parsed.imports === null) {
-        break
-      }
-
-      const scope = check.data.topLevelScope
-
-      for (const { entity, alias } of sub.parsed.imports) {
-        const imported = getEntityInScope(entity, { ...ctx, scopes: [scope] })
-
-        if (imported.ok) {
-          const unicity = ensureScopeUnicity(alias ?? entity, ctx)
-          if (!unicity.ok) return unicity
-
-          currentScope.set(alias?.parsed ?? entity.parsed, imported.data)
-        } else {
-          return err(entity.at, `entity \`${entity.parsed}\` was not found in this file`)
-        }
-      }
-
-      break
-    }
-  }
-
-  return success(currentScope)
-}
-
-const completeScopeFirstPassTypeAliases: Typechecker<[Token<StatementChain>[], Scope], void> = (
-  [chain, scope],
-  ctx
-) => {
-  ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       switch (sub.parsed.type) {
+        case 'fileInclusion':
+          const check = statementChainChecker(sub.parsed.content, ctx)
+          if (!check.ok) return check
+
+          if (sub.parsed.imports === null) {
+            break
+          }
+
+          const scope = check.data.topLevelScope
+
+          switch (sub.parsed.imports.type) {
+            case 'none':
+              break
+
+            case 'some':
+              for (const { entity, alias } of sub.parsed.imports.imports) {
+                const imported = scope.get(entity.parsed)
+
+                if (!imported) {
+                  return err(entity.at, `entity \`${entity.parsed}\` was not found in this file`)
+                }
+
+                const name = alias?.parsed ?? entity.parsed
+
+                const orig = ctx.scopes[ctx.scopes.length - 1].get(name)
+
+                if (orig) {
+                  return err(entity.at, {
+                    message: `cannot import entity \`${name}\` as it would override the local declaration`,
+                    also: [
+                      {
+                        at: orig.at,
+                        message: 'original declaration occurs here',
+                      },
+                    ],
+                  })
+                }
+
+                firstPass.set(name, imported)
+              }
+
+              break
+
+            case 'all':
+              for (const [name, entity] of scope.entries()) {
+                const orig = ctx.scopes[ctx.scopes.length - 1].get(name)
+
+                if (orig) {
+                  return err(stmt.at, {
+                    message: `cannot import this file using wildcard (*) as entity \`${name}\` would be overriden`,
+                    also: [
+                      {
+                        at: orig.at,
+                        message: 'original declaration occurs here',
+                      },
+                    ],
+                  })
+                }
+
+                firstPass.set(name, entity)
+              }
+
+              break
+
+            default:
+              return ensureCoverage(sub.parsed.imports)
+          }
+
+          break
+
         case 'typeAlias':
           const typename = sub.parsed.typename
 
@@ -127,27 +139,14 @@ const completeScopeFirstPassTypeAliases: Typechecker<[Token<StatementChain>[], S
           const typeUnicity = ensureScopeUnicity(typename, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
-          scope.set(typename.parsed, {
+          firstPass.set(typename.parsed, {
             at: typename.at,
             type: 'typeAlias',
             content: sub.parsed.content.parsed,
           })
+
           break
-      }
-    }
-  }
 
-  return success(void 0)
-}
-
-const completeScopeFirstPassFunctions: Typechecker<[Token<StatementChain>[], Scope], void> = ([chain, scope], ctx) => {
-  ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
-
-  for (const stmt of chain) {
-    if (stmt.parsed.type === 'empty') continue
-
-    for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      switch (sub.parsed.type) {
         case 'fnDecl':
           const fnName = sub.parsed.name
           const fnUnicity = ensureScopeUnicity(fnName, ctx)
@@ -156,7 +155,7 @@ const completeScopeFirstPassFunctions: Typechecker<[Token<StatementChain>[], Sco
           const fnTypeChecker = fnTypeValidator(sub.parsed.fnType, ctx)
           if (!fnTypeChecker.ok) return fnTypeChecker
 
-          scope.set(fnName.parsed, {
+          firstPass.set(fnName.parsed, {
             at: fnName.at,
             type: 'fn',
             content: sub.parsed.fnType,
@@ -166,5 +165,5 @@ const completeScopeFirstPassFunctions: Typechecker<[Token<StatementChain>[], Sco
     }
   }
 
-  return success(void 0)
+  return success(firstPass)
 }

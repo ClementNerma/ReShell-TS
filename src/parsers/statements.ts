@@ -1,4 +1,12 @@
-import { ChainedStatement, ElIfBlock, EntityImport, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
+import {
+  ChainedStatement,
+  ElIfBlock,
+  EntityImport,
+  EntityImports,
+  ForLoopSubject,
+  Statement,
+  StatementChain,
+} from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
@@ -12,7 +20,7 @@ import { fnDecl } from './fn'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/conditions'
-import { lookahead } from './lib/consumeless'
+import { lookahead, nothing } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -305,11 +313,13 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         exact('@include'),
         s,
         failure(rawString, 'expected a file path to include'),
-        maybe(
-          map(
+        maybe_s,
+        mappedCases<EntityImports>()('type', {
+          all: map(combine(exact('import'), s, exact('*')), () => ({})),
+
+          some: map(
             combine(
               combine(
-                s,
                 exact('import', 'expected an "import" keyword'),
                 maybe_s_nl,
                 exact('{', 'expected an opening brace ({)'),
@@ -343,13 +353,15 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
               maybe_s_nl,
               exact('}', 'expected a closing brace (})')
             ),
-            ([_, { parsed: imports }]) => imports
-          )
-        )
+            ([_, { parsed: imports }]) => ({ imports })
+          ),
+
+          none: map(nothing(), () => ({})),
+        })
       ),
       (
-        [_, __, { parsed: filePath }, { parsed: imports }],
-        { at, parsed: [___, ____, filePathToken], matched },
+        [_, __, { parsed: filePath }, ___, { parsed: imports }],
+        { at, parsed: [____, _____, filePathToken], matched },
         context
       ) => {
         const resolvedFilePath = context.sourceServer.resolvePath(filePath, context.currentFilePath)

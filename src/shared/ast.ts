@@ -51,11 +51,13 @@ export type Statement =
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'panic'; message: Token<Expr> }
   | ({ type: 'cmdCall' } & CmdCall)
-  | { type: 'fileInclusion'; content: Program; imports: EntityImport[] | null }
+  | { type: 'fileInclusion'; content: Program; imports: EntityImports }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
 
 export type ForLoopSubject = { type: 'expr'; expr: Token<Expr> } | { type: 'range'; from: Token<Expr>; to: Token<Expr> }
+
+export type EntityImports = { type: 'none' } | { type: 'some'; imports: EntityImport[] } | { type: 'all' }
 
 export type EntityImport = { entity: Token<string>; alias: Token<string> | null }
 
