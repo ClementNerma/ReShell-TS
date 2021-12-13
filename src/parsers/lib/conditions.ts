@@ -1,6 +1,6 @@
 import { CodeLoc, Token } from '../../shared/parsed'
 import { StrView } from '../../shared/strview'
-import { err, ErrInputData, Parser, ParserErr, ParserResult, ParsingContext, phantomSuccess } from './base'
+import { err, ErrInputData, Parser, ParserErr, ParserResult, ParsingContext, phantomSuccess, success } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
@@ -60,6 +60,43 @@ export function failIfMatchesAndCond<T>(
   }
 }
 
+export function useSeparatorIf<T, U>(
+  parser: Parser<Token<T>[]>,
+  separator: Parser<unknown>,
+  then: Parser<U>
+  // sepButNoThen: WithErrData
+): Parser<[Token<Token<T>[]>, Token<U> | null]> {
+  return (start, input, context): ParserResult<[Token<Token<T>[]>, Token<U> | null]> => {
+    const parsed = parser(start, input, context)
+    if (!parsed.ok) return parsed
+
+    const sep =
+      parsed.data.parsed.length > 0
+        ? separator(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
+        : phantomSuccess(parsed.data.at.next)
+
+    if (!sep.ok) return success(start, parsed.data.at.next, [parsed.data, null], parsed.data.matched)
+
+    const next = then(sep.data.at.next, input.offset(parsed.data.matched.length + sep.data.matched.length), context)
+
+    if (!next.ok) {
+      return next.precedence ? next : success(start, parsed.data.at.next, [parsed.data, null], parsed.data.matched)
+      // : parsed.data.parsed.length === 0
+      // ? success(start, parsed.data.at.next, [parsed.data, null], parsed.data.matched)
+      // : withErr(next, sepButNoThen)
+    }
+
+    return next.data.parsed !== null
+      ? success(
+          start,
+          next.data.at.next,
+          [parsed.data, next.data],
+          parsed.data.matched + sep.data.matched + next.data.matched
+        )
+      : success(start, parsed.data.at.next, [parsed.data, next.data], parsed.data.matched)
+  }
+}
+
 export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknown>, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
@@ -76,24 +113,6 @@ export function maybe<T>(parser: Parser<T>): Parser<T | null> {
     return parsed.ok || parsed.precedence ? parsed : phantomSuccess(start, null)
   }
 }
-
-// export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
-//   return (start, input, context) => {
-//     const parsed = parser(start, input, context)
-//     return parsed.ok
-//       ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
-//       : parsed.precedence
-//       ? parsed
-//       : phantomSuccess(start, null)
-//   }
-// }
-
-// export function flatten<T>(parser: Parser<Token<T>>): Parser<T> {
-//   return (start, input, context) => {
-//     const parsed = parser(start, input, context)
-//     return parsed.ok ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } } : parsed
-//   }
-// }
 
 export function extract<T>(parser: Parser<Token<T>[]>): Parser<T[]> {
   return (start, input, context) => {
