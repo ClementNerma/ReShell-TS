@@ -22,12 +22,14 @@ export type RunnerContext = {
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
   platformPathSeparator: string
+  argv: string[]
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
 
 export const createRunnerContext = (
   precompData: PrecompData,
   platformPathSeparator: string,
+  argv: string[],
   diagnosticHandler: RunnerContext['emitDiagnostic']
 ): RunnerContext => ({
   scopes: [],
@@ -36,6 +38,7 @@ export const createRunnerContext = (
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
   platformPathSeparator,
+  argv,
   emitDiagnostic: diagnosticHandler,
 })
 

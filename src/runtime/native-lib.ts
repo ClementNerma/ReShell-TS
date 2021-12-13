@@ -43,7 +43,10 @@ function getArguments<A extends { [name: string]: ValueType['type'] }, H extends
 }
 
 export const nativeLibraryVariables = buildWithNativeLibraryVarNames<(ctx: RunnerContext) => ExecValue>({
-  argv: () => ({ type: 'list', items: process.argv.slice(2).map((value) => ({ type: 'string', value })) }),
+  argv: (ctx) => ({
+    type: 'list',
+    items: ctx.argv.map((value) => ({ type: 'string', value })),
+  }),
   PATH: () => ({
     type: 'list',
     items:

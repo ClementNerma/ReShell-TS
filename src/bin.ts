@@ -152,7 +152,9 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
 
-  const runnerContext = createRunnerContext(typechecked.data, sep, diagnosticHandler)
+  const argv = process.argv.includes('--args') ? process.argv.slice(process.argv.indexOf('--args') + 1) : []
+
+  const runnerContext = createRunnerContext(typechecked.data, sep, argv, diagnosticHandler)
 
   const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 
