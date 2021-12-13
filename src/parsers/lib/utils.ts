@@ -1,4 +1,6 @@
+import { Diagnostic } from '../../shared/diagnostics'
 import { Token } from '../../shared/parsed'
+import { matchUnion } from '../../shared/utils'
 import { Parser, ParserErr } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
@@ -8,6 +10,20 @@ export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> 
 
 export function withLatelyDeclared<T>(parser: () => Parser<T>): Parser<T> {
   return (start, input, ctx) => parser()(start, input, ctx)
+}
+
+function _sumUpDiagnostics(diags: Diagnostic[]): string {
+  return diags
+    .map((diag) => {
+      const file = matchUnion(diag.error.at.start.file, 'type', {
+        entrypoint: () => '<entrypoint>',
+        internal: ({ path }) => `<internal:${path}>`,
+        file: ({ path }) => `file:${path}`,
+      })
+
+      return `${file} [${diag.error.at.start.line}:${diag.error.at.start.col} => ${diag.error.at.next.line}:${diag.error.at.next.col}] "${diag.error.message}"`
+    })
+    .join(' >> ')
 }
 
 function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: string | undefined): Parser<unknown> {
@@ -24,7 +40,9 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
         ? `${parserName} Succeeded at line ${result.data.at.next.line} col ${result.data.at.next.col} | ${trimStr(
             result.data.matched
           )}`
-        : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | ${trimStr(JSON.stringify(result.history))}`
+        : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | (${result.history.length}) ${trimStr(
+            _sumUpDiagnostics(result.history)
+          )}`
     )
 
     return result
