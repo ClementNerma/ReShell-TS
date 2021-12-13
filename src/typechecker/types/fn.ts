@@ -426,7 +426,7 @@ export const validateAndRegisterFnCall: Typechecker<
     })
   }
 
-  const missingFlag = [...flags.values()].find((arg) => !arg.parsed.optional)
+  const missingFlag = [...flags.values()].find((arg) => !arg.parsed.optional && arg.parsed.type.parsed.type !== 'bool')
 
   if (missingFlag) {
     return err(lastPos, {
