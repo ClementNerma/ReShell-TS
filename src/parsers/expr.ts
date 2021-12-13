@@ -1,9 +1,9 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { not } from '../lib/consumeless'
+import { failIfMatches } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
-import { takeWhile } from '../lib/loops'
+import { takeWhile, takeWhile1 } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
@@ -24,7 +24,9 @@ import { identifier } from './tokens'
 import { valueType } from './types'
 import { value } from './value'
 
-export const _opSym: Parser<void> = silence(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!']))
+export const _catchUnknownOperator: Parser<void> = silence(
+  takeWhile1(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!', '<', '>', '=']))
+)
 
 export const doubleArithOp: Parser<DoubleArithOp> = map(
   combine(
@@ -36,7 +38,7 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
       ['%', DoubleArithOp.Rem],
       ['??', DoubleArithOp.Null],
     ]),
-    failure(not(_opSym), 'Unknown operator')
+    failIfMatches(_catchUnknownOperator, 'Unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -54,7 +56,7 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
       ['>', DoubleLogicOp.GreaterThan],
       ['<', DoubleLogicOp.LessThan],
     ]),
-    failure(not(_opSym), 'Unknown operator')
+    failIfMatches(_catchUnknownOperator, 'Unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -65,7 +67,7 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
-  combine(oneOfMap([['!', SingleLogicOp.Not]]), failure(not(_opSym), 'Unknown operator')),
+  combine(oneOfMap([['!', SingleLogicOp.Not]]), failIfMatches(_catchUnknownOperator, 'Unknown operator')),
   ([{ parsed: sym }]) => sym
 )
 
