@@ -77,7 +77,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     }
 
     return expected.type === type || expected.type === 'unknown'
-      ? success(typeExpectation.type)
+      ? success({ type })
       : errIncompatibleValueType({
           typeExpectation,
           foundType: type,
@@ -238,7 +238,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (items.length === 0) {
         return typeExpectation
-          ? success(typeExpectation.type)
+          ? success({ type: 'list', itemsType: { type: 'unknown' } })
           : err(value.at, 'unable to determine the type of this list')
       }
 
@@ -267,7 +267,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!itemType.ok) return itemType
       }
 
-      return success<ValueType>(typeExpectation?.type ?? { type: 'list', itemsType: referenceType.data })
+      return success<ValueType>({ type: 'list', itemsType: referenceType.data })
     },
 
     map: ({ type, entries }) => {
@@ -278,7 +278,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (entries.length === 0) {
         return typeExpectation
-          ? success(typeExpectation.type)
+          ? success({ type: 'map', itemsType: { type: 'unknown' } })
           : err(value.at, 'unable to determine the type of this map')
       }
 
@@ -320,7 +320,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!itemType.ok) return itemType
       }
 
-      return success<ValueType>(typeExpectation?.type ?? { type: 'map', itemsType: referenceType.data })
+      return success<ValueType>({ type: 'map', itemsType: referenceType.data })
     },
 
     struct: ({ type, members }) => {
@@ -328,9 +328,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!assert.ok) return assert
 
       if (members.length === 0) {
-        return typeExpectation
-          ? success(typeExpectation.type)
-          : err(value.at, 'unable to determine the type of this struct')
+        return success({ type: 'struct', members: [] })
       }
 
       const expectedStructType = assert.data
@@ -404,7 +402,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         }
       }
 
-      return success<ValueType>(typeExpectation?.type ?? { type: 'struct', members: outputTypes })
+      return success<ValueType>({ type: 'struct', members: outputTypes })
     },
 
     enumVariant: ({ enumName, variant }) => {
@@ -527,7 +525,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const expected = assert.data.fnType
 
       const check = closureCallValidator({ at: value.at, args, restArg, body, expected }, ctx)
-      return check.ok ? success({ type: 'fn', fnType: expected }) : check
+
+      if (!check.ok) return check
+
+      ctx.callbackTypes.set(value.parsed, expected)
+
+      return success({ type: 'fn', fnType: expected })
     },
 
     fnCall: ({ name, generics, args }) => {

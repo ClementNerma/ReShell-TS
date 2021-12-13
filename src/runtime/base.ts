@@ -1,6 +1,5 @@
-import { Block, ClosureBody, ValueType } from '../shared/ast'
+import { Block, ClosureBody, FnType, Value, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
-import { ObjectsTypingMap } from '../shared/otm'
 import { CodeSection } from '../shared/parsed'
 
 export type Runner<T, RetType = void> = (token: T, ctx: RunnerContext) => RunnerResult<RetType>
@@ -13,20 +12,23 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
-  objectsTypingMap: ObjectsTypingMap
+  typeAliases: Map<string, { at: CodeSection; content: ValueType }>
+  callbackTypes: Map<Value, FnType>
 }
 
-export const createRunnerContext = (objectsTypingMap: RunnerContext['objectsTypingMap']): RunnerContext => ({
+export const createRunnerContext = (
+  typeAliases: RunnerContext['typeAliases'],
+  callbackTypes: RunnerContext['callbackTypes']
+): RunnerContext => ({
   scopes: [],
-  objectsTypingMap,
+  typeAliases,
+  callbackTypes,
 })
 
 export type Scope = {
   functions: string[]
-  entities: Map<string, TypedExecValue>
+  entities: Map<string, ExecValue>
 }
-
-export type TypedExecValue = { inner: ExecValue; type: ValueType }
 
 export type ExecValue =
   | { type: 'null' }
@@ -38,8 +40,8 @@ export type ExecValue =
   | { type: 'map'; entries: Map<string, ExecValue> }
   | { type: 'struct'; members: Map<string, ExecValue> }
   | { type: 'enum'; variant: string }
-  | { type: 'fn'; def: { args: string[]; restArg: string | null }; body: Block }
-  | { type: 'callback'; def: { args: string[]; restArg: string | null }; body: ClosureBody }
+  | { type: 'fn'; def: { args: string[]; restArg: string | null }; fnType: FnType; body: Block }
+  | { type: 'callback'; def: { args: string[]; restArg: string | null }; fnType: FnType; body: ClosureBody }
   | { type: 'failable'; success: boolean; value: ExecValue }
 
 export function success<T>(data: T): RunnerResult<T> {

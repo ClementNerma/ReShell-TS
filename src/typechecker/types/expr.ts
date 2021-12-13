@@ -82,7 +82,7 @@ export const resolveCondOrTypeAssertionType: Typechecker<
       const subjectType = subject.data.varType
 
       const assertionType: TypecheckerResult<{ normal: ValueType | null; inverted: ValueType | null }> = matchUnion(
-        expr.parsed.exact.parsed,
+        expr.parsed.minimum.parsed,
         'against',
         {
           null: () => {
@@ -148,20 +148,10 @@ export const resolveCondOrTypeAssertionType: Typechecker<
       return success({
         type: 'assertion',
         normalAssertionScope: normal
-          ? new Map([
-              [
-                expr.parsed.varname.parsed,
-                { type: 'var', at: expr.at, mutable: subject.data.mutable, varType: normal },
-              ],
-            ])
+          ? new Map([[expr.parsed.varname.parsed, { type: 'var', at: expr.at, mutable: false, varType: normal }]])
           : new Map(),
         oppositeAssertionScope: opposite
-          ? new Map([
-              [
-                expr.parsed.varname.parsed,
-                { type: 'var', at: expr.at, mutable: subject.data.mutable, varType: opposite },
-              ],
-            ])
+          ? new Map([[expr.parsed.varname.parsed, { type: 'var', at: expr.at, mutable: false, varType: opposite }]])
           : new Map(),
         inverted: expr.parsed.inverted,
       })

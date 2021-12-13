@@ -161,7 +161,7 @@ export const condOrTypeAssertion: Parser<CondOrTypeAssertion> = mappedCases<Cond
       s,
       typeAssertionAgainst
     ),
-    ([varname, _, { parsed: inverted }, __, exact]) => ({ varname, inverted, exact })
+    ([varname, _, { parsed: inverted }, __, minimum]) => ({ varname, inverted, minimum })
   ),
 
   expr: toOneProp('inner', expr),

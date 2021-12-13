@@ -56,8 +56,6 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         varType: expectedType ?? validation.data,
       })
 
-      ctx.objectsTypingMap.assignedExpr.set(expr.parsed, expectedType ?? validation.data)
-
       return success({ neverEnds: false })
     },
 
@@ -150,10 +148,6 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
           })
 
       if (!check.ok) return check
-
-      if (prefixOp === null) {
-        ctx.objectsTypingMap.assignedExpr.set(expr.parsed, check.data)
-      }
 
       return success({ neverEnds: false })
     },
@@ -284,8 +278,6 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
       }
 
-      ctx.objectsTypingMap.forLoopsValueVar.set(loopVar, subjectType.data)
-
       return success({ neverEnds: check.data.neverEnds })
     },
 
@@ -313,8 +305,6 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       if (check.data.neverEnds) {
         ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
       }
-
-      ctx.objectsTypingMap.forLoopsValueVar.set(valueVar, subjectType.data)
 
       return success({ neverEnds: check.data.neverEnds })
     },

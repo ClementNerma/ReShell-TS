@@ -14,13 +14,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const evaluated = runExpr(expr.parsed, ctx)
       if (evaluated.ok !== true) return evaluated
 
-      const type = ctx.objectsTypingMap.assignedExpr.get(expr.parsed)
-
-      if (type === undefined) {
-        return err(expr.at, "internal error: failed to get expression type from typechecker's map for this expression")
-      }
-
-      scope.entities.set(varname.parsed, { inner: evaluated.data, type })
+      scope.entities.set(varname.parsed, evaluated.data)
       return success(void 0)
     },
 
@@ -31,7 +25,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
         const entityValue = scope.entities.get(varname.parsed)
 
         if (entityValue) {
-          found = { scope, target: entityValue.inner }
+          found = { scope, target: entityValue }
           break
         }
       }
@@ -110,13 +104,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const newValue = computeValue(targetAt, target)
       if (newValue.ok !== true) return newValue
 
-      const type = ctx.objectsTypingMap.assignedExpr.get(expr.parsed)
-
-      if (type === undefined) {
-        return err(expr.at, "internal error: failed to get expression type from typechecker's map for this expression")
-      }
-
-      found.scope.entities.set(varname.parsed, { inner: newValue.data, type })
+      found.scope.entities.set(varname.parsed, newValue.data)
       return success(void 0)
     },
 
@@ -124,20 +112,39 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const result = runCondOrTypeAssertion(cond.parsed, ctx)
       if (result.ok !== true) return result
 
-      const check = expectValueType(cond.at, result.data, 'bool')
+      const check = expectValueType(cond.at, result.data.result, 'bool')
       if (check.ok !== true) return check
-      if (check.data.value) return runBlock(then, ctx)
+      if (check.data.value)
+        return runBlock(
+          then,
+          result.data.type === 'assertion'
+            ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
+            : ctx
+        )
 
       for (const { cond, body } of elif) {
         const result = runCondOrTypeAssertion(cond.parsed, ctx)
         if (result.ok !== true) return result
 
-        const check = expectValueType(cond.at, result.data, 'bool')
+        const check = expectValueType(cond.at, result.data.result, 'bool')
         if (check.ok !== true) return check
-        if (check.data.value) return runBlock(body, ctx)
+        if (check.data.value)
+          return runBlock(
+            body,
+            result.data.type === 'assertion'
+              ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
+              : ctx
+          )
       }
 
-      return els ? runBlock(els, ctx) : success(void 0)
+      return els
+        ? runBlock(
+            els,
+            result.data.type === 'assertion'
+              ? { ...ctx, scopes: ctx.scopes.concat([result.data.oppositeAssertionScope]) }
+              : ctx
+          )
+        : success(void 0)
     },
 
     forLoop: ({ loopVar, subject, body }) => {
@@ -181,17 +188,8 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope: Scope = { functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
-      const type = ctx.objectsTypingMap.forLoopsValueVar.get(loopVar)
-
-      if (type === undefined) {
-        return err(
-          loopVar.at,
-          "internal error: failed to get the loop's value variable type from typechecker's map for this expression"
-        )
-      }
-
       for (const value of iterateOn.data) {
-        scope.entities.set(loopVar.parsed, { inner: value, type })
+        scope.entities.set(loopVar.parsed, value)
 
         const result = runBlock(body, ctx)
         if (result.ok === null && result.breaking === 'continue') continue
@@ -214,18 +212,9 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope: Scope = { functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
-      const type = ctx.objectsTypingMap.forLoopsValueVar.get(valueVar)
-
-      if (type === undefined) {
-        return err(
-          valueVar.at,
-          "internal error: failed to get the loop's value variable type from typechecker's map for this expression"
-        )
-      }
-
       for (const [key, value] of iterateOn) {
-        scope.entities.set(keyVar.parsed, { inner: { type: 'string', value: key }, type: { type: 'string' } })
-        scope.entities.set(valueVar.parsed, { inner: value, type })
+        scope.entities.set(keyVar.parsed, { type: 'string', value: key })
+        scope.entities.set(valueVar.parsed, value)
 
         const result = runBlock(body, ctx)
         if (result.ok === null && result.breaking === 'continue') continue
@@ -241,11 +230,17 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
         const result = runCondOrTypeAssertion(cond.parsed, ctx)
         if (result.ok !== true) return result
 
-        const evalCond = expectValueType(cond.at, result.data, 'bool')
+        const evalCond = expectValueType(cond.at, result.data.result, 'bool')
         if (evalCond.ok !== true) return evalCond
         if (!evalCond.data.value) break
 
-        const exec = runBlock(body, ctx)
+        const exec = runBlock(
+          body,
+          result.data.type === 'assertion'
+            ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
+            : ctx
+        )
+
         if (exec.ok === null && exec.breaking === 'continue') continue
         if (exec.ok === null && exec.breaking === 'break') break
         if (exec.ok !== true) return exec
@@ -287,12 +282,10 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope = ctx.scopes[ctx.scopes.length - 1]
 
       scope.entities.set(name.parsed, {
-        inner: {
-          type: 'fn',
-          def: { args: fnType.args.map((arg) => arg.parsed.name.parsed), restArg: fnType.restArg?.parsed ?? null },
-          body: body.parsed,
-        },
-        type: { type: 'fn', fnType },
+        type: 'fn',
+        def: { args: fnType.args.map((arg) => arg.parsed.name.parsed), restArg: fnType.restArg?.parsed ?? null },
+        fnType,
+        body: body.parsed,
       })
 
       scope.functions.push(name.parsed)

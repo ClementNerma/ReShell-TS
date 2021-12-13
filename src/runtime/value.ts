@@ -160,12 +160,20 @@ export const runValue: Runner<Value, ExecValue> = (value, ctx) =>
       return runExpr(relevantArm.matchWith.parsed, ctx)
     },
 
-    callback: ({ args, restArg, body }) =>
-      success({
+    callback: ({ args, restArg, body }) => {
+      const fnType = ctx.callbackTypes.get(value)
+
+      if (fnType === undefined) {
+        return err(body.at, "internal error: failed to get this function's type from context")
+      }
+
+      return success({
         type: 'callback',
         def: { args: args.map((arg) => arg.parsed.name.parsed), restArg: restArg?.parsed ?? null },
         body: body.parsed,
-      }),
+        fnType,
+      })
+    },
 
     fnCall: (/*{ name, args }*/) => {
       throw new Error('TODO: function calls')
@@ -180,7 +188,7 @@ export const runValue: Runner<Value, ExecValue> = (value, ctx) =>
         const value = scope.entities.get(varname.parsed)
 
         if (value) {
-          return success(value.inner)
+          return success(value)
         }
       }
 

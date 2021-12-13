@@ -7,12 +7,12 @@ import {
   ExprElementContent,
   ExprOrNever,
   NonNullablePropertyAccess,
-  ValueType,
 } from '../shared/ast'
 import { getOpPrecedence } from '../shared/constants'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
-import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
+import { ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
+import { cloneValueWithTypeCompatibility } from './utils'
 import { expectValueType, runValue } from './value'
 
 export const runExpr: Runner<Expr, ExecValue> = (expr, ctx) => {
@@ -401,20 +401,31 @@ export const runExprElementContent: Runner<ExprElementContent, ExecValue> = (con
       const result = runCondOrTypeAssertion(cond.parsed, ctx)
       if (result.ok !== true) return result
 
-      const check = expectValueType(cond.at, result.data, 'bool')
+      const check = expectValueType(cond.at, result.data.result, 'bool')
       if (check.ok !== true) return check
-      if (check.data.value) return runExprOrNever(then.parsed, ctx)
+      if (check.data.value)
+        return runExprOrNever(
+          then.parsed,
+          result.data.type === 'assertion'
+            ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
+            : ctx
+        )
 
       for (const { cond, expr } of elif) {
         const result = runCondOrTypeAssertion(cond.parsed, ctx)
         if (result.ok !== true) return result
 
-        const check = expectValueType(cond.at, result.data, 'bool')
+        const check = expectValueType(cond.at, result.data.result, 'bool')
         if (check.ok !== true) return check
         if (check.data.value) return runExprOrNever(expr.parsed, ctx)
       }
 
-      return runExprOrNever(els.parsed, ctx)
+      return runExprOrNever(
+        els.parsed,
+        result.data.type === 'assertion'
+          ? { ...ctx, scopes: ctx.scopes.concat([result.data.oppositeAssertionScope]) }
+          : ctx
+      )
     },
 
     singleOp: ({ op, right }) => {
@@ -435,28 +446,88 @@ export const runExprElementContent: Runner<ExprElementContent, ExecValue> = (con
     },
   })
 
-export const runCondOrTypeAssertion: Runner<CondOrTypeAssertion, ExecValue> = (cond, ctx) =>
+export const runCondOrTypeAssertion: Runner<
+  CondOrTypeAssertion,
+  | { type: 'expr'; result: ExecValue }
+  | { type: 'assertion'; result: ExecValue; normalAssertionScope: Scope; oppositeAssertionScope: Scope }
+> = (cond, ctx) =>
   matchUnion(cond, 'type', {
-    assertion: ({ varname, exact, inverted }) => {
-      let targetType: ValueType | null = null
+    assertion: ({ varname, minimum, inverted }) => {
+      let target: ExecValue | null = null
 
       for (const scope of ctx.scopes.reverse()) {
-        const target = scope.entities.get(varname.parsed)
+        const entity = scope.entities.get(varname.parsed)
 
-        if (target) {
-          targetType = target.type
+        if (entity) {
+          target = entity
           break
         }
       }
 
-      if (targetType === null) {
+      if (target === null) {
         return err(varname.at, 'internal error: variable not found in scope')
       }
 
-      throw new Error('TODO: type assertions')
+      // FIX: required due to a bug in TypeScript's typechecker
+      const defTarget = target
+
+      const normalScope: Scope = { functions: [], entities: new Map() }
+      const oppositeScope: Scope = { functions: [], entities: new Map() }
+
+      const result: RunnerResult<boolean> = matchUnion(minimum.parsed, 'against', {
+        null: () => success(defTarget.type === 'null'),
+
+        ok: () => {
+          if (defTarget.type !== 'failable') {
+            return err(
+              varname.at,
+              `internal error: expected a failable value for this type assertion, found internal type "${defTarget.type}"`
+            )
+          }
+
+          const targetScope = defTarget.success ? normalScope : oppositeScope
+          targetScope.entities.set(varname.parsed, defTarget.value)
+          return success(defTarget.success)
+        },
+
+        err: () => {
+          if (defTarget.type !== 'failable') {
+            return err(
+              varname.at,
+              `internal error: expected a failable value for this type assertion, found internal type "${defTarget.type}"`
+            )
+          }
+
+          const targetScope = defTarget.success ? oppositeScope : normalScope
+          targetScope.entities.set(varname.parsed, defTarget.value)
+          return success(!defTarget.success)
+        },
+
+        custom: ({ type }) => {
+          const cloned = cloneValueWithTypeCompatibility(minimum.at, defTarget, type.parsed, ctx)
+          if (cloned.ok !== true) return cloned
+          if (cloned.data === false) return success(false)
+
+          normalScope.entities.set(varname.parsed, cloned.data)
+
+          return success(true)
+        },
+      })
+
+      if (result.ok !== true) return result
+
+      return success({
+        type: 'assertion',
+        normalAssertionScope: inverted ? oppositeScope : normalScope,
+        oppositeAssertionScope: inverted ? normalScope : oppositeScope,
+        result: { type: 'bool', value: inverted ? !result.data : result.data },
+      })
     },
 
-    expr: ({ inner }) => runExpr(inner.parsed, ctx),
+    expr: ({ inner }) => {
+      const execExpr = runExpr(inner.parsed, ctx)
+      return execExpr.ok === true ? success({ type: 'expr', result: execExpr.data }) : execExpr
+    },
   })
 
 export const runExprOrNever: Runner<ExprOrNever, ExecValue> = (expr, ctx) =>
