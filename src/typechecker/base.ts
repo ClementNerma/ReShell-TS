@@ -22,13 +22,11 @@ export type ScopeFn = Located<FnType>
 export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
-export const err = (
-  err: FormatableExtractsInput | { error: FormatableExtractsInput; also: FormatableExtract[] },
-  at: CodeSection
-): TypecheckerErr =>
-  typeof err === 'object' && 'also' in err
-    ? { ok: false, error: formattableExtract(at, err.error), also: err.also }
-    : { ok: false, error: formattableExtract(at, err), also: [] }
+export const err = (err: FormatableExtractsInput, at: CodeSection, also?: FormatableExtract[]): TypecheckerErr => ({
+  ok: false,
+  error: formattableExtract(at, err),
+  also: also ?? [],
+})
 
 export type Located<T> = { start: CodeLoc; end: CodeLoc; data: T }
 

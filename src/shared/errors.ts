@@ -9,7 +9,7 @@ export type FormatableExtract = {
   complements?: [string, string][]
 }
 
-export type FormatableExtractsInput = string | { message: string; complements?: [string, string][] | null }
+export type FormatableExtractsInput = string | { message: string; complements?: [string, string][] }
 
 export const formattableExtract = (at: CodeSection, input: FormatableExtractsInput): FormatableExtract => {
   // Fallback message provided
@@ -18,13 +18,18 @@ export const formattableExtract = (at: CodeSection, input: FormatableExtractsInp
         start: at.start,
         end: at.end,
         message: input,
-        complements: [],
+      }
+    : input.complements
+    ? {
+        start: at.start,
+        end: at.end,
+        message: input.message,
+        complements: input.complements,
       }
     : {
         start: at.start,
         end: at.end,
         message: input.message,
-        complements: input.complements ?? [],
       }
 }
 

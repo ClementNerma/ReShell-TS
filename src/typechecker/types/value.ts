@@ -193,13 +193,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         const duplicate = keys.get(key.parsed)
 
         if (duplicate) {
-          return err(
-            {
-              message: 'A key with this name was already declared above',
-              also: [formattableExtract(duplicate, 'Original declaration occurs here')],
-            },
-            key
-          )
+          return err('A key with this name was already declared above', key, [
+            formattableExtract(duplicate, 'Original declaration occurs here'),
+          ])
         }
 
         keys.set(key.parsed, key)
@@ -239,13 +235,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         const duplicate = memberNames.get(name.parsed)
 
         if (duplicate) {
-          return err(
-            {
-              message: 'A member with this name was already declared above',
-              also: [formattableExtract(duplicate, 'Original declaration occurs here')],
-            },
-            name
-          )
+          return err('A member with this name was already declared above', name, [
+            formattableExtract(duplicate, 'Original declaration occurs here'),
+          ])
         }
 
         memberNames.set(name.parsed, name)

@@ -49,13 +49,9 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
 
               case 'Null':
                 if (!leftExprType.nullable) {
-                  return err(
-                    {
-                      message: 'This operator can only be applied on nullable values',
-                      also: [formattableExtract(leftExpr, 'This expression is not nullable')],
-                    },
-                    action.op
-                  )
+                  return err('This operator can only be applied on nullable values', action.op, [
+                    formattableExtract(leftExpr, 'This expression is not nullable'),
+                  ])
                 }
 
                 checkRightOperandType = null
