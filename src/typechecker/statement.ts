@@ -1,7 +1,7 @@
 import { ExprElement, Statement, ValueType } from '../shared/ast'
 import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
-import { matchUnion } from '../shared/utils'
+import { matchStrWithValues, matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
 import { blockChecker, StatementChainMetadata } from './block'
 import { cmdCallTypechecker } from './cmdcall'
@@ -286,19 +286,26 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       const subjectType = resolveExprType(subject, ctx)
       if (!subjectType.ok) return subjectType
 
-      if (subjectType.data.type !== 'map') {
+      if (subjectType.data.type !== 'list' && subjectType.data.type !== 'map') {
         return err(
           subject.at,
-          `expected a \`map\` to iterate on, found a \`${rebuildType(subjectType.data, { noDepth: true })}\``
+          `expected a \`list\` or \`map\` to iterate on, found a \`${rebuildType(subjectType.data, {
+            noDepth: true,
+          })}\``
         )
       }
+
+      const iterVarType: ValueType = matchStrWithValues(subjectType.data.type, {
+        list: { type: 'number' },
+        map: { type: 'string' },
+      })
 
       const check = blockChecker(body, {
         ...ctx,
         inLoop: true,
         scopes: ctx.scopes.concat([
           new Map([
-            [keyVar.parsed, { type: 'var', at: keyVar.at, mutable: false, varType: { type: 'string' } }],
+            [keyVar.parsed, { type: 'var', at: keyVar.at, mutable: false, varType: iterVarType }],
             [valueVar.parsed, { type: 'var', at: valueVar.at, mutable: false, varType: subjectType.data.itemsType }],
           ]),
         ]),

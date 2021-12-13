@@ -20,6 +20,8 @@ export const matchUnionWithFallback = <U extends { [key in D]: string }, D exten
 
 export const matchStr = <S extends string, T>(str: S, callbacks: { [variant in S]: () => T }): T => callbacks[str]()
 
+export const matchStrWithValues = <S extends string, T>(str: S, callbacks: { [variant in S]: T }): T => callbacks[str]
+
 export const computeCodeSectionEnd = (section: CodeSection, source: StrView): CodeLoc =>
   section.start.line === section.next.line && section.start.col === section.next.col
     ? section.start

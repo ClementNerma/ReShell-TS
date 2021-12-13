@@ -206,16 +206,31 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       const evalSubject = runExpr(subject.parsed, ctx)
       if (evalSubject.ok !== true) return evalSubject
 
-      const map = expectValueType(subject.at, evalSubject.data, 'map')
-      if (map.ok !== true) return map
+      let iterator: Iterable<[number | string, ExecValue]>
 
-      const iterateOn = [...map.data.entries.entries()]
+      if (evalSubject.data.type === 'list') {
+        iterator = evalSubject.data.items.entries()
+      } else if (evalSubject.data.type === 'map') {
+        iterator = evalSubject.data.entries.entries()
+      } else {
+        return err(
+          subject.at,
+          `internal error: type mismatch (expected a list or map, found "${evalSubject.data.type}")`
+        )
+      }
+
+      // This is required to avoid problems if the subject would happen to be modified
+      // while the loop was being run
+      const iterateOn = [...iterator]
 
       const scope: Scope = { generics: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
       for (const [key, value] of iterateOn) {
-        scope.entities.set(keyVar.parsed, { type: 'string', value: key })
+        const iterValue: ExecValue =
+          typeof key === 'number' ? { type: 'number', value: key } : { type: 'string', value: key }
+
+        scope.entities.set(keyVar.parsed, iterValue)
         scope.entities.set(valueVar.parsed, value)
 
         const result = runBlock(body, ctx)
