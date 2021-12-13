@@ -157,7 +157,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       for (const item of items.slice(1)) {
         const itemType = resolveExprType(item, { scopes: ctx.scopes, expectedType: referenceType.data })
-        if (!itemType) return itemType
+        if (!itemType.ok) return itemType
       }
 
       return success<ValueType>(
@@ -201,7 +201,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         keys.set(key.parsed, key)
 
         const itemType = resolveExprType(value, { scopes: ctx.scopes, expectedType: referenceType.data })
-        if (!itemType) return itemType
+        if (!itemType.ok) return itemType
       }
 
       return success<ValueType>(
