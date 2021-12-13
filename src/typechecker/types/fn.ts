@@ -10,7 +10,7 @@ import {
   success,
   Typechecker,
   TypecheckerContext,
-  TypecheckerResult,
+  TypecheckerResult
 } from '../base'
 import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
@@ -353,7 +353,15 @@ export const validateAndRegisterFnCall: Typechecker<
   }
 
   if (ctx.typeExpectation && fnType.generics.length > 0) {
-    const compat = isTypeCompatible(
+    // This function call is only here to populate the generics scope
+    // Type incompatibility failures will be caught later on
+    // If we fail on, we will get unresolved generics in the error message
+    //  as some of them will only be resolved from the arguments' types
+    // It would be way too complex to create a function just for generics
+    //  scope populating, as there are many complex things to handle inside
+    //  like nullability, type aliases, resolving other generics, etc.
+    // So we simply call this function and drop its result
+    isTypeCompatible(
       {
         at,
         candidate: fnType.returnType?.parsed ?? { type: 'void' },
@@ -362,8 +370,6 @@ export const validateAndRegisterFnCall: Typechecker<
       },
       ctx
     )
-
-    if (!compat.ok) return compat
   }
 
   ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
