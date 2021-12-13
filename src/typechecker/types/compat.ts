@@ -291,12 +291,12 @@ export const isTypeCompatible: Typechecker<
 
     generic: (c, r) => {
       if (c.name.parsed !== r.name.parsed) {
-        return expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``)
+        return expectationErr(`expected generic \`:${r.name.parsed}\`, found generic \`:${c.name.parsed}\``)
       }
 
       if (!isLocEq(c.orig.start, r.orig.start)) {
         return expectationErr(
-          `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+          `expected generic \`:${r.name.parsed}\`, found another generic named \`:${c.name.parsed}\``,
           undefined,
           [
             { at: r.orig, message: 'expected this generic' },
@@ -311,7 +311,7 @@ export const isTypeCompatible: Typechecker<
 
       if (r.fromFnCallAt && !isLocEq(c.fromFnCallAt, r.fromFnCallAt)) {
         return expectationErr(
-          `expected generic \`${r.name.parsed}\`, found another generic named \`${c.name.parsed}\``,
+          `expected generic \`:${r.name.parsed}\`, found another generic named \`:${c.name.parsed}\``,
           undefined,
           [
             { at: r.orig, message: 'expected this generic...' },
