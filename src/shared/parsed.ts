@@ -175,7 +175,7 @@ export type Value =
   | { type: 'reference'; varname: Token<string> }
 
 export type ExprSequenceAction =
-  | { type: 'propAccess'; access: Token<PropertyAccess> }
+  | { type: 'propAccess'; right: Token<PropertyAccess> }
   | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
 
 export type ExprElement =

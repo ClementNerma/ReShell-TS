@@ -160,7 +160,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
 )
 
 export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSequenceAction>()('type', {
-  propAccess: toOneProp(propertyAccess, 'access'),
+  propAccess: toOneProp(propertyAccess, 'right'),
 
   doubleOp: map(
     combine(maybe_s, doubleOp, maybe_s, failure(exprElement, 'Expected an expression after operator')),

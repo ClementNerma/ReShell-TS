@@ -1,129 +1,33 @@
 import { CodeSection, Expr, ExprElement, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { err, success, Typechecker, TypecheckerResult } from '../base'
-import { rebuildType } from './rebuilder'
+import { success, Typechecker } from '../base'
+import { resolveExprSequenceActionType } from './expr-seq'
 import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, context) => {
   const from = resolveExprElementType(expr.parsed.from, context)
   if (!from.ok) return from
 
-  let leftExprAt: CodeSection = expr.at
+  let leftExprAt: CodeSection = expr.parsed.from.at
   let leftExprType = from.data
 
   for (const { parsed: action } of expr.parsed.sequence) {
-    switch (action.type) {
-      case 'doubleOp':
-        const op = action.op.parsed
+    const newLeftExprType = resolveExprSequenceActionType({ leftExprAt, leftExprType, action }, context)
+    if (!newLeftExprType.ok) return newLeftExprType
 
-        let checkRightOperandType: ValueType | null
-        let producedType: ValueType | ((rightType: ValueType) => ValueType)
-
-        switch (op.type) {
-          case 'arith':
-            switch (op.op.parsed) {
-              case 'Add':
-                if (
-                  leftExprType.nullable ||
-                  (leftExprType.inner.type !== 'number' && leftExprType.inner.type !== 'string')
-                ) {
-                  return errCannotApplyOperator(op.op, 'number | string', leftExprType, leftExprAt)
-                }
-
-                checkRightOperandType = leftExprType
-                producedType = leftExprType
-                break
-
-              case 'Sub':
-              case 'Mul':
-              case 'Div':
-              case 'Rem':
-                if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
-                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExprAt)
-                }
-
-                checkRightOperandType = leftExprType
-                producedType = leftExprType
-                break
-
-              case 'Null':
-                if (!leftExprType.nullable) {
-                  return err(action.op.at, {
-                    message: 'This operator can only be applied on nullable values',
-                    also: [{ at: leftExprAt, message: 'This expression is not nullable' }],
-                  })
-                }
-
-                checkRightOperandType = null
-                producedType = (rightExprType) => ({ nullable: true, inner: rightExprType.inner })
-                break
-            }
-
-            break
-
-          case 'logic':
-            switch (op.op.parsed) {
-              case 'And':
-              case 'Or':
-              case 'Xor':
-              case 'Eq':
-              case 'NotEq':
-                if (leftExprType.nullable || leftExprType.inner.type !== 'bool') {
-                  return errCannotApplyOperator(op.op, 'bool', leftExprType, leftExprAt)
-                }
-
-                checkRightOperandType = leftExprType
-                producedType = leftExprType
-                break
-
-              case 'GreaterThan':
-              case 'GreaterThanOrEqualTo':
-              case 'LessThan':
-              case 'LessThanOrEqualTo':
-                if (leftExprType.nullable || leftExprType.inner.type !== 'number') {
-                  return errCannotApplyOperator(op.op, 'number', leftExprType, leftExprAt)
-                }
-
-                checkRightOperandType = leftExprType
-                producedType = { nullable: false, inner: { type: 'bool' } }
-                break
-            }
-
-            break
-        }
-
-        const rightExpr = action.right
-
-        const rightExprType = resolveExprElementType(rightExpr, {
-          scopes: context.scopes,
-          expectedType: checkRightOperandType,
-        })
-
-        if (!rightExprType.ok) return rightExprType
-
-        leftExprAt = {
-          start: leftExprAt.start,
-          next: rightExpr.at.next,
-        }
-
-        leftExprType = typeof producedType === 'function' ? producedType(rightExprType.data) : rightExprType.data
-
-        break
-
-      case 'propAccess':
-        throw new Error('// TODO: property access')
-    }
+    leftExprAt = action.right.at
+    leftExprType = newLeftExprType.data
   }
 
   return from
 }
 
 export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) =>
-  matchUnion(element.parsed)<TypecheckerResult<ValueType>>('type', {
+  matchUnion(element.parsed, 'type', {
     paren: ({ inner }) => resolveExprType(inner, ctx),
 
     singleOp: ({ op, right }) =>
-      matchStr(op.parsed.op.parsed)({
+      matchStr(op.parsed.op.parsed, {
         Not: () =>
           resolveExprElementType(right, { ...ctx, expectedType: { nullable: false, inner: { type: 'bool' } } }),
       }),
@@ -168,18 +72,3 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
 
     value: ({ content }) => resolveValueType(content, ctx),
   })
-
-export const errCannotApplyOperator = (
-  operator: Token<string>,
-  expectedType: string,
-  foundType: ValueType,
-  leftExprAt: CodeSection
-) => {
-  return err(leftExprAt, {
-    message: `cannot apply operator \`${operator.parsed}\` on type \`${rebuildType(foundType, true)}\``,
-    complements: [
-      ['Expected', expectedType],
-      ['Found   ', rebuildType(foundType)],
-    ],
-  })
-}

@@ -10,10 +10,7 @@ export const matchUnion = <U extends { [key in D]: string }, D extends keyof U, 
       })
 ): T => (callbacks[subject[prop]] ?? (callbacks as { _: any })._)(subject as any)
 
-export const matchStr =
-  <S extends string>(str: S) =>
-  <T>(callbacks: { [variant in S]: () => T }): T =>
-    callbacks[str]()
+export const matchStr = <S extends string, T>(str: S, callbacks: { [variant in S]: () => T }): T => callbacks[str]()
 
 export const computeCodeSectionEnd = (section: CodeSection, source: string): CodeLoc =>
   section.start.line === section.next.line && section.start.col === section.next.col
