@@ -1,4 +1,4 @@
-import { Parser } from './base'
+import { ErrFnData, Parser } from './base'
 import { match, regex } from './matchers'
 
 export const UNICODE_LETTER =
@@ -33,3 +33,8 @@ export const maybe_s: Parser<string> = match(/[^\S\r\n]*/)
 
 export const s_nl: Parser<string> = match(/\s+/)
 export const maybe_s_nl: Parser<string> = match(/\s*/)
+
+export const buildUnicodeRegexMatcher = (
+  regexGen: (unicodeLetterRegex: string, unicodeDigitRegex: string) => string,
+  error?: ErrFnData
+): Parser<string> => match(new RegExp(regexGen(UNICODE_LETTER.source, UNICODE_DIGIT.source)), error)

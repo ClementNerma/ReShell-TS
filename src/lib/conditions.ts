@@ -8,7 +8,7 @@ import {
   ParserSucess,
   ParsingContext,
   sliceInput,
-  Token,
+  Token
 } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
@@ -39,6 +39,18 @@ export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T
   return (start, input, context) => {
     const parsed = failIf(start, input, context)
     return parsed.ok ? err(start, context) : els(start, input, context)
+  }
+}
+
+export function failIfBool<T>(
+  parser: Parser<T>,
+  cond: (value: T, token: Token<T>) => boolean,
+  error?: ErrFnData
+): Parser<T> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    if (!parsed.ok) return parsed
+    return cond(parsed.data.parsed, parsed.data) ?  err(start, context, error): parsed
   }
 }
 

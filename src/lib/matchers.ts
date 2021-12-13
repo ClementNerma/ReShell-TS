@@ -1,4 +1,4 @@
-import { addCols, addLoc, err, neutralError, Parser, success } from './base'
+import { addCols, addLoc, err, ErrFnData, neutralError, Parser, success } from './base'
 import { unicodeAlphanumericUnderscore } from './littles'
 import { matches } from './raw'
 
@@ -36,14 +36,14 @@ export function word<S extends string>(candidate: S, error?: string): Parser<S> 
   }
 }
 
-export function char(regex: RegExp, error?: string): Parser<string> {
+export function char(regex: RegExp, error?: ErrFnData): Parser<string> {
   return (start, input, context) =>
     input.charAt(0).match(regex)
       ? success(start, addCols(start, 1), input.charAt(0), input.charAt(0))
       : err(start, context, error)
 }
 
-export function match(regex: RegExp, error?: string): Parser<string> {
+export function match(regex: RegExp, error?: ErrFnData): Parser<string> {
   return (start, input, context) => {
     const match = input.match(regex)
     if (!match || match.index !== 0) return err(start, context, error)
@@ -66,12 +66,7 @@ export function match(regex: RegExp, error?: string): Parser<string> {
   }
 }
 
-export function regex<T>(
-  regex: RegExp,
-  mapper: (match: RegExpMatchArray) => T,
-  error?: string,
-  precedence?: boolean
-): Parser<T> {
+export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, error?: string): Parser<T> {
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0

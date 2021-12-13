@@ -1,10 +1,5 @@
 import { err, ErrFnData, ErrorMapping, neutralError, Parser, ParsingContext, success, withErr } from './base'
 
-export type NotOptions = {
-  error?: string
-  precedencePassthrough?: boolean
-}
-
 export function failure<T>(parser: Parser<T>, error: ErrorMapping): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
