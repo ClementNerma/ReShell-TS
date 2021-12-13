@@ -1,7 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, maybe, maybeFlatten } from '../lib/conditions'
-import { never } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile, takeWhile1 } from '../lib/loops'
@@ -9,7 +8,7 @@ import { exact, word } from '../lib/matchers'
 import { addComplementsIf } from '../lib/raw'
 import { mappedCases, OrErrorStrategy } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
+import { flattenMaybeToken, getErrorInput, mapToken, withLatelyDeclared } from '../lib/utils'
 import { FnArg, FnType, NonNullableValueType, ValueType } from './data'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
@@ -132,14 +131,19 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                   exact('='),
                   failure(
                     withLatelyDeclared(() => literalValue),
-                    {
+                    (err) => ({
                       message: 'Expected a literal default value',
-                      complements: [['Tip', 'Lists, maps and structures are not literal values']],
-                    }
+                      complements: [
+                        [
+                          'Tip',
+                          getErrorInput(err).startsWith('"')
+                            ? "Literal strings must be single-quoted (')"
+                            : 'Lists, maps and structures are not literal values',
+                        ],
+                      ],
+                    })
                   ),
-                  {
-                    inter: maybe_s_nl,
-                  }
+                  { inter: maybe_s_nl }
                 ),
                 ([_, defaultValue]) => defaultValue
               )
