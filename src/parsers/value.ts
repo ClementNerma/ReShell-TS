@@ -219,18 +219,12 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         maybe_s_nl
       ),
       mappedCases<ClosureBody>()('type', {
-        block: map(
-          combine(
-            exact('{'),
-            maybe_s_nl,
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => blockBody)
-            ),
-            maybe_s_nl,
-            exact('}')
+        block: toOneProp(
+          withStatementClosingChar(
+            '}',
+            withLatelyDeclared(() => blockBody)
           ),
-          ([_, __, body]) => ({ body })
+          'body'
         ),
         expr: map(
           withLatelyDeclared(() => expr),
