@@ -79,13 +79,13 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
           })
         }
 
-        const memberName = propAccess.parsed.access.member.parsed
-        const resolvedMember = previousIterType.inner.members.find(({ name }) => name === memberName)
+        const expectedMember = propAccess.parsed.access.member
+        const resolvedMember = previousIterType.inner.members.find(({ name }) => name === expectedMember.parsed)
 
         if (!resolvedMember) {
-          return err(upToPrevPropAccessSection, {
-            message: `member \`${memberName}\` is missing`,
-            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+          return err(expectedMember.at, {
+            message: `member \`${expectedMember.parsed}\` was not found in this struct`,
+            // also: [{ at: upToPrevPropAccessSection, message: 'originates in this expression' }],
           })
         }
 
