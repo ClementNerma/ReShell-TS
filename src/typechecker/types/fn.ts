@@ -362,7 +362,7 @@ export const validateFnCallArgs: Typechecker<
 
   for (const [generic, type] of gScope.entries()) {
     if (type === null) {
-      return err(at, `failed to resolve the type of generic \`${generic}\``)
+      return err(at, `failed to determine the type of generic \`${generic}\``)
     }
   }
 
