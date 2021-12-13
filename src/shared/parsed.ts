@@ -6,7 +6,9 @@ export type CodeSection = {
 }
 
 export type CodeLoc = {
-  file: { ref: string | null /* entrypoint */ }
+  file: CodeLocFile
   line: number
   col: number
 }
+
+export type CodeLocFile = { type: 'file'; path: string } | { type: 'entrypoint' } | { type: 'internal'; path: string }

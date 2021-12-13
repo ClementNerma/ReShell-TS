@@ -1,6 +1,7 @@
 import { SourceFilesServer } from './files-server'
 import { CodeSection } from './parsed'
-import { computeCodeSectionEnd } from './utils'
+import { StrView } from './strview'
+import { computeCodeSectionEnd, matchUnion } from './utils'
 
 export type FormatableError = { error: FormatableExtract; also: FormatableExtract[] }
 
@@ -56,15 +57,24 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
   const text = [err.error]
     .concat(err.also)
     .map(({ at, message, complements }) => {
-      const sourceFile = at.start.file.ref
+      const sourceFile: string = matchUnion(at.start.file, 'type', {
+        entrypoint: () => sourceServer.entrypointFilename,
+        file: ({ path }) => path,
+        internal: ({ path }) => path,
+      })
+
       const { line, col } = at.start
 
-      const header = `--> At ${format('filename', sourceFile ?? sourceServer.entrypointFilename)}${format(
-        'location',
-        `:${line + 1}:${col + 1}`
-      )}:`
+      const header = `--> At ${format('filename', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
 
-      const fileContent = sourceFile ? sourceServer.read(sourceFile, null) : sourceServer.entrypoint()
+      if (at.start.file.type === 'internal') {
+        return `${header}\n<internal file>`
+      }
+
+      const fileContent: StrView | false = matchUnion(at.start.file, 'type', {
+        entrypoint: () => sourceServer.entrypoint(),
+        file: ({ path }) => sourceServer.read(path, null),
+      })
 
       if (fileContent === false) return `${header}\n<file not found in source server>`
 

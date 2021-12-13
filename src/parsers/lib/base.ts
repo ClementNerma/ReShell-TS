@@ -98,7 +98,7 @@ export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T
     $custom,
     self: () => context,
   }
-  return parser({ file: { ref: null }, line: 0, col: 0 }, sourceServer.entrypoint(), context)
+  return parser({ file: { type: 'entrypoint' }, line: 0, col: 0 }, sourceServer.entrypoint(), context)
 }
 
 export function parseFile<T>(
@@ -116,7 +116,7 @@ export function parseFile<T>(
     self: () => context,
   }
 
-  return parser({ file: { ref: filename }, line: 0, col: 0 }, content, context)
+  return parser({ file: { type: 'file', path: filename }, line: 0, col: 0 }, content, context)
 }
 
 export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)

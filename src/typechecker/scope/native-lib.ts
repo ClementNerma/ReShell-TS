@@ -1,9 +1,9 @@
 import { Scope } from '../base'
 
 export function nativeLibraryScope(): Scope {
-  return {
-    typeAliases: new Map([]),
-    functions: new Map([]),
-    variables: new Map([]),
-  }
+  const typeAliases: Scope['typeAliases'] = new Map()
+  const functions: Scope['functions'] = new Map()
+  const variables: Scope['variables'] = new Map()
+
+  return { typeAliases, functions, variables }
 }
