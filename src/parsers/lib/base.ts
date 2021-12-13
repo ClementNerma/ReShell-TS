@@ -93,7 +93,7 @@ export function parseSource<T>(source: StrView, parser: Parser<T>, $custom: unkn
 
 export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)
 
-export function withErr(error: ParserErr, context: ParsingContext, mapping: WithErrData): ParserErr {
+export function withErr(error: ParserErr, mapping: WithErrData): ParserErr {
   if (mapping !== undefined) {
     const errData = typeof mapping === 'function' ? mapping(error) : mapping
     error.history.push(formattableErr({ start: error.start, next: error.next }, errData))

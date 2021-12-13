@@ -25,7 +25,6 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         if (interMadeExpectation || result.precedence) {
           return withErr(
             result,
-            context,
             options?.matchError ??
               (options?.interMatchingMakesExpectation === true ? undefined : options?.interMatchingMakesExpectation)
           )

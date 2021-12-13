@@ -38,7 +38,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | WithErrData | null
     for (let i = 0; i < parsers.length; i++) {
       const result = (parsers[i] as Parser<unknown>)(next, input, context)
 
-      if (!result.ok) return withErr(result, context, error)
+      if (!result.ok) return withErr(result, error)
 
       const { data } = result
 

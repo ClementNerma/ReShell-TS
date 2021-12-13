@@ -36,7 +36,7 @@ export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser
     const mostRelevant = errors[errors.length - 1]?.precedence ? errors[errors.length - 1] : undefined
 
     if (typeof error === 'string') {
-      return withErr(mostRelevant ?? err(start, start, context), context, error)
+      return withErr(mostRelevant ?? err(start, start, context), error)
     }
 
     if (!error) {
@@ -54,10 +54,10 @@ export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser
         return err(start, start, context, error[1](input, errors, context, start))
 
       case OrErrorStrategy.FallbackConst:
-        return withErr(mostRelevant ?? err(start, start, context), context, error[1])
+        return withErr(mostRelevant ?? err(start, start, context), error[1])
 
       case OrErrorStrategy.FallbackFn:
-        return withErr(mostRelevant ?? err(start, start, context), context, error[1](input, errors, context, start))
+        return withErr(mostRelevant ?? err(start, start, context), error[1](input, errors, context, start))
     }
   }
 }

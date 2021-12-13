@@ -37,7 +37,7 @@ export function fullSource<T>(
     if (start.col !== 0 || start.line !== 0) return err(start, start, context, errors?.bos)
 
     const parsed = parser(start, input, context)
-    if (!parsed.ok) return withErr(parsed, context, errors?.error)
+    if (!parsed.ok) return withErr(parsed, errors?.error)
 
     const remaining = input.offset(parsed.data.matched.length)
 

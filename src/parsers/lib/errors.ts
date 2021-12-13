@@ -3,7 +3,7 @@ import { err, ErrInputData, Parser, ParsingContext, phantomSuccess, success, wit
 export function failure<T>(parser: Parser<T>, error: WithErrData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? parsed : withErr(parsed, context, error)
+    return parsed.ok ? parsed : withErr(parsed, error)
   }
 }
 
@@ -14,7 +14,7 @@ export function contextualFailure<T>(
 ): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? parsed : cond(context) ? withErr(parsed, context, error) : parsed
+    return parsed.ok ? parsed : cond(context) ? withErr(parsed, error) : parsed
   }
 }
 
@@ -38,6 +38,6 @@ export function failureMaybe<T>(parser: Parser<T>, error: WithErrData | undefine
     ? parser
     : (start, input, context) => {
         const parsed = parser(start, input, context)
-        return parsed.ok ? parsed : withErr(parsed, context, error)
+        return parsed.ok ? parsed : withErr(parsed, error)
       }
 }

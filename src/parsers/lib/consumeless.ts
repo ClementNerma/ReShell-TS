@@ -57,7 +57,7 @@ export function inspect<T>(parser: Parser<T>, inspector: (result: ParserResult<T
 export function lookahead<T>(parser: Parser<T>, error?: WithErrData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? phantomSuccess(start) : withErr(parsed, context, error)
+    return parsed.ok ? phantomSuccess(start) : withErr(parsed, error)
   }
 }
 

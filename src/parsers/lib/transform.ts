@@ -10,7 +10,7 @@ export function map<T, U>(
     const parsed = parser(start, input, context)
     return parsed.ok
       ? { ...parsed, data: { ...parsed.data, parsed: mapper(parsed.data.parsed, parsed.data) } }
-      : withErr(parsed, context, error)
+      : withErr(parsed, error)
   }
 }
 
@@ -21,7 +21,7 @@ export function mapFull<T, U>(
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? { ok: true, data: mapper(parsed.data.parsed, parsed.data) } : withErr(parsed, context, error)
+    return parsed.ok ? { ok: true, data: mapper(parsed.data.parsed, parsed.data) } : withErr(parsed, error)
   }
 }
 
