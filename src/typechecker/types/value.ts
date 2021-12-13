@@ -1,6 +1,7 @@
 import { CodeSection, FnType, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { cmdCallTypechecker } from '../cmdcall'
 import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
@@ -428,8 +429,19 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success(fnType.returnType.parsed)
     },
 
-    inlineCmdCallSequence: ({ start, sequence, capture }) => {
-      throw new Error('// TODO: values => inlineCmdCallSequence')
+    inlineCmdCallSequence: ({ start, sequence }) => {
+      const foundType = assertExpectedType('string')
+      if (!foundType.ok) return foundType
+
+      const check = cmdCallTypechecker(start.parsed, ctx)
+      if (!check.ok) return check
+
+      for (const sub of sequence) {
+        const check = cmdCallTypechecker(sub.parsed.chainedCmdCall.parsed, ctx)
+        if (!check.ok) return check
+      }
+
+      return success(foundType.data)
     },
 
     reference: ({ varname }) => {
