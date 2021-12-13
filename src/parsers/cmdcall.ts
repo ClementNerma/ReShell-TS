@@ -11,14 +11,14 @@ import { map } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { rawPath } from './literals'
 import { cmdRedirOp } from './stmtend'
-import { identifier, keyword } from './tokens'
+import { cmdName, identifier, keyword } from './tokens'
 
 export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (callEndDetector) =>
   map(
     combine(
       or([
         map(
-          combine(failIfMatches(keyword, 'Cannot use reserved keyword alone'), identifier, callEndDetector),
+          combine(failIfMatches(keyword, 'Cannot use reserved keyword alone'), cmdName, callEndDetector),
           ([_, name, __]) => ({
             name,
             args: [],

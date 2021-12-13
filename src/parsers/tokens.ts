@@ -1,8 +1,10 @@
 import { Parser } from './lib/base'
-import { unicodeAlphanumericUnderscore } from './lib/littles'
+import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore } from './lib/littles'
 import { oneOfWords } from './lib/matchers'
 
 export const identifier: Parser<string> = unicodeAlphanumericUnderscore
+
+export const cmdName: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)
 
 export const keyword: Parser<string> = oneOfWords([
   'if',
