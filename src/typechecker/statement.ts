@@ -451,8 +451,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         return success({ neverEnds: true })
       },
 
-      cmdCall: (call) => {
-        const cmdCallCheck = cmdCallTypechecker(call, ctx)
+      cmdCall: ({ content }) => {
+        const cmdCallCheck = cmdCallTypechecker(content, ctx)
         return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
       },
 

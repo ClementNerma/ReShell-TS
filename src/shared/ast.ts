@@ -50,7 +50,7 @@ export type Statement =
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'panic'; message: Token<Expr> }
-  | ({ type: 'cmdCall' } & CmdCall)
+  | { type: 'cmdCall'; content: CmdCall }
   | { type: 'fileInclusion'; content: Program }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }

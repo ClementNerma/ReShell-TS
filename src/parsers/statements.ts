@@ -298,7 +298,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
-    cmdCall: cmdCall(endOfCmdCallStatement),
+    cmdCall: map(cmdCall(endOfCmdCallStatement), (content) => ({content})),
 
     fileInclusion: then(
       combine(exact('@include'), s, failure(rawString, 'expected a file path to include')),
