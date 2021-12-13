@@ -1,6 +1,7 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
+import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
@@ -13,7 +14,7 @@ import { ChainedStatement, Statement, StatementChain } from './data'
 import { doubleArithOp, expr } from './expr'
 import { propertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
-import { identifier } from './tokens'
+import { identifier, keyword } from './tokens'
 import { fnDecl, valueType } from './types'
 
 export const statement: Parser<Statement> = mappedCases<Statement>()(
@@ -32,10 +33,16 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     variableDecl: map(
       combine(
         map(
-          combine(exact('let'), maybe(exact('mut')), failure(identifier, 'Expected an identifier'), {
-            inter: s,
-          }),
-          ([_, mutable, varname]) => ({ mutable, varname })
+          combine(
+            exact('let'),
+            maybe(exact('mut')),
+            failure(not(keyword), 'Cannot use reserved keyword as a variable name'),
+            failure(identifier, 'Expected an identifier'),
+            {
+              inter: s,
+            }
+          ),
+          ([_, mutable, __, varname]) => ({ mutable, varname })
         ),
         maybeFlatten(
           map(
@@ -83,13 +90,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         exact('type'),
         s,
+        failure(not(keyword), 'Cannot use reserved keyword as a type name'),
         failure(identifier, 'Expected a name for the type alias'),
         maybe_s,
         failure(exact('='), 'Expected an assignment (=) operator'),
         maybe_s_nl,
         failure(valueType, 'Expected a type')
       ),
-      ([_, __, typename, ___, ____, _____, content]) => ({ typename, content })
+      ([_, __, ___, typename, ____, _____, ______, content]) => ({ typename, content })
     ),
 
     fnOpen: map(fnDecl, (fn) => fn),
