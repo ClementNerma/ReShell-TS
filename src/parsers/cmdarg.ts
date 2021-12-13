@@ -42,7 +42,10 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   flag: cmdFlag,
   value: toOneProp(
     'value',
-    failIfMatchesAndCond(value, (value) => value.type === 'reference')
+    failIfMatchesAndCond(
+      withLatelyDeclared(() => value),
+      (value) => value.type === 'reference'
+    )
   ),
   expr: toOneProp('expr', cmdWrappedValue),
   fnCall: toOneProp('content', fnCall),

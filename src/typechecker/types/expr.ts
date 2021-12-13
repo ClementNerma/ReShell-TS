@@ -3,10 +3,10 @@ import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerResult } from '../base'
 import { getTypedEntityInScope } from '../scope/search'
+import { resolveValueChainings } from './chaining'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
 import { resolveGenerics } from './generics-resolver'
-import { resolvePropAccessType } from './propaccess'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
 import { resolveValueType } from './value'
@@ -186,33 +186,33 @@ export const resolveCondOrTypeAssertionType: Typechecker<
 }
 
 export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) => {
-  if (element.parsed.propAccess.length === 0) {
+  if (element.parsed.chainings.length === 0) {
     return resolveExprElementContentType(element.parsed.content, ctx)
   }
 
   const resolved = resolveExprElementContentType(element.parsed.content, { ...ctx, typeExpectation: null })
   if (!resolved.ok) return resolved
 
-  const withPropAccesses = resolvePropAccessType(
+  const withChainings = resolveValueChainings(
     {
       leftAt: element.parsed.content.at,
       leftType: resolved.data,
-      propAccesses: element.parsed.propAccess,
+      chainings: element.parsed.chainings,
     },
     ctx
   )
 
-  if (!withPropAccesses.ok) return withPropAccesses
+  if (!withChainings.ok) return withChainings
 
   if (ctx.typeExpectation) {
     const compat = isTypeCompatible(
-      { at: element.at, candidate: withPropAccesses.data, typeExpectation: ctx.typeExpectation },
+      { at: element.at, candidate: withChainings.data, typeExpectation: ctx.typeExpectation },
       ctx
     )
     if (!compat.ok) return compat
   }
 
-  return success(withPropAccesses.data)
+  return success(withChainings.data)
 }
 
 export const resolveExprElementContentType: Typechecker<Token<ExprElementContent>, ValueType> = (element, ctx) =>

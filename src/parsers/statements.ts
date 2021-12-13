@@ -1,5 +1,6 @@
 import { ElIfBlock, ForLoopSubject, Statement } from '../shared/ast'
 import { blockWithBraces } from './block'
+import { propertyAccess } from './chaining'
 import { cmdCall } from './cmdcall'
 import { cmdDeclSubCommand } from './cmddecl'
 import {
@@ -28,7 +29,6 @@ import { rawString } from './literals'
 import { enumMatchingBlock } from './matching'
 import { doubleOpForAssignment } from './operators'
 import { program } from './program'
-import { nonNullablePropertyAccess } from './propaccess'
 import { identifier } from './tokens'
 import { valueType } from './types'
 
@@ -239,7 +239,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         identifier,
         maybe_s_nl,
-        takeWhile(failIfMatchesElse(exact('[]'), nonNullablePropertyAccess)),
+        takeWhile(failIfMatchesElse(exact('[]'), propertyAccess)),
         maybe(silence(exact('[]'))),
         maybe_s_nl,
         combine(maybe(suppressErrorPrecedence(doubleOpForAssignment)), maybe_s_nl, exact('='), maybe_s_nl),

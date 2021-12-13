@@ -250,7 +250,7 @@ export function buildExprDoubleOp(
             },
           },
         },
-        propAccess: [],
+        chainings: [],
       },
     },
   }

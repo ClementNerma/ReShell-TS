@@ -23,7 +23,7 @@ export type Statement =
   | {
       type: 'assignment'
       varname: Token<string>
-      propAccesses: Token<NonNullablePropertyAccess>[]
+      propAccesses: Token<PropertyAccess>[]
       prefixOp: Token<DoubleOp> | null
       listPush: Token<void> | null
       expr: Token<Expr>
@@ -102,7 +102,7 @@ export type TypeAssertionAgainst =
 
 export type AssertionContent = { inverted: boolean; minimum: Token<TypeAssertionAgainst> }
 
-export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
+export type ExprElement = { content: Token<ExprElementContent>; chainings: Token<ValueChaining>[] }
 
 export type ExprElementContent =
   | { type: 'value'; content: Token<Value> }
@@ -120,9 +120,9 @@ export type ExprElementContent =
 
 export type ElIfExpr = { cond: Token<CondOrTypeAssertion>; expr: Token<ExprOrNever> }
 
-export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
+export type ValueChaining = { type: 'propertyAccess'; nullable: boolean; access: PropertyAccess }
 
-export type NonNullablePropertyAccess =
+export type PropertyAccess =
   | { type: 'refIndex'; index: Token<Expr> }
   | { type: 'refStructMember'; member: Token<string> }
 

@@ -9,10 +9,10 @@ import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { enumMatchingTypechecker } from './matching'
 import { getTypedEntityInScope } from './scope/search'
 import { developTypeAliasesIn } from './types/aliases'
+import { resolveValueChainings } from './types/chaining'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveCondOrTypeAssertionType, resolveExprType } from './types/expr'
 import { resolveFnCallType, validateFnBody } from './types/fn'
-import { resolvePropAccessType } from './types/propaccess'
 import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
 
@@ -83,17 +83,14 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       }
 
       if (propAccesses.length > 0) {
-        const check = resolvePropAccessType(
+        const check = resolveValueChainings(
           {
             leftAt,
             leftType: expectedType,
-            propAccesses: propAccesses.map(({ at, matched, parsed }) => ({
-              at,
-              matched,
-              parsed: {
-                nullable: false,
-                access: parsed,
-              },
+            chainings: propAccesses.map((access) => ({
+              at: access.at,
+              matched: access.matched,
+              parsed: { type: 'propertyAccess', access: access.parsed, nullable: false },
             })),
           },
           ctx
@@ -127,7 +124,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
               inner: expr,
             },
           },
-          propAccess: [],
+          chainings: [],
         },
       }
 

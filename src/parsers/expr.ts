@@ -8,6 +8,7 @@ import {
   ExprOrNever,
   TypeAssertionAgainst,
 } from '../shared/ast'
+import { valueChaining } from './chaining'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract } from './lib/conditions'
@@ -20,7 +21,6 @@ import { mappedCases } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { selfRef, withLatelyDeclared } from './lib/utils'
 import { doubleOp, singleOp } from './operators'
-import { propertyAccess } from './propaccess'
 import { identifier } from './tokens'
 import { valueType } from './types'
 import { value } from './value'
@@ -119,8 +119,8 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
 )
 
 export const exprElement: Parser<ExprElement> = map(
-  combine(exprElementContent, takeWhile(propertyAccess)),
-  ([content, { parsed: propAccess }]) => ({ content, propAccess })
+  combine(exprElementContent, takeWhile(withLatelyDeclared(() => valueChaining))),
+  ([content, { parsed: chainings }]) => ({ content, chainings })
 )
 
 export const expr: Parser<Expr> = map(

@@ -4,7 +4,7 @@ import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
 import { runCmdCall } from './cmdcall'
-import { runCondOrTypeAssertion, runDoubleOp, runExpr, runNonNullablePropertyAccess } from './expr'
+import { runCondOrTypeAssertion, runDoubleOp, runExpr, runPropertyAccess } from './expr'
 import { executeFnCallByName } from './fncall'
 import { expectValueType } from './value'
 
@@ -63,7 +63,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
         const treatAtOnce = listPush ? propAccesses : propAccesses.slice(0, propAccesses.length - 1)
 
         for (const { at, parsed: propAccess } of treatAtOnce) {
-          const resolved = runNonNullablePropertyAccess({ propAccessAt: at, propAccess, value: target }, ctx)
+          const resolved = runPropertyAccess({ propAccessAt: at, propAccess, value: target }, ctx)
           if (resolved.ok !== true) return resolved
           target = resolved.data
           targetAt = { start: targetAt.start, next: at.next }
@@ -72,7 +72,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
         if (listPush === null) {
           const last = propAccesses[propAccesses.length - 1]
 
-          const written = runNonNullablePropertyAccess(
+          const written = runPropertyAccess(
             {
               propAccessAt: last.at,
               propAccess: last.parsed,

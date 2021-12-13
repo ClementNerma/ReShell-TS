@@ -7,7 +7,8 @@ import {
   ExprElement,
   ExprElementContent,
   ExprOrNever,
-  NonNullablePropertyAccess,
+  PropertyAccess,
+  ValueChaining,
 } from '../shared/ast'
 import { getOpPrecedence } from '../shared/constants'
 import { CodeSection, Token } from '../shared/parsed'
@@ -275,29 +276,39 @@ export const runDoubleOp: Runner<
 export const runExprElement: Runner<ExprElement, ExecValue> = (element, ctx) => {
   const content = runExprElementContent(element.content.parsed, ctx)
   if (content.ok !== true) return content
-  if (element.propAccess.length === 0) return content
+  if (element.chainings.length === 0) return content
 
-  let left = content.data
+  let value = content.data
 
-  for (const { at, parsed: access } of element.propAccess) {
-    if (access.nullable && left.type === 'null') {
-      return success({ type: 'null' })
-    }
+  for (const chaining of element.chainings) {
+    const result = runValueChaining({ value, chaining }, ctx)
+    if (result.ok !== true) return result
 
-    const value = runNonNullablePropertyAccess({ value: left, propAccessAt: at, propAccess: access.access }, ctx)
-    if (value.ok !== true) return value
-
-    left = value.data
+    value = result.data
   }
 
-  return success(left)
+  return success(value)
 }
 
-export const runNonNullablePropertyAccess: Runner<
+export const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining> }, ExecValue> = (
+  { value, chaining },
+  ctx
+) =>
+  matchUnion(chaining.parsed, 'type', {
+    propertyAccess: ({ nullable, access }) => {
+      if (nullable && value.type === 'null') {
+        return success({ type: 'null' })
+      }
+
+      return runPropertyAccess({ value, propAccessAt: chaining.at, propAccess: access }, ctx)
+    },
+  })
+
+export const runPropertyAccess: Runner<
   {
     value: ExecValue
     propAccessAt: CodeSection
-    propAccess: NonNullablePropertyAccess
+    propAccess: PropertyAccess
     write?: Runner<ExecValue | undefined, ExecValue>
     writeAllowNonExistentMapKeys?: boolean
   },
