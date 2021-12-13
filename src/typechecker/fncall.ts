@@ -40,10 +40,6 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
     fnType = type.fnType
   }
 
-  if (fnType.returnType === null) {
-    return err(name.at, 'cannot call a function inside an expression when this function does not have a return type')
-  }
-
   let resolvedGenerics: GenericResolutionScope = []
 
   if (ctx.typeExpectation && fnType.generics.length > 0) {
@@ -52,7 +48,7 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
     const compat = isTypeCompatible(
       {
         at: name.at,
-        candidate: fnType.returnType.parsed,
+        candidate: fnType.returnType?.parsed ?? { type: 'void' },
         typeExpectation: ctx.typeExpectation,
         fillKnownGenerics: resolvedGenerics,
       },

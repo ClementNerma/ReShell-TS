@@ -535,7 +535,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success({ type: 'fn', fnType: expected })
     },
 
-    fnCall: ({ content }) => resolveFnCallType(content, ctx),
+    fnCall: ({ content }) => {
+      const returnType = resolveFnCallType(content, ctx)
+      if (!returnType.ok) return returnType
+
+      return returnType.data.type === 'void'
+        ? err(
+            content.name.at,
+            'cannot call a function inside an expression when this function does not have a return type'
+          )
+        : success(returnType.data)
+    },
 
     inlineCmdCallSequence: ({ content }) => {
       const foundType = assertExpectedType('string')
