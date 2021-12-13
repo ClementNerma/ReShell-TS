@@ -1,9 +1,9 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { extract } from '../lib/conditions'
-import { not } from '../lib/consumeless'
+import { extract, failIf } from '../lib/conditions'
+import { lookahead, not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
-import { maybe_s, maybe_s_nl } from '../lib/littles'
+import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
@@ -61,7 +61,13 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
+      or([
+        failIf(lookahead(unicodeAlphanumericUnderscore), {
+          message: "Syntax error: expected either an identifier or the end of the map's content",
+          tip: 'Key names in map values must be written between quotes',
+        }),
+        exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
+      ]),
       {
         inter: maybe_s_nl,
       }
@@ -90,7 +96,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact('}', 'Syntax error: expected a closing brace (}) to close the structure'),
+      exact('}', 'Syntax error: expected either a member name, or a closing brace (}) to close the structure'),
       {
         inter: maybe_s_nl,
       }
