@@ -29,7 +29,7 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
                 }`
               : ''
           }`,
-    aliasRef: ({ typeAliasName }) => '@' + typeAliasName.parsed,
+    aliasRef: ({ typeAliasName }) => typeAliasName.parsed,
     nullable: ({ inner }) => '?' + rebuildType(inner, noDepth),
     unknown: () => 'unknown',
     generic: ({ name }) => `:${name.parsed}`,

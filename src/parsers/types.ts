@@ -9,9 +9,8 @@ import { maybe_s_nl } from './lib/littles'
 import { takeWhile1 } from './lib/loops'
 import { exact, word } from './lib/matchers'
 import { mappedCases, OrErrorStrategy } from './lib/switches'
-import { map } from './lib/transform'
+import { map, toOneProp } from './lib/transform'
 import { selfRef, withLatelyDeclared } from './lib/utils'
-import { startsWithLetter } from './predicates'
 import { identifier } from './tokens'
 
 export const valueType: Parser<ValueType> = selfRef((valueType) =>
@@ -93,16 +92,14 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
         (fnType) => ({ fnType })
       ),
 
-      aliasRef: map(combine(exact('@'), failure(identifier, 'expected a type alias name')), ([_, typeAliasName]) => ({
-        typeAliasName,
-      })),
-
       nullable: map(
         combine(exact('?'), failure(valueType, 'expected a type after nullable (?) operator')),
         ([_, { parsed: inner }]) => ({ inner })
       ),
 
       unknown: map(exact('unknown'), () => ({})),
+
+      aliasRef: toOneProp(identifier, 'typeAliasName'),
 
       generic: map(
         combine(exact(':'), failure(identifier, 'expected a generic identifier after (:) symbol')),
@@ -113,12 +110,6 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
       void: never(),
     },
 
-    [
-      OrErrorStrategy.FallbackFn,
-      (input, _, __, ___) => ({
-        message: 'invalid type',
-        complements: startsWithLetter(input) ? [['tip', 'type aliases must be prefixed by a "@" symbol']] : undefined,
-      }),
-    ]
+    [OrErrorStrategy.Const, 'invalid type']
   )
 )
