@@ -39,8 +39,7 @@ export const valueType: Parser<ValueType> = selfRef((typeParser) =>
 
       struct: map(
         combine(
-          exact('struct'),
-          exact('{', "Expected a opening brace ({) to list the struct's members"),
+          exact('{'),
           extract(
             takeWhile1N(
               map(
@@ -62,7 +61,7 @@ export const valueType: Parser<ValueType> = selfRef((typeParser) =>
           exact('}', "Expected a closing brace (}) after the list of the struct's members"),
           { inter: maybe_s_nl }
         ),
-        ([_, __, members, ___]) => ({ members })
+        ([_, members, __]) => ({ members })
       ),
 
       fn: map(
