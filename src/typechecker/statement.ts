@@ -300,6 +300,14 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             : success({ neverEnds: false })
         },
 
+        continue: () => {
+          if (!ctx.inLoop) {
+            return err(stmtAt, 'the "continue" instruction is only allowed inside loops')
+          }
+
+          return success({ neverEnds: true })
+        },
+
         break: () => {
           if (!ctx.inLoop) {
             return err(stmtAt, 'the "break" instruction is only allowed inside loops')

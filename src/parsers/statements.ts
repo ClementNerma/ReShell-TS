@@ -183,6 +183,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
+    continue: exact('continue'),
     break: exact('break'),
 
     tryBlock: map(
