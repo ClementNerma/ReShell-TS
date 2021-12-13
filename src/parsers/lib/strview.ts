@@ -92,23 +92,24 @@ class SegmentedStrView extends StrView {
 
     const match = beg.match(regex)
     if (match === null) return null
-    if (match.length === 0) return match
+    // if (match/*[0]?*/.length === 0) return match
 
     let lastMatch: RegExpMatchArray = match
     let matchOn = beg
-    let segment = this.segmentSize - this.firstSegmentOffset + 1
+    let segment = this.firstSegment + 1
 
     while (++segment < this.segments.length) {
-      matchOn += this.segments[++segment]
+      matchOn += this.segments[segment]
 
       const match = matchOn.match(regex)
+
       if (!match) return lastMatch
-      if (match.length === lastMatch.length) return match
+      if (match[0].length === lastMatch[0].length) return match
 
       lastMatch = match
     }
 
-    return match
+    return lastMatch
   }
 
   public offset(addOffset: number): StrView {
