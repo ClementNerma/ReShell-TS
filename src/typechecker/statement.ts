@@ -1,4 +1,5 @@
 import { StatementChain, ValueType } from '../shared/ast'
+import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
@@ -35,15 +36,21 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
   for (const stmt of flattenStatementChains(chain)) {
     if (previousStmt?.metadata.neverEnds) {
-      return err(stmt.at, {
-        message: 'previous statement always returns (or break loop), so this is dead code',
-        also: [
+      ctx.emitDiagnostic(
+        diagnostic(
+          stmt.at,
           {
-            at: previousStmt.at,
-            message: 'this statement always returns or break loop',
+            message: 'previous statement always returns (or break loop), so this is dead code',
+            also: [
+              {
+                at: previousStmt.at,
+                message: 'this statement always returns or break loop',
+              },
+            ],
           },
-        ],
-      })
+          DiagnosticLevel.Warning
+        )
+      )
     }
 
     const stmtMetadata: TypecheckerResult<StatementMetadata> = matchUnion(stmt.parsed, 'type', {
@@ -273,7 +280,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         if (!check.ok) return check
 
-        return check.data.neverEnds ? err(stmt.at, 'this loop always returns or breaks') : success({ neverEnds: false })
+        if (check.data.neverEnds) {
+          ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
+        }
+
+        return success({ neverEnds: false })
       },
 
       whileLoop: ({ cond, body }) => {
@@ -292,7 +303,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         if (!check.ok) return check
 
-        return check.data.neverEnds ? err(stmt.at, 'this loop always returns or breaks') : success({ neverEnds: false })
+        if (check.data.neverEnds) {
+          ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
+        }
+
+        return success({ neverEnds: false })
       },
 
       continue: () => {
