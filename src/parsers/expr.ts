@@ -29,7 +29,7 @@ import {
 import { literalString, literalValue } from './literals'
 import { propertyAccess } from './propaccess'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
-import { identifier } from './tokens'
+import { identifier, keyword } from './tokens'
 import { valueType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
@@ -116,6 +116,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   fnCall: map(
     combine(
+      failure(not(keyword), 'Cannot use reserved keyword alone'),
       identifier,
       exact('('),
       withStatementClose(
@@ -140,7 +141,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact(')'),
       { inter: maybe_s }
     ),
-    ([name, _, { parsed: args }, __]) => ({ name, args })
+    ([_, name, __, { parsed: args }, ___]) => ({ name, args })
   ),
 
   inlineCmdCallSequence: map(

@@ -1,6 +1,7 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { failIfElse, maybe } from '../lib/conditions'
+import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, s } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
@@ -11,16 +12,19 @@ import { cmdArg } from './cmdarg'
 import { CmdCall, CmdRedir } from './data'
 import { literalPath } from './literals'
 import { cmdRedirOp } from './stmtend'
-import { identifier } from './tokens'
+import { identifier, keyword } from './tokens'
 
 export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (callEndDetector) =>
   map(
     combine(
       or([
-        map(combine(identifier, callEndDetector), ([name, _]) => ({
-          name,
-          args: [],
-        })),
+        map(
+          combine(failure(not(keyword), 'Cannot use reserved keyword alone'), identifier, callEndDetector),
+          ([_, name, __]) => ({
+            name,
+            args: [],
+          })
+        ),
         map(
           combine(
             identifier,

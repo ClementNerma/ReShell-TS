@@ -10,6 +10,20 @@ export function exact<S extends string>(candidate: S, error?: string): Parser<S>
   }
 }
 
+export function oneOfWords<S extends string>(candidates: S[], error?: string): Parser<S> {
+  return (start, input, context) => {
+    const match = candidates.find((c) => input.startsWith(c))
+
+    if (match === undefined) return err(start, context, error)
+
+    const end = addCols(start, match.length)
+
+    return matches(input.substr(match.length), unicodeAlphanumericUnderscore, null)
+      ? err(start, context, error)
+      : success(start, end, match, match)
+  }
+}
+
 export function word<S extends string>(candidate: S, error?: string): Parser<S> {
   return (start, input, context) => {
     if (!input.startsWith(candidate)) return err(start, context, error)
