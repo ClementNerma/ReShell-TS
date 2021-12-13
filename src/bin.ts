@@ -6,8 +6,10 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
-import { Engine } from './engine/main'
-import { CustomContext, initContext } from './parsers/context'
+import { ExecContext, ExecError, Executed, initialExecContext } from './exec/context'
+import { programExec } from './exec/program'
+import { Engine } from './lib/engine/main'
+import { initContext } from './parsers/context'
 import { Program } from './parsers/data'
 import { program } from './parsers/program'
 
@@ -34,7 +36,7 @@ const iter = argv[1] ? parseInt(argv[1]) : 1
 
 const iterSrc = source.repeat(iter)
 
-const engine = new Engine<Program, CustomContext>(program, {
+const engine = new Engine<Program, ExecError, Executed, ExecContext>(program, programExec, {
   loggers: {
     debug: (text) => console.debug(chalk.gray(text)),
     info: (text) => console.info(chalk.blueBright(text)),
@@ -63,8 +65,7 @@ const parsed = engine.parse(iterSrc, initContext())
 const elapsed = Date.now() - started
 
 if (parsed.ok) {
-  console.dir(parsed, { depth: null })
-  console.log(`Output JSON weights ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`)
+  engine.execute(parsed.data, initialExecContext)
 }
 
 console.log(`Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`)
