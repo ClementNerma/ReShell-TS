@@ -35,6 +35,7 @@ export type Statement =
   | {
       type: 'assignment'
       varname: Token<string>
+      propAccess: Token<PropertyAccess>[]
       prefixOp: Token<DoubleArithOp> | null
       expr: Token<Expr>
     }
@@ -48,6 +49,10 @@ export type Statement =
   | { type: 'fnOpen'; name: Token<string>; fnType: FnType }
   | { type: 'return'; expr: Token<Expr | null> }
   | ({ type: 'cmdCall' } & CmdCall)
+
+export type PropertyAccess =
+  | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }
+  | { type: 'refStructMember'; member: Token<string> }
 
 export type FnType = {
   named: Token<string> | null
@@ -143,10 +148,7 @@ export type Value =
     }
   | { type: 'reference'; varname: Token<string> }
 
-export type ExprSequenceAction =
-  | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }
-  | { type: 'refStructMember'; member: Token<string> }
-  | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
+export type ExprSequenceAction = PropertyAccess | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
 
 export type ExprElement =
   | { type: 'value'; content: Token<Value> }
