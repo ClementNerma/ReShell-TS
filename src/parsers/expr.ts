@@ -18,6 +18,7 @@ import {
   ExprPropAccess,
   ExprPropAccessSequence,
   InlineChainedCmdCall,
+  InlineCmdCallCapture,
   SingleLogicOp,
   SingleOp,
   Value,
@@ -110,7 +111,11 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   inlineCmdCallSequence: map(
     combine(
-      exact('$('),
+      oneOfMap<InlineCmdCallCapture>([
+        ['$*(', InlineCmdCallCapture.Both],
+        ['$!(', InlineCmdCallCapture.Stderr],
+        ['$(', InlineCmdCallCapture.Stdout],
+      ]),
       failure(
         withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
         'Syntax error: expected inline command call'
@@ -133,9 +138,10 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact(')', "Syntax error: expected closing paren ')' after inline command call"),
       { inter: maybe_s_nl }
     ),
-    ([_, start, sequenceRest]) => ({
+    ([capture, start, sequenceRest]) => ({
       start,
       sequence: sequenceRest.parsed,
+      capture,
     })
   ),
 

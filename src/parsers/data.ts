@@ -110,12 +110,23 @@ export type InlineCmdCall = CmdCall
 
 export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
 
+export enum InlineCmdCallCapture {
+  Stdout,
+  Stderr,
+  Both,
+}
+
 export type Value =
   | LiteralValue
   | { type: 'list'; items: Token<Token<Expr>[]> }
   | { type: 'map'; entries: Token<{ key: Token<LiteralString>; expr: Token<Expr> }[]> }
   | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
-  | { type: 'inlineCmdCallSequence'; start: Token<InlineCmdCall>; sequence: Token<InlineChainedCmdCall>[] }
+  | {
+      type: 'inlineCmdCallSequence'
+      start: Token<InlineCmdCall>
+      sequence: Token<InlineChainedCmdCall>[]
+      capture: Token<InlineCmdCallCapture> | null
+    }
   | { type: 'reference'; varname: Token<string> }
 
 export type ExprPropAccess =
