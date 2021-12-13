@@ -69,6 +69,7 @@ export type ValueType =
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'nullable'; inner: ValueType }
   | { type: 'unknown' }
+  | { type: 'generic'; name: Token<string> }
   | InternalTypes
 
 export type PrimitiveValueType = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
@@ -189,6 +190,7 @@ export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type FnType = {
+  generics: Token<string>[]
   args: Token<FnArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null

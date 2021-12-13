@@ -12,6 +12,23 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   let { typeExpectation } = ctx
 
+  if (typeExpectation?.type?.type === 'generic') {
+    for (const gScope of ctx.resolvedGenerics.reverse()) {
+      const generic = gScope.get(typeExpectation.type.name.parsed)
+
+      if (generic) {
+        typeExpectation = { from: typeExpectation?.from, type: generic }
+        break
+      } else if (generic === null) {
+        const type = resolveValueType(value, { ...ctx, typeExpectation: null })
+        if (!type.ok) return type
+
+        gScope.set(typeExpectation.type.name.parsed, type.data)
+        return success(type.data)
+      }
+    }
+  }
+
   while (typeExpectation?.type?.type === 'aliasRef') {
     const alias = getTypedEntityInScope(typeExpectation.type.typeAliasName, 'typeAlias', ctx)
 
@@ -393,7 +410,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       const entity = getEntityInScope(name, ctx)
 
-      if (!entity.ok || entity.data.type === 'typeAlias') {
+      if (!entity.ok || entity.data.type === 'typeAlias' || entity.data.type === 'generic') {
         return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
       }
 
@@ -429,18 +446,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         )
       }
 
+      const returnType = validateFnCallArgs({ at: name.at, fnType, args }, ctx)
+
+      if (!returnType.ok) return returnType
+
       if (ctx.typeExpectation) {
         const compat = isTypeCompatible(
-          { at: name.at, candidate: fnType.returnType.parsed, typeExpectation: ctx.typeExpectation },
+          { at: name.at, candidate: returnType.data, typeExpectation: ctx.typeExpectation },
           ctx
         )
+
         if (!compat.ok) return compat
       }
 
-      const validator = validateFnCallArgs({ at: name.at, fnType, args }, ctx)
-      if (!validator.ok) return validator
-
-      return success(fnType.returnType.parsed)
+      return success(returnType.data)
     },
 
     inlineCmdCallSequence: ({ start, sequence }) => {

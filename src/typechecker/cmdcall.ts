@@ -12,7 +12,8 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name
   const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {
-    return validateFnCallArgs({ at: name.at, args, fnType: fn.data.content }, ctx)
+    const check = validateFnCallArgs({ at: name.at, args, fnType: fn.data.content }, ctx)
+    return check.ok ? success(void 0) : check
   } else {
     const decl = ctx.commandDeclarations.get(name.parsed)
 
@@ -105,12 +106,13 @@ export const cmdSignatureCallValidator: Typechecker<
 > = ({ at, signature, callArgs }, ctx) =>
   matchUnion(signature, 'type', {
     subCmd: ({ content }) => cmdDeclSubCmdCallTypechecker({ at, subCmd: content, args: callArgs }, ctx),
-    direct: ({ args, rest }) =>
-      validateFnCallArgs(
+    direct: ({ args, rest }) => {
+      const check = validateFnCallArgs(
         {
           at,
           args: callArgs,
           fnType: {
+            generics: [],
             args,
             restArg: rest,
             returnType: null,
@@ -119,7 +121,10 @@ export const cmdSignatureCallValidator: Typechecker<
           declaredCommand: true,
         },
         ctx
-      ),
+      )
+
+      return check.ok ? success(void 0) : check
+    },
   })
 
 export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>

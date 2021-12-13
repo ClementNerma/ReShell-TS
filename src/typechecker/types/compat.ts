@@ -125,12 +125,41 @@ export const isTypeCompatible: Typechecker<
     referent = alias.data.content
   }
 
-  if (candidate.type === 'nullable') {
-    return referent.type !== 'nullable'
-      ? expectationErr('value should not be nullable')
-      : subCheck('nullable type', candidate.inner, referent.inner)
-  } else if (referent.type === 'nullable') {
-    return subCheck('nullable type', candidate, referent.inner)
+  if (referent.type === 'generic') {
+    for (const gScope of ctx.resolvedGenerics.reverse()) {
+      const generic = gScope.get(referent.name.parsed)
+
+      if (generic !== undefined) {
+        if (generic === null) {
+          gScope.set(referent.name.parsed, candidate)
+          return success(void 0)
+        } else {
+          return isTypeCompatible(
+            {
+              at,
+              candidate,
+              typeExpectation: {
+                type: generic,
+                from,
+              },
+            },
+            ctx
+          )
+        }
+      }
+    }
+
+    // If not found, it means we are in a function body and generics are not resolvable yet
+  }
+
+  if (referent.type !== 'generic') {
+    if (candidate.type === 'nullable') {
+      return referent.type !== 'nullable'
+        ? expectationErr('value should not be nullable')
+        : subCheck('nullable type', candidate.inner, referent.inner)
+    } else if (referent.type === 'nullable') {
+      return subCheck('nullable type', candidate, referent.inner)
+    }
   }
 
   if (candidate.type !== referent.type) {
@@ -265,6 +294,11 @@ export const isTypeCompatible: Typechecker<
 
       return success(void 0)
     },
+
+    generic: (c, r) =>
+      c.name.parsed === r.name.parsed
+        ? success(void 0)
+        : expectationErr(`expected generic \`${r.name.parsed}\`, found generic \`${c.name.parsed}\``),
 
     aliasRef: () => expectationErr('internal error: unreachable "aliasRef" type comparison'),
     unknown: () => expectationErr('internal error: unreachable "unknown" type comparison'),

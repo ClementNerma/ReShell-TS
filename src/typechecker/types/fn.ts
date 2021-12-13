@@ -1,8 +1,18 @@
 import { ClosureArg, ClosureBody, CmdArg, FnArg, FnType, StatementChain, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerResult } from '../base'
+import {
+  ensureCoverage,
+  err,
+  GenericResolutionScope,
+  Scope,
+  ScopeEntity,
+  success,
+  Typechecker,
+  TypecheckerResult,
+} from '../base'
 import { cmdArgTypechecker } from '../cmdcall'
+import { getTypedEntityInScope } from '../scope/search'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
@@ -11,6 +21,26 @@ import { typeValidator } from './validator'
 import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
+  for (const generic of fnType.generics) {
+    const orig = getTypedEntityInScope(generic, 'generic', ctx)
+
+    if (orig.ok) {
+      return err(generic.at, {
+        message: 'cannot use the same name for two generics in hierarchy',
+        also: [{ at: orig.data.at, message: 'original generic is defined here' }],
+      })
+    }
+  }
+
+  ctx = {
+    ...ctx,
+    scopes: ctx.scopes.concat(
+      new Map(
+        fnType.generics.map((name): [string, ScopeEntity] => [name.parsed, { type: 'generic', at: name.at, name }])
+      )
+    ),
+  }
+
   const args = fnTypeArgsValidator(fnType.args, ctx)
 
   if (!args.ok) return args
@@ -201,12 +231,16 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<Sta
 
 export const validateFnCallArgs: Typechecker<
   { at: CodeSection; fnType: FnType; args: Token<CmdArg>[]; declaredCommand?: true },
-  void
+  ValueType
 > = ({ at, fnType, args, declaredCommand }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
   )
+
+  const gScope: GenericResolutionScope = new Map(fnType.generics.map((generic) => [generic.parsed, null]))
+  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat(gScope) }
+
   let buildingRest = false
 
   for (const arg of args) {
@@ -329,6 +363,12 @@ export const validateFnCallArgs: Typechecker<
     })
   }
 
+  for (const [generic, type] of gScope.entries()) {
+    if (type === null) {
+      return err(at, `failed to resolve the type of generic \`${generic}\``)
+    }
+  }
+
   if (fnType.failureType !== null) {
     if (!ctx.expectedFailureWriter) {
       return err(at, 'cannot call a failable function without try/catch')
@@ -337,7 +377,7 @@ export const validateFnCallArgs: Typechecker<
     if (ctx.expectedFailureWriter.ref === null) {
       ctx.expectedFailureWriter.ref = {
         at,
-        content: fnType.failureType.parsed,
+        content: resolveGenerics(fnType.failureType.parsed, ctx.resolvedGenerics.concat(gScope)),
       }
     } else {
       const compat = isTypeCompatible(
@@ -356,19 +396,85 @@ export const validateFnCallArgs: Typechecker<
     }
   }
 
-  return success(void 0)
+  return success(
+    fnType.returnType
+      ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics.concat(gScope))
+      : { type: 'void' }
+  )
 }
 
 export function fnScopeCreator(fnType: FnType): Scope {
   return new Map(
-    fnType.args.map((arg): [string, ScopeEntity] => [
-      arg.parsed.name.parsed,
-      {
-        type: 'var',
-        at: arg.at,
-        mutable: false,
-        varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
-      },
-    ])
+    fnType.generics
+      .map((name): [string, ScopeEntity] => [name.parsed, { type: 'generic', at: name.at, name }])
+      .concat(
+        fnType.args.map((arg): [string, ScopeEntity] => [
+          arg.parsed.name.parsed,
+          {
+            type: 'var',
+            at: arg.at,
+            mutable: false,
+            varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
+          },
+        ])
+      )
   )
+}
+
+function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): ValueType {
+  switch (type.type) {
+    case 'bool':
+    case 'number':
+    case 'string':
+    case 'path':
+    case 'aliasRef': // TODO: check this
+    case 'unknown':
+    case 'void':
+      return type
+
+    case 'list':
+      return { type: type.type, itemsType: resolveGenerics(type.itemsType, gScopes) }
+
+    case 'map':
+      return { type: type.type, itemsType: resolveGenerics(type.itemsType, gScopes) }
+
+    case 'struct':
+      return {
+        type: type.type,
+        members: type.members.map(({ name, type }) => ({ name, type: resolveGenerics(type, gScopes) })),
+      }
+
+    case 'fn':
+      return {
+        type: type.type,
+        fnType: {
+          generics: type.fnType.generics,
+          args: type.fnType.args.map((arg) => ({
+            ...arg,
+            parsed: { ...arg.parsed, type: resolveGenerics(arg.parsed.type, gScopes) },
+          })),
+          restArg: type.fnType.restArg,
+          returnType: type.fnType.returnType
+            ? { ...type.fnType.returnType, parsed: resolveGenerics(type.fnType.returnType.parsed, gScopes) }
+            : null,
+          failureType: type.fnType.failureType
+            ? { ...type.fnType.failureType, parsed: resolveGenerics(type.fnType.failureType.parsed, gScopes) }
+            : null,
+        },
+      }
+
+    case 'nullable':
+      return { type: type.type, inner: resolveGenerics(type.inner, gScopes) }
+
+    case 'generic':
+      for (const scope of gScopes.reverse()) {
+        const generic = scope.get(type.name.parsed)
+        if (generic) return generic
+      }
+
+      throw new Error('Internal error: unresolved generic in type resolution')
+
+    default:
+      return ensureCoverage(type)
+  }
 }
