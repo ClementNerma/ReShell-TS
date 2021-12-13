@@ -2,20 +2,20 @@ import { CodeLoc, Token } from '../../shared/parsed'
 import {
   err,
   ErrInputData,
-  neutralError,
   Parser,
   ParserErr,
   ParserResult,
   ParserSucess,
   ParsingContext,
+  phantomSuccess,
   sliceInput,
   success,
 } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
-    const parsed = cond(start, input, { ...context, failureWillBeNeutral: true })
-    if (!parsed.ok) return neutralError(start, null)
+    const parsed = cond(start, input, { ...context, failureWillBePhantomSuccess: true })
+    if (!parsed.ok) return phantomSuccess(start, null)
 
     return then(start, input, context)
   }
@@ -24,7 +24,7 @@ export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | nu
 // Doc: harder to use
 export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
-    const parsed = cond(start, input, { ...context, failureWillBeNeutral: true })
+    const parsed = cond(start, input, { ...context, failureWillBePhantomSuccess: true })
     return parsed.ok ? then(start, input, context) : els(start, input, context)
   }
 }
@@ -75,19 +75,19 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
 
 export function maybe<T>(parser: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
-    const parsed = parser(start, input, { ...context, failureWillBeNeutral: true })
-    return parsed.ok || parsed.precedence ? parsed : neutralError(start, null)
+    const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
+    return parsed.ok || parsed.precedence ? parsed : phantomSuccess(start, null)
   }
 }
 
 export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
   return (start, input, context) => {
-    const parsed = parser(start, input, { ...context, failureWillBeNeutral: true })
+    const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
     return parsed.ok
       ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
       : parsed.precedence
       ? parsed
-      : neutralError(start, null)
+      : phantomSuccess(start, null)
   }
 }
 

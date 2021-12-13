@@ -1,4 +1,4 @@
-import { err, ErrInputData, neutralError, Parser, ParsingContext, success, withErr, WithErrData } from './base'
+import { err, ErrInputData, Parser, ParsingContext, phantomSuccess, success, withErr, WithErrData } from './base'
 
 export function failure<T>(parser: Parser<T>, error: WithErrData): Parser<T> {
   return (start, input, context) => {
@@ -29,7 +29,7 @@ export function contextualFailIf(
       ? cond(context)
         ? err(start, start, context, error)
         : success(start, start, void 0, '')
-      : neutralError(start)
+      : phantomSuccess(start)
   }
 }
 

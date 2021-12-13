@@ -91,7 +91,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     }
 
     return success(start, next, parsed, matched.join(''), {
-      neutralError: false,
+      phantomSuccess: false,
       skipInter: parsed.length === 0 && options?.dontPropagateInterSkipping !== false,
     })
   }

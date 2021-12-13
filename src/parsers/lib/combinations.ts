@@ -76,7 +76,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
       parsed.push(data)
       matched.push(data.matched)
 
-      if (infos.neutralError && i === parsers.length - 1) {
+      if (infos.phantomSuccess && i === parsers.length - 1) {
         if (beforeInterMatching) {
           next = beforeInterMatching
           matched.pop()

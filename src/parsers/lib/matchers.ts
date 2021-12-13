@@ -1,4 +1,4 @@
-import { addCols, addLoc, err, ErrInputData, neutralError, Parser, success } from './base'
+import { addCols, addLoc, err, ErrInputData, Parser, phantomSuccess, success } from './base'
 import { unicodeAlphanumericUnderscore } from './littles'
 import { matches } from './raw'
 
@@ -105,7 +105,7 @@ export function oneOfMap<T>(candidates: [string, T][], error?: ErrInputData): Pa
 }
 
 export function bol(error?: ErrInputData): Parser<void> {
-  return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, start, context, error))
+  return (start, _, context) => (start.col === 0 ? phantomSuccess(start) : err(start, start, context, error))
 }
 
 export function eol(error?: ErrInputData): Parser<string> {
@@ -119,11 +119,11 @@ export function eol(error?: ErrInputData): Parser<string> {
 
 export function bos(error?: ErrInputData): Parser<void> {
   return (start, _, context) =>
-    start.col === 0 && start.line === 0 ? neutralError(start) : err(start, start, context, error)
+    start.col === 0 && start.line === 0 ? phantomSuccess(start) : err(start, start, context, error)
 }
 
 export function eos(error?: ErrInputData): Parser<void> {
-  return (start, input, context) => (input.length === 0 ? neutralError(start) : err(start, start, context, error))
+  return (start, input, context) => (input.length === 0 ? phantomSuccess(start) : err(start, start, context, error))
 }
 
 /**

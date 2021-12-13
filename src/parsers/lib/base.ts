@@ -9,7 +9,7 @@ export type ParserSucess<T> = {
   infos: ParserSuccessInfos
 }
 
-export type ParserSuccessInfos = { neutralError: boolean; skipInter: boolean | null }
+export type ParserSuccessInfos = { phantomSuccess: boolean; skipInter: boolean | null }
 
 export type ParserErr = {
   ok: false
@@ -28,7 +28,7 @@ export type ParserErrStackEntry = {
 
 export type ParsingContext = Readonly<{
   source: { ref: string }
-  failureWillBeNeutral?: boolean
+  failureWillBePhantomSuccess?: boolean
   loopData?: LoopContext
   combinationData?: LoopContext
   $custom: unknown
@@ -60,24 +60,24 @@ export function success<T>(
     ok: true,
     data: { matched, parsed, at: { start, next } },
     infos: {
-      neutralError: infos?.neutralError ?? false,
+      phantomSuccess: infos?.phantomSuccess ?? false,
       skipInter: infos?.skipInter ?? null,
     },
   }
 }
 
-export function neutralError(start: CodeLoc): Extract<ParserResult<void>, { ok: true }>
-export function neutralError<T>(start: CodeLoc, neutralValue: T): Extract<ParserResult<T>, { ok: true }>
-export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<ParserResult<T>, { ok: true }> {
+export function phantomSuccess(start: CodeLoc): Extract<ParserResult<void>, { ok: true }>
+export function phantomSuccess<T>(start: CodeLoc, phantomValue: T): Extract<ParserResult<T>, { ok: true }>
+export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
     data: {
       matched: '',
-      parsed: neutralValue!,
+      parsed: phantomValue!,
       at: { start, next: start },
     },
     infos: {
-      neutralError: true,
+      phantomSuccess: true,
       skipInter: true,
     },
   }

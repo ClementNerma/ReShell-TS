@@ -2,12 +2,12 @@ import { CodeLoc } from '../../shared/parsed'
 import {
   err,
   ErrInputData,
-  neutralError,
   Parser,
   ParserErr,
   ParserResult,
   ParserSucess,
   ParsingContext,
+  phantomSuccess,
   sliceInput,
   withErr,
   WithErrData,
@@ -30,7 +30,7 @@ export function inspectErr<T>(parser: Parser<T>, inspector: (result: ParserErr) 
 }
 
 export function nothing(): Parser<void> {
-  return (start, _, __) => neutralError(start)
+  return (start, _, __) => phantomSuccess(start)
 }
 
 export function fail<T>(error?: ErrInputData): Parser<T> {
@@ -56,7 +56,7 @@ export function inspect<T>(parser: Parser<T>, inspector: (result: ParserResult<T
 export function lookahead<T>(parser: Parser<T>, error?: WithErrData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? neutralError(start) : withErr(parsed, context, error)
+    return parsed.ok ? phantomSuccess(start) : withErr(parsed, context, error)
   }
 }
 
@@ -70,7 +70,7 @@ export function not<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<vo
     const parsed = parser(start, input, context)
     return parsed.ok || parsed.precedence === options?.precedencePassthrough
       ? err(start, start, context, options?.error)
-      : neutralError(start)
+      : phantomSuccess(start)
   }
 }
 
