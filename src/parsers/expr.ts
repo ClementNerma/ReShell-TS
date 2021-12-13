@@ -6,7 +6,7 @@ import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
-import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
+import { mappedCases, mappedCasesComposed } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
 import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdFlag } from './cmdarg'
@@ -297,8 +297,8 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
   )
 )
 
-export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAction>([
-  map(
+export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSequenceAction>()('type', {
+  refIndexOrKey: map(
     combine(
       exact('['),
       withLatelyDeclared(() => expr),
@@ -306,8 +306,10 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAct
     ),
     ([_, indexOrKey, __]) => ({ type: 'refIndexOrKey', indexOrKey })
   ),
-  map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
-  map(
+
+  refStructMember: map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
+
+  doubleOp: map(
     combine(maybe_s, doubleOp, failure(exprElement, 'Syntax error: expected an expression after operator'), {
       inter: maybe_s,
     }),
@@ -317,7 +319,7 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAct
       right,
     })
   ),
-])
+})
 
 export const expr: Parser<Expr> = map(
   combine(exprElement, takeWhile(exprSequenceAction)),
