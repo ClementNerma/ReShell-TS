@@ -1,4 +1,4 @@
-import { FnDeclArg, FnType, PrimitiveValueType, ValueType } from './ast'
+import { FnDeclArg, FnType, MethodInfos, PrimitiveValueType, ValueType } from './ast'
 import { CodeSection, Token } from './parsed'
 
 export const nativeLibraryTypeAliases = ensureValueTypes<ValueType>()({
@@ -92,7 +92,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   // Lists
   at: _buildNativeLibraryFn({
     generics: ['T'],
-    methodFor: ({ T }) => ({ type: 'list', itemsType: T }),
+    methodFor: ({ T }) => [[T.name], { type: 'list', itemsType: T }],
     args: () => [{ name: 'index', type: 'number' }],
     returnType: ({ T }) => ({ type: 'nullable', inner: T }),
   }),
@@ -217,7 +217,11 @@ function _buildNativeLibraryFn<G extends string>({
   }[]
   restArg?: string
   returnType?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
-  methodFor?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
+  methodFor?: (forgedGenerics: { [name in G]: _Generic }) =>
+    | ValueType
+    | PrimitiveValueType['type']
+    | 'unknown'
+    | [methodGenerics: Token<string>[], type: ValueType | PrimitiveValueType['type'] | 'unknown']
 }): FnType {
   const forgedGenerics = fromEntries(
     (generics ?? []).map<[G, _Generic]>((name) => [
@@ -227,10 +231,30 @@ function _buildNativeLibraryFn<G extends string>({
   )
 
   const ret = returnType?.(forgedGenerics)
-  const forType = methodFor?.(forgedGenerics)
+
+  let methodInfos: MethodInfos | null = null
+
+  if (methodFor) {
+    let forType = methodFor(forgedGenerics)
+
+    let methodGenerics: Token<string>[] = []
+
+    if (Array.isArray(forType)) {
+      methodGenerics = forType[0]
+      forType = forType[1]
+    }
+
+    methodInfos = {
+      selfArg: _forgeToken('self'),
+      forType: _forgeToken(typeof forType === 'string' ? { type: forType } : forType),
+      generics: methodGenerics,
+    }
+  }
 
   return {
-    generics: Object.values<_Generic>(forgedGenerics).map((g) => g.name),
+    generics: Object.values<_Generic>(forgedGenerics)
+      .map((g) => g.name)
+      .filter((name) => (methodInfos ? !methodInfos.generics.find((c) => c.parsed === name.parsed) : true)),
     args: args(forgedGenerics).map(
       ({ flag, name, type, optional }): Token<FnDeclArg> =>
         _forgeToken({
@@ -243,13 +267,6 @@ function _buildNativeLibraryFn<G extends string>({
     ),
     restArg: restArg !== undefined ? _forgeToken(restArg) : null,
     returnType: ret !== undefined ? _forgeToken(typeof ret === 'string' ? { type: ret } : ret) : null,
-    method:
-      forType !== undefined
-        ? {
-            selfArg: _forgeToken('self'),
-            forType: _forgeToken(typeof forType === 'string' ? { type: forType } : forType),
-            generics: [],
-          }
-        : null,
+    method: methodInfos,
   }
 }
