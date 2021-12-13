@@ -25,7 +25,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
 
     list: map(
       combine(
-        exact('list['),
+        exact('['),
         maybe_s_nl,
         withLatelyDeclared(() => valueType),
         maybe_s_nl,
