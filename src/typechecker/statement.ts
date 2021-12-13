@@ -1,5 +1,5 @@
 import { StatementChain, ValueType } from '../shared/ast'
-import { Token } from '../shared/parsed'
+import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, located, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
@@ -28,10 +28,22 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
   ctx = { ...ctx, scopes }
 
-  let previousStmtMetadata: StatementChainMetadata | null = null
+  let previousStmt: { at: CodeSection; metadata: StatementChainMetadata } | null = null
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
+
+    if (previousStmt?.metadata.neverReturns) {
+      return err(stmt.at, {
+        message: 'previous statement always return (or break loop), so this is dead code',
+        also: [
+          {
+            at: previousStmt.at,
+            message: 'this statement always return or break loop',
+          },
+        ],
+      })
+    }
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       const stmtMetadata: TypecheckerResult<StatementChainMetadata> = matchUnion(sub.parsed, 'type', {
@@ -393,9 +405,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
       if (!stmtMetadata.ok) return stmtMetadata
 
-      previousStmtMetadata = stmtMetadata.data
+      previousStmt = { at: stmt.at, metadata: stmtMetadata.data }
     }
   }
 
-  return success(previousStmtMetadata ?? { neverReturns: false })
+  return success(previousStmt?.metadata ?? { neverReturns: false })
 }
