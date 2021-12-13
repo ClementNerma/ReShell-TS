@@ -11,9 +11,13 @@ import {
   ValueChaining,
 } from '../shared/ast'
 import { getOpPrecedence } from '../shared/constants'
+import { isLocEq } from '../shared/loc-cmp'
 import { CodeSection, Token } from '../shared/parsed'
+import { getLocatedPrecomp } from '../shared/precomp'
 import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
+import { executePrecompFnBody, RunnableFnContent } from './fncall'
+import { nativeLibraryFunctions } from './native-lib'
 import { getEntityInScope } from './scope'
 import { checkTypeCompatibilityAndClone } from './utils'
 import { expectValueType, runValue } from './value'
@@ -301,6 +305,48 @@ export const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueC
       }
 
       return runPropertyAccess({ value, propAccessAt: chaining.at, propAccess: access }, ctx)
+    },
+
+    method: ({ nullable, call }) => {
+      if (nullable && value.type === 'null') {
+        return success({ type: 'null' })
+      }
+
+      const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, call.name.at)
+
+      if (precomp === undefined) {
+        return err(call.name.at, 'internal error: precomputed data not found for this method call')
+      }
+
+      if (precomp === null) {
+        return err(call.name.at, 'internal error: precomputed data indicates this method call is a command call')
+      }
+
+      if (!precomp.methodTypeRef) {
+        return err(call.name.at, 'internal error: missing method type reference in precomputed call data')
+      }
+
+      const ref = precomp.methodTypeRef
+      const method = ctx.methods.find((method) => isLocEq(method.methodTypeRef.at.start, ref.at.start))
+
+      let fn: RunnableFnContent
+
+      if (method) {
+        fn = { type: 'block', body: method.body }
+      } else {
+        const method = nativeLibraryFunctions.get(call.name.parsed)
+
+        if (method) {
+          fn = { type: 'native', exec: method }
+        } else {
+          return err(call.name.at, 'internal error: method not found from precomputed call data location')
+        }
+      }
+
+      return executePrecompFnBody(
+        { nameAt: call.name.at, fn, precomp, scopeMapping: null, methodSelfValue: value },
+        ctx
+      )
     },
   })
 

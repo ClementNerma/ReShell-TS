@@ -9,7 +9,7 @@ import { typeValidator } from '../types/validator'
 import { ensureScopeUnicity } from './search'
 
 export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
-  const firstPass: Scope = new Map()
+  const firstPass: Scope = { generics: new Map(), methods: [], entities: new Map() }
 
   ctx = {
     ...ctx,
@@ -67,10 +67,22 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
         const fnTypeChecker = fnTypeValidator(stmt.parsed.fnType, ctx)
         if (!fnTypeChecker.ok) return fnTypeChecker
 
-        firstPass.set(fnName.parsed, {
-          at: fnName.at,
-          type: 'fn',
-          content: stmt.parsed.fnType,
+        firstPass.entities.set(fnName.parsed, { at: fnName.at, type: 'fn', content: stmt.parsed.fnType })
+        break
+      }
+
+      case 'methodDecl': {
+        const typeCheck = typeValidator(stmt.parsed.forType.parsed, ctx)
+        if (!typeCheck.ok) return typeCheck
+
+        const fnTypeChecker = fnTypeValidator(stmt.parsed.fnType, ctx)
+        if (!fnTypeChecker.ok) return fnTypeChecker
+
+        firstPass.methods.push({
+          at: stmt.parsed.name.at,
+          name: stmt.parsed.name,
+          forType: stmt.parsed.forType,
+          fnType: stmt.parsed.fnType,
         })
         break
       }

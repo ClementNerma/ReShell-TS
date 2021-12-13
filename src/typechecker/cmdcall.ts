@@ -171,6 +171,7 @@ export const cmdSignatureCallValidator: Typechecker<
             args,
             restArg: rest,
             returnType: null,
+            method: null,
           },
           declaredCommand: true,
         },

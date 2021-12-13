@@ -1,6 +1,6 @@
 import { Block, Expr } from '../shared/ast'
-import { Token } from '../shared/parsed'
-import { FnCallPrecomp, getLocatedPrecomp } from '../shared/precomp'
+import { CodeSection, Token } from '../shared/parsed'
+import { getLocatedPrecomp, PrecompFnCall } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerContext, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
@@ -10,7 +10,7 @@ import { NativeFn, nativeLibraryFunctions } from './native-lib'
 import { runValue } from './value'
 
 export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx) => {
-  const precomp = getLocatedPrecomp(ctx.fnCalls, name.at)
+  const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, name.at)
 
   if (precomp === undefined) {
     return err(name.at, 'internal error: failed to get precomputed function call data')
@@ -20,18 +20,19 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
     return err(name.at, 'internal error: precomputed function call data shows a command call')
   }
 
-  return executePrecompFnCall({ name, precomp }, ctx)
+  return runPrecompFnCall({ name, precomp }, ctx)
 }
 
-export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp }, ExecValue> = (
+export type RunnableFnContent =
+  | { type: 'block'; body: Token<Block> }
+  | { type: 'expr'; body: Token<Expr> }
+  | { type: 'native'; exec: NativeFn }
+
+export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnCall }, ExecValue> = (
   { name, precomp },
   ctx
 ) => {
-  let fn:
-    | { type: 'block'; body: Token<Block> }
-    | { type: 'expr'; body: Token<Expr> }
-    | { type: 'native'; exec: NativeFn }
-    | null = null
+  let fn: RunnableFnContent | null = null
 
   let scopeMapping: Map<string, string> | null = null
 
@@ -60,6 +61,19 @@ export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCall
     }
   }
 
+  return executePrecompFnBody({ nameAt: name.at, precomp, fn, scopeMapping, methodSelfValue: null }, ctx)
+}
+
+export const executePrecompFnBody: Runner<
+  {
+    nameAt: CodeSection
+    precomp: PrecompFnCall
+    fn: RunnableFnContent
+    scopeMapping: Map<string, string> | null
+    methodSelfValue: ExecValue | null
+  },
+  ExecValue
+> = ({ nameAt, precomp, fn, scopeMapping, methodSelfValue }, ctx) => {
   const fnScope: Scope['entities'] = new Map()
 
   for (const [argName, content] of precomp.args) {
@@ -78,7 +92,7 @@ export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCall
       const mapping = scopeMapping.get(argName)
 
       if (mapping === undefined) {
-        return err(name.at, `internal error: missing callback argument mapping for "${argName}"`)
+        return err(nameAt, `internal error: missing callback argument mapping for "${argName}"`)
       }
 
       fnScope.set(mapping, execValue.data)
@@ -100,6 +114,10 @@ export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCall
     fnScope.set(precomp.restArg.name, { type: 'rest', content: out })
   }
 
+  if (methodSelfValue) {
+    fnScope.set('self', methodSelfValue)
+  }
+
   const fnCtx: RunnerContext = {
     ...ctx,
     scopes: ctx.scopes.concat([{ generics: precomp.generics, entities: fnScope }]),
@@ -113,7 +131,7 @@ export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCall
     },
     native: ({ exec }) => {
       const result = exec(
-        { at: name.at, ctx: fnCtx, pipeTo: ctx.pipeTo ?? { stdout: process.stdout, stderr: process.stderr } },
+        { at: nameAt, ctx: fnCtx, pipeTo: ctx.pipeTo ?? { stdout: process.stdout, stderr: process.stderr } },
         fnScope
       )
 
@@ -125,18 +143,18 @@ export const executePrecompFnCall: Runner<{ name: Token<string>; precomp: FnCall
 
   if (!precomp.hasReturnType) {
     if (result.ok === null && result.breaking === 'return' && result.value !== null) {
-      return err(name.at, 'internal error: function unexpectedly returned a value')
+      return err(nameAt, 'internal error: function unexpectedly returned a value')
     }
 
     return success({ type: 'null' })
   }
 
   if (result.ok !== null || result.breaking !== 'return') {
-    return err(name.at, 'internal error: function did not return')
+    return err(nameAt, 'internal error: function did not return')
   }
 
   if (result.value === null) {
-    return err(name.at, 'internal error: function did not return a value')
+    return err(nameAt, 'internal error: function did not return a value')
   }
 
   return success(result.value)

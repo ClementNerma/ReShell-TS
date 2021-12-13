@@ -64,26 +64,17 @@ export function lookahead<T>(parser: Parser<T>, error?: WithErrData): Parser<voi
   }
 }
 
-export type LookaheadOptions = {
-  error?: ErrInputData
-  precedencePassthrough?: boolean
-}
-
-export function not<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<void> {
+export function not<T>(parser: Parser<T>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok || parsed.precedence === options?.precedencePassthrough
-      ? err(start, start, context, options?.error)
-      : phantomSuccess(start)
+    return parsed.ok ? err(start, start, context, error) : phantomSuccess(start)
   }
 }
 
-export function notFollowedBy<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<void> {
+export function notFollowedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const following = lookahead(parser)(start, input, context)
-    return following.ok || following.precedence === options?.precedencePassthrough
-      ? err(start, start, context, options?.error)
-      : phantomSuccess(start)
+    return following.ok ? err(start, start, context, error) : phantomSuccess(start)
   }
 }
 

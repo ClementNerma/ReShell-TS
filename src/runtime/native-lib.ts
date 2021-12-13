@@ -32,64 +32,68 @@ export type NativeFn = (
 export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
   // Numbers
   toFixed: ({ at }, args) =>
-    withArguments(at, args, { number: 'number', precision: 'number' }, ({ number, precision }) =>
+    withArguments(at, args, { self: 'number', precision: 'number' }, ({ self, precision }) =>
       success({
         type: 'string',
-        value: number.value.toFixed(precision.value),
+        value: self.value.toFixed(precision.value),
       })
     ),
 
   // Strings
-  strlen: ({ at }, args) =>
-    withArguments(at, args, { str: 'string' }, ({ str }) => success({ type: 'number', value: str.value.length })),
+  len: ({ at }, args) =>
+    withArguments(at, args, { self: 'string' }, ({ self }) => success({ type: 'number', value: self.value.length })),
 
-  strcontains: ({ at }, args) =>
-    withArguments(at, args, { str: 'string', lookup: 'string' }, ({ str, lookup }) =>
-      success({ type: 'bool', value: str.value.includes(lookup.value) })
+  includes: ({ at }, args) =>
+    withArguments(at, args, { self: 'string', lookup: 'string' }, ({ self, lookup }) =>
+      success({ type: 'bool', value: self.value.includes(lookup.value) })
     ),
 
-  strreplace: ({ at }, args) =>
-    withArguments(at, args, { str: 'string', model: 'string', replacement: 'string' }, ({ str, model, replacement }) =>
-      success({
-        type: 'string',
-        value: str.value.replaceAll(model.value, replacement.value),
-      })
+  replace: ({ at }, args) =>
+    withArguments(
+      at,
+      args,
+      { self: 'string', model: 'string', replacement: 'string' },
+      ({ self, model, replacement }) =>
+        success({
+          type: 'string',
+          value: self.value.replaceAll(model.value, replacement.value),
+        })
     ),
 
   repeat: ({ at }, args) =>
-    withArguments(at, args, { str: 'string', repeat: 'number' }, ({ str, repeat }) =>
-      success({ type: 'string', value: str.value.repeat(repeat.value) })
+    withArguments(at, args, { self: 'string', repeat: 'number' }, ({ self, repeat }) =>
+      success({ type: 'string', value: self.value.repeat(repeat.value) })
     ),
 
   split: ({ at }, args) =>
-    withArguments(at, args, { subject: 'string', delimiter: 'string' }, ({ subject, delimiter }) =>
+    withArguments(at, args, { self: 'string', delimiter: 'string' }, ({ self, delimiter }) =>
       success({
         type: 'list',
-        items: subject.value.split(delimiter.value).map((str) => ({ type: 'string', value: str })),
+        items: self.value.split(delimiter.value).map((str) => ({ type: 'string', value: str })),
       })
     ),
 
   // Paths
-  pathtostr: ({ at, ctx }, args) =>
-    withArguments(at, args, { path: 'path' }, ({ path }) =>
-      success({ type: 'string', value: path.segments.join(ctx.platformPathSeparator) })
+  tostr: ({ at, ctx }, args) =>
+    withArguments(at, args, { self: 'path' }, ({ self }) =>
+      success({ type: 'string', value: self.segments.join(ctx.platformPathSeparator) })
     ),
 
-  strtopath: ({ at }, args) =>
-    withArguments(at, args, { path: 'string' }, ({ path }) =>
-      success({ type: 'path', segments: path.value.split(/[/\\]/) })
+  toPath: ({ at }, args) =>
+    withArguments(at, args, { self: 'string' }, ({ self }) =>
+      success({ type: 'path', segments: self.value.split(/[/\\]/) })
     ),
 
-  pathSegments: ({ at }, args) =>
-    withArguments(at, args, { path: 'path' }, ({ path }) =>
-      success({ type: 'list', items: path.segments.map((segment) => ({ type: 'string', value: segment })) })
+  segments: ({ at }, args) =>
+    withArguments(at, args, { self: 'path' }, ({ self }) =>
+      success({ type: 'list', items: self.segments.map((segment) => ({ type: 'string', value: segment })) })
     ),
 
-  pathFromSegments: ({ at, ctx }, args) =>
-    withArguments(at, args, { segments: 'list' }, ({ segments }) => {
+  composePath: ({ at, ctx }, args) =>
+    withArguments(at, args, { self: 'list' }, ({ self }) => {
       const pieces: string[] = []
 
-      for (const value of segments.items) {
+      for (const value of self.items) {
         const str = expectValueType(at, value, 'string')
         if (str.ok !== true) return str
         pieces.push(str.data.value)
@@ -102,10 +106,10 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     }),
 
   joinPaths: ({ at, ctx }, args) =>
-    withArguments(at, args, { paths: 'list' }, ({ paths }) => {
+    withArguments(at, args, { self: 'list' }, ({ self }) => {
       const pieces: string[] = []
 
-      for (const value of paths.items) {
+      for (const value of self.items) {
         const path = expectValueType(at, value, 'path')
         if (path.ok !== true) return path
         pieces.push(path.data.segments.join(ctx.platformPathSeparator))
@@ -118,8 +122,8 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     }),
 
   isAbsolute: ({ at, ctx }, args) =>
-    withArguments(at, args, { path: 'path' }, ({ path }) =>
-      success({ type: 'bool', value: isAbsolute(path.segments.join(ctx.platformPathSeparator)) })
+    withArguments(at, args, { self: 'path' }, ({ self }) =>
+      success({ type: 'bool', value: isAbsolute(self.segments.join(ctx.platformPathSeparator)) })
     ),
 
   // Lists
@@ -130,10 +134,10 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     }),
 
   join: ({ at }, args) =>
-    withArguments(at, args, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
+    withArguments(at, args, { self: 'list', glue: 'string' }, ({ self, glue }) => {
       const pieces: string[] = []
 
-      for (const value of subject.items) {
+      for (const value of self.items) {
         const str = expectValueType(at, value, 'string')
         if (str.ok !== true) return str
         pieces.push(str.data.value)
@@ -155,11 +159,11 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
   typed: ({ at }, args) => withArguments(at, args, { value: 'unknown' }, ({ value }) => success(value)),
 
   // Debug utilities
-  toStr: ({ at, ctx }, args) =>
-    withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) =>
+  debugStr: ({ at, ctx }, args) =>
+    withArguments(at, args, { self: 'unknown', pretty: 'bool' }, ({ self, pretty }) =>
       success({
         type: 'string',
-        value: valueToStr(value, pretty.value, false, ctx),
+        value: valueToStr(self, pretty.value, false, ctx),
       })
     ),
 

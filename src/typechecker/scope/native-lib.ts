@@ -1,4 +1,9 @@
-import { nativeLibraryFnTypes, nativeLibraryTypeAliases, nativeLibraryVarTypes } from '../../shared/native-lib'
+import {
+  nativeLibraryFnTypes,
+  nativeLibraryTypeAliases,
+  nativeLibraryVarTypes,
+  _forgeToken,
+} from '../../shared/native-lib'
 import { PrecompData } from '../../shared/precomp'
 import { Scope } from '../base'
 
@@ -13,14 +18,23 @@ export function nativeLibraryTypeAliasesMap(): PrecompData['typeAliases'] {
 }
 
 export function nativeLibraryScope(): Scope {
-  const nativeLib: Scope = new Map()
+  const nativeLib: Scope = { generics: new Map(), methods: [], entities: new Map() }
 
   for (const [name, fnType] of Object.entries(nativeLibraryFnTypes)) {
-    nativeLib.set(name, { type: 'fn', at: fnType.at, content: fnType.parsed })
+    if (fnType.parsed.method) {
+      nativeLib.methods.push({
+        at: fnType.at,
+        name: _forgeToken(name),
+        fnType: fnType.parsed,
+        forType: fnType.parsed.method.forType,
+      })
+    } else {
+      nativeLib.entities.set(name, { type: 'fn', at: fnType.at, content: fnType.parsed })
+    }
   }
 
   for (const [name, type] of Object.entries(nativeLibraryVarTypes)) {
-    nativeLib.set(name, { type: 'var', at: type.at, mutable: false, varType: type.parsed })
+    nativeLib.entities.set(name, { type: 'var', at: type.at, mutable: false, varType: type.parsed })
   }
 
   return nativeLib

@@ -85,6 +85,7 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
               }),
               restArg: type.fnType.restArg,
               returnType,
+              method: type.fnType.method,
             },
           },
           allDeps,

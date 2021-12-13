@@ -1,7 +1,7 @@
 import { ValueType } from '../../shared/ast'
+import { isLocEq } from '../../shared/loc-cmp'
 import { matchUnion } from '../../shared/utils'
 import { err, success, Typechecker } from '../base'
-import { getTypedEntityInScope } from '../scope/search'
 import { fnTypeValidator } from './fn'
 
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
@@ -34,9 +34,16 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
 
       return success(void 0)
     },
-    generic: ({ name }) => {
-      const generic = getTypedEntityInScope(name, 'generic', ctx)
-      return generic.ok ? success(void 0) : generic
+    generic: ({ name, orig }) => {
+      for (let s = ctx.scopes.length - 1; s >= 0; s--) {
+        const generic = ctx.scopes[s].generics.get(name.parsed)
+
+        if (generic && isLocEq(generic.start, orig.start)) {
+          return success(void 0)
+        }
+      }
+
+      return err(name.at, 'internal error: generic was not found during typechecking')
     },
 
     // Internal types

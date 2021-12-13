@@ -1,15 +1,15 @@
-import { FnDeclArg, FnType } from '../shared/ast'
+import { FnDeclArg, FnType, ValueType } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { addGenericsDefinition, CustomContext } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
-import { always, notFollowedBy } from './lib/consumeless'
+import { not, notFollowedBy, nothing } from './lib/consumeless'
 import { feedContext } from './lib/context'
 import { contextualFailure, failure } from './lib/errors'
-import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
+import { maybe_s, maybe_s_nl, s, s_nl, unicodeSingleLetter } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { exact } from './lib/matchers'
+import { exact, word } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
@@ -24,17 +24,23 @@ export const fnDeclArg: Parser<FnDeclArg> = map(
         combine(
           exact('-'),
           notFollowedBy(exact('-')),
+          not(word('self'), 'the "self" identifier reserved for methods'),
           failure(unicodeSingleLetter, 'expected a flag name'),
           notFollowedBy(unicodeSingleLetter, {
-            error: {
-              message: 'expected a single-letter flag name',
-              complements: [['tip', 'to specify a multi-letters flag name, use a double dash "--"']],
-            },
+            message: 'expected a single-letter flag name',
+            complements: [['tip', 'to specify a multi-letters flag name, use a double dash "--"']],
           })
         ),
-        ([flag, __, name]) => ({ flag, name })
+        ([flag, _, __, name]) => ({ flag, name })
       ),
-      map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({ flag, name })),
+      map(
+        combine(
+          exact('--'),
+          not(word('self'), 'the "self" identifier reserved for methods'),
+          failure(identifier, 'expected a flag name')
+        ),
+        ([flag, _, name]) => ({ flag, name })
+      ),
       map(identifier, (_, name) => ({ flag: null, name })),
     ]),
     map(
@@ -96,12 +102,16 @@ const fnGenerics: Parser<Token<string>[]> = map(
   ([_, __, { parsed: generics }]) => generics
 )
 
-const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; genericsDef: Map<string, CodeSection> }> = (
-  nameParser
+const fn: <T, O>(
+  headParser: Parser<T>,
+  firstArgRawParser: Parser<O>
+) => Parser<{ head: Token<T>; firstArg: Token<O>; genericsDef: Map<string, CodeSection>; fnType: FnType }> = (
+  headParser,
+  firstArgRawParser
 ) =>
   map(
     combine(
-      map(combine(exact('fn'), nameParser), ([_, name]) => name),
+      headParser,
       maybe_s,
       feedContext(
         maybe(fnGenerics),
@@ -116,6 +126,7 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
             ),
             maybe_s_nl
           ),
+          firstArgRawParser,
           useSeparatorIf(
             takeWhile(fnDeclArg, {
               inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
@@ -147,7 +158,7 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
       )
     ),
     ([
-      { parsed: name },
+      head,
       _,
       {
         parsed: [
@@ -155,6 +166,7 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
           {
             parsed: [
               __,
+              firstArg,
               {
                 parsed: [{ parsed: args }, restArg],
               },
@@ -166,21 +178,57 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
         ],
       },
     ]) => ({
-      name,
-      args,
-      generics: generics ?? [],
-      restArg: restArg !== null ? restArg.parsed : null,
-      returnType,
+      head,
       genericsDef,
+      firstArg,
+      fnType: {
+        args,
+        generics: generics ?? [],
+        restArg: restArg !== null ? restArg.parsed : null,
+        returnType,
+        method: null,
+      },
     })
   )
 
-export const fnType: Parser<FnType> = fn(always(null))
+export const fnType: Parser<FnType> = map(fn(exact('fn'), nothing()), ({ fnType }) => fnType)
+
 export const fnDecl: Parser<{ name: Token<string>; fnType: FnType; genericsDef: Map<string, CodeSection> }> = map(
-  fn(map(combine(s, identifier), ([_, name]) => name)),
-  (fnType) => ({
-    name: fnType.name.parsed,
-    fnType: { generics: fnType.generics, args: fnType.args, restArg: fnType.restArg, returnType: fnType.returnType },
-    genericsDef: fnType.genericsDef,
+  fn(
+    map(combine(exact('fn'), s, identifier), ([_, __, name]) => name),
+    nothing()
+  ),
+  (parsed) => ({ name: parsed.head.parsed, fnType: parsed.fnType, genericsDef: parsed.genericsDef })
+)
+
+export const methodDecl: Parser<{
+  name: Token<string>
+  forType: Token<ValueType>
+  fnType: FnType
+  genericsDef: Map<string, CodeSection>
+}> = map(
+  combine(
+    exact('@method('),
+    maybe_s,
+    failure(
+      withLatelyDeclared(() => valueType),
+      'expected a type definition on which this method can be applied'
+    ),
+    maybe_s,
+    exact(')', 'expected a closing parenthesis ")" after the method\'s applicable type'),
+    failure(s_nl, 'expected a space or newline after closing parenthesis'),
+    fn(
+      map(combine(exact('fn'), s, identifier), ([_, __, name]) => name),
+      map(
+        combine(exact('self', 'methods must take a first argument named "self"'), maybe_s, exact(','), maybe_s),
+        ([self]) => self
+      )
+    )
+  ),
+  ([_, __, forType, ___, ____, _____, { parsed }]) => ({
+    name: parsed.head.parsed,
+    forType,
+    fnType: { ...parsed.fnType, method: { forType, selfArg: parsed.firstArg.parsed } },
+    genericsDef: parsed.genericsDef,
   })
 )

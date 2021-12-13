@@ -11,7 +11,7 @@ import {
   withinTypeAliasDefinition,
 } from './context'
 import { condOrTypeAssertion, expr } from './expr'
-import { fnDecl } from './fn'
+import { fnDecl, methodDecl } from './fn'
 import { fnCall } from './fncall'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
@@ -213,6 +213,28 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         },
         { parsed: body },
       ]) => ({ name, fnType, body })
+    ),
+
+    methodDecl: map(
+      feedContext(
+        withLatelyDeclared(() => methodDecl),
+        (context: CustomContext, { genericsDef }) =>
+          mapContextProp(context, 'genericsDefinitions', (def) => def.concat(genericsDef)),
+        map(
+          combine(
+            maybe_s_nl,
+            withLatelyDeclared(() => blockWithBraces)
+          ),
+          ([_, body]) => body
+        ),
+        (_) => void 0
+      ),
+      ([
+        {
+          parsed: { forType, name, fnType },
+        },
+        { parsed: body },
+      ]) => ({ forType, name, fnType, body })
     ),
 
     return: map(

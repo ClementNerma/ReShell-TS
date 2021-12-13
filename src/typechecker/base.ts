@@ -55,14 +55,17 @@ export type TypecheckerSuccess<O> = { ok: true; data: O }
 
 export type TypecheckerErr = { ok: false } & Diagnostic
 
-export type Scope = Map<string, ScopeEntity>
+export type Scope = {
+  generics: Map<string, CodeSection>
+  methods: ScopeMethod[]
+  entities: Map<string, ScopeEntity>
+}
 
 export type ScopeEntity =
   | { type: 'fn'; at: CodeSection; content: FnType }
-  | { type: 'generic'; name: Token<string> }
-  | ({ type: 'var'; at: CodeSection } & ScopeVar)
+  | { type: 'var'; at: CodeSection; mutable: boolean; varType: ValueType }
 
-export type ScopeVar = { mutable: boolean; varType: ValueType }
+export type ScopeMethod = { at: CodeSection; name: Token<string>; forType: Token<ValueType>; fnType: FnType }
 
 export type GenericResolutionScope = { name: Token<string>; orig: CodeSection; mapped: ValueType | null }[]
 

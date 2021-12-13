@@ -6,7 +6,7 @@ import { getLocatedPrecomp } from '../shared/precomp'
 import { matchStr } from '../shared/utils'
 import { err, ExecValue, Runner, success } from './base'
 import { escapeCmdArg, runCmdArg } from './cmdarg'
-import { executePrecompFnCall } from './fncall'
+import { runPrecompFnCall } from './fncall'
 
 export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
   let result = runSingleCmdCall(base, ctx)
@@ -23,12 +23,12 @@ export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
 
 export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { base, pipes /* redir */ } }, ctx) => {
   if (!base.parsed.unaliased) {
-    const precomp = getLocatedPrecomp(ctx.fnCalls, base.parsed.name.at)
+    const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, base.parsed.name.at)
 
     if (precomp === undefined) {
       return err(at, 'internal error: precomputed call informations not found')
     } else if (precomp !== null) {
-      const exec = executePrecompFnCall({ name: base.parsed.name, precomp }, ctx)
+      const exec = runPrecompFnCall({ name: base.parsed.name, precomp }, ctx)
       return exec.ok === true ? success(void 0) : exec
     }
   }

@@ -5,11 +5,11 @@ import { CodeSection, Token } from './parsed'
 export type PrecompData = {
   typeAliases: Map<string, { at: CodeSection; content: ValueType }>
   callbackTypes: LocatedPrecomp<FnType>
-  fnCalls: LocatedPrecomp<FnCallPrecomp | null>
+  fnCalls: LocatedPrecomp<PrecompFnCall | null>
   closuresArgsMapping: LocatedPrecomp<Map<string, string>>
 }
 
-export type FnCallPrecomp = {
+export type PrecompFnCall = {
   generics: FnCallGeneric[]
   args: Map<string, FnCallPrecompArg>
   restArg: {
@@ -17,6 +17,7 @@ export type FnCallPrecomp = {
     content: Token<CmdArg>[]
   } | null
   hasReturnType: boolean
+  methodTypeRef: Token<ValueType> | null
 }
 
 export type FnCallGeneric = { name: string; orig: CodeSection; resolved: ValueType }
@@ -33,7 +34,7 @@ export type LocatedPrecomp<T> = Array<{ at: CodeSection; data: T }>
 
 export function getLocatedPrecomp<T>(candidates: LocatedPrecomp<T>, loc: CodeSection): T | undefined {
   const result = candidates.find(
-    (candidate) => isLocEq(loc.start, candidate.at.start) && isLocEq(loc.next, candidate.at.next)
+    (candidate) => isLocEq(loc.start, candidate.at.start) // && isLocEq(loc.next, candidate.at.next)
   )
 
   return result !== undefined ? result.data : result

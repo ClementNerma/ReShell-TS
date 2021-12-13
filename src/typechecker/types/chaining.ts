@@ -1,17 +1,19 @@
 import { PropertyAccess, ValueChaining, ValueType } from '../../shared/ast'
-import { CodeLoc, CodeSection, Token } from '../../shared/parsed'
+import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
-import { developTypeAliases } from './aliases'
+import { ensureCoverage, err, ScopeMethod, success, Typechecker, TypecheckerResult } from '../base'
+import { developTypeAliasesAndNullables } from './aliases'
+import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
+import { resolveRawFnCallType } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueChainings: Typechecker<
-  { leftType: ValueType; leftAt: CodeSection; chainings: Token<ValueChaining>[] },
+  { leftAt: CodeSection; leftType: ValueType; chainings: Token<ValueChaining>[] },
   ValueType
-> = ({ leftType, leftAt, chainings }, ctx) => {
+> = ({ leftAt, leftType, chainings }, ctx) => {
   let previousIterType = leftType
-  let upToPreviousChaining: CodeLoc = leftAt.next
+  let upToPreviousChaining: CodeSection = leftAt
 
   for (const chaining of chainings) {
     const resolved: TypecheckerResult<ValueType> = matchUnion(chaining.parsed, 'type', {
@@ -19,19 +21,84 @@ export const resolveValueChainings: Typechecker<
         resolvePropAccessType(
           {
             leftType: previousIterType,
-            leftAt: { start: leftAt.start, next: upToPreviousChaining },
+            leftAt: upToPreviousChaining,
             at: chaining.at,
             propAccess: access,
             nullable,
           },
           ctx
         ),
+
+      method: ({ nullable, call }) => {
+        const developed = developTypeAliasesAndNullables(previousIterType, ctx)
+        if (!developed.ok) return developed
+
+        if (nullable && developed.data.type !== 'nullable') {
+          return err(chaining.at, {
+            message: 'cannot apply nullable chaining operator (?.) on non-nullable type',
+            complements: [
+              ['found', rebuildType(previousIterType)],
+              ['developed', rebuildType(developed.data)],
+            ],
+          })
+        }
+
+        let method: ScopeMethod | null = null
+        const candidates: ScopeMethod[] = []
+
+        for (let s = ctx.scopes.length - 1; s >= 0; s--) {
+          const maybe = ctx.scopes[s].methods.find((method) => {
+            if (method.name.parsed !== call.name.parsed) return false
+
+            const compat = isTypeCompatible(
+              {
+                at: call.name.at,
+                candidate: previousIterType,
+                typeExpectation: { type: method.forType.parsed, from: null },
+              },
+              ctx
+            )
+
+            if (!compat.ok) {
+              candidates.push(method)
+            }
+
+            return compat.ok
+          })
+
+          if (maybe) {
+            method = maybe
+            break
+          }
+        }
+
+        if (!method) {
+          return err(call.name.at, {
+            message: 'method was not found for the provided value type',
+            also: [
+              {
+                at: upToPreviousChaining,
+                message: 'no method with this name found for this expression',
+                complements: candidates
+                  .map<[string, string]>((candidate) => ['exists for', rebuildType(candidate.forType.parsed)])
+                  .concat([['type      ', rebuildType(developed.data)]])
+                  .reverse(),
+              },
+            ],
+          })
+        }
+
+        const resolved = resolveRawFnCallType({ call, fnType: method.fnType }, ctx)
+        if (!resolved.ok) return resolved
+
+        return success(nullable ? { type: 'nullable', inner: resolved.data } : resolved.data)
+      },
     })
 
     if (!resolved.ok) return resolved
 
     previousIterType = resolved.data
-    upToPreviousChaining = chaining.at.next
+    upToPreviousChaining = { start: leftAt.start, next: chaining.at.next }
   }
 
   return success(previousIterType)
@@ -43,11 +110,9 @@ const resolvePropAccessType: Typechecker<
 > = ({ leftType, leftAt, at, propAccess, nullable }, ctx) => {
   let outType: ValueType
 
-  do {
-    const developed = developTypeAliases(leftType, ctx)
-    if (!developed.ok) return developed
-    leftType = developed.data
-  } while (leftType.type === 'nullable' && leftType.inner.type === 'aliasRef')
+  const developed = developTypeAliasesAndNullables(leftType, ctx)
+  if (!developed.ok) return developed
+  leftType = developed.data
 
   switch (propAccess.type) {
     case 'refIndex': {

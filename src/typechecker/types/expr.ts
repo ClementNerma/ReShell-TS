@@ -1,7 +1,7 @@
 import { CondOrTypeAssertion, Expr, ExprElement, ExprElementContent, ExprOrNever, ValueType } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerResult } from '../base'
+import { ensureCoverage, err, Scope, ScopeEntity, success, Typechecker, TypecheckerResult } from '../base'
 import { getTypedEntityInScope } from '../scope/search'
 import { resolveValueChainings } from './chaining'
 import { isTypeCompatible } from './compat'
@@ -168,16 +168,23 @@ export const resolveCondOrTypeAssertionType: Typechecker<
         aliasedAssertion: ({ alias }) => alias.parsed,
       })
 
-      return success({
-        type: 'assertion',
-        normalAssertionScope: normal
-          ? new Map([[alias, { type: 'var', at: expr.at, mutable: false, varType: normal }]])
-          : new Map(),
-        oppositeAssertionScope: opposite
-          ? new Map([[alias, { type: 'var', at: expr.at, mutable: false, varType: opposite }]])
-          : new Map(),
-        inverted,
-      })
+      const normalAssertionScope: Scope = {
+        generics: new Map(),
+        methods: [],
+        entities: new Map<string, ScopeEntity>(
+          normal ? [[alias, { type: 'var', at: expr.at, mutable: false, varType: normal }]] : []
+        ),
+      }
+
+      const oppositeAssertionScope: Scope = {
+        generics: new Map(),
+        methods: [],
+        entities: new Map<string, ScopeEntity>(
+          opposite ? [[alias, { type: 'var', at: expr.at, mutable: false, varType: opposite }]] : []
+        ),
+      }
+
+      return success({ type: 'assertion', normalAssertionScope, oppositeAssertionScope, inverted })
     }
 
     default:

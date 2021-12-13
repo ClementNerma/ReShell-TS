@@ -301,6 +301,11 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       return success(void 0)
     },
 
+    methodDecl: ({ forType, body }) => {
+      ctx.methods.push({ methodTypeRef: forType, body })
+      return success(void 0)
+    },
+
     return: ({ expr }) => {
       if (!expr) return { ok: null, breaking: 'return' as const, value: null }
 

@@ -48,6 +48,13 @@ export type Statement =
       arms: Token<{ variant: Token<string>; matchWith: Token<Block> }[]>
     }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Block> }
+  | {
+      type: 'methodDecl'
+      name: Token<string>
+      forType: Token<ValueType>
+      fnType: FnType
+      body: Token<Block>
+    }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'fnCall'; content: FnCall }
@@ -120,7 +127,9 @@ export type ExprElementContent =
 
 export type ElIfExpr = { cond: Token<CondOrTypeAssertion>; expr: Token<ExprOrNever> }
 
-export type ValueChaining = { type: 'propertyAccess'; nullable: boolean; access: PropertyAccess }
+export type ValueChaining =
+  | { type: 'propertyAccess'; nullable: boolean; access: PropertyAccess }
+  | { type: 'method'; nullable: boolean; call: FnCall }
 
 export type PropertyAccess =
   | { type: 'refIndex'; index: Token<Expr> }
@@ -210,6 +219,7 @@ export type FnType = {
   args: Token<FnDeclArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null
+  method: { forType: Token<ValueType>; selfArg: Token<string> } | null
 }
 
 export type FnDeclArg = {

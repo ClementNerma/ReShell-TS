@@ -14,13 +14,14 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
+  methods: { methodTypeRef: Token<ValueType>; body: Token<Block> }[]
   pipeTo: null | {
     stdout: Writable
     stderr: Writable
   }
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
-  fnCalls: PrecompData['fnCalls']
+  fnOrCmdCalls: PrecompData['fnCalls']
   closuresArgsMapping: PrecompData['closuresArgsMapping']
   platformPathSeparator: string
   argv: string[]
@@ -34,10 +35,11 @@ export const createRunnerContext = (
   diagnosticHandler: RunnerContext['emitDiagnostic']
 ): RunnerContext => ({
   scopes: [],
+  methods: [],
   pipeTo: null,
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
-  fnCalls: precompData.fnCalls,
+  fnOrCmdCalls: precompData.fnCalls,
   closuresArgsMapping: precompData.closuresArgsMapping,
   platformPathSeparator,
   argv,

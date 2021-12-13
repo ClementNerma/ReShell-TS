@@ -248,14 +248,15 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
   return success(void 0)
 }
 
-export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ at, name, generics, args }, ctx) => {
-  let fnType: FnType
-
+export const resolveFnCallType: Typechecker<FnCall, ValueType> = (call, ctx) => {
+  const name = call.name
   const entity = getEntityInScope(name, ctx)
 
-  if (!entity.ok || entity.data.type === 'generic') {
+  if (!entity.ok) {
     return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
   }
+
+  let fnType: FnType
 
   if (entity.data.type === 'fn') {
     fnType = entity.data.content
@@ -275,6 +276,13 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ at, name, ge
     fnType = type.data.fnType
   }
 
+  return resolveRawFnCallType({ call, fnType }, ctx)
+}
+
+export const resolveRawFnCallType: Typechecker<{ call: FnCall; fnType: FnType }, ValueType> = (
+  { call: { at, name, generics, args }, fnType },
+  ctx
+) => {
   const fnCallCheck = validateAndRegisterFnCall({ at, nameAt: name.at, fnType, generics, args }, ctx)
 
   if (!fnCallCheck.ok) return fnCallCheck
@@ -589,6 +597,7 @@ export const validateAndRegisterFnCall: Typechecker<
           }
         : null,
       hasReturnType: fnType.returnType !== null,
+      methodTypeRef: fnType.method ? fnType.method.forType : null,
     },
   })
 
@@ -608,11 +617,12 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
   return {
     ...ctx,
     scopes: ctx.scopes.concat([
-      new Map(
-        fnType.generics
-          .map<[string, ScopeEntity]>((name) => [name.parsed, { type: 'generic', at: name.at, name }])
-          .concat(
-            fnType.args.map<[string, ScopeEntity]>((arg) => [
+      {
+        generics: new Map(fnType.generics.map((name) => [name.parsed, name.at])),
+        methods: [],
+        entities: new Map(
+          fnType.args
+            .map<[string, ScopeEntity]>((arg) => [
               arg.parsed.name.parsed,
               {
                 type: 'var',
@@ -621,8 +631,23 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
                 varType: getFnDeclArgType(arg.parsed),
               },
             ])
-          )
-      ),
+            .concat(
+              fnType.method
+                ? [
+                    [
+                      'self',
+                      {
+                        type: 'var',
+                        at: fnType.method.selfArg.at,
+                        mutable: false,
+                        varType: fnType.method.forType.parsed,
+                      },
+                    ],
+                  ]
+                : []
+            )
+        ),
+      },
     ]),
   }
 }
@@ -633,7 +658,7 @@ export function withFnGenericsScope(generics: FnType['generics'], ctx: Typecheck
   return {
     ...ctx,
     scopes: ctx.scopes.concat([
-      new Map(generics.map((generic): [string, ScopeEntity] => [generic.parsed, { type: 'generic', name: generic }])),
+      { generics: new Map(generics.map((name) => [name.parsed, name.at])), methods: [], entities: new Map() },
     ]),
   }
 }

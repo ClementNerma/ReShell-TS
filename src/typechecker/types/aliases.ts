@@ -30,3 +30,21 @@ export const developTypeAliases: Typechecker<ValueType, ValueType> = (type, ctx)
 
 export const developTypeAliasesIn: Typechecker<TypecheckerResult<ValueType>, ValueType> = (typeResult, ctx) =>
   typeResult.ok ? developTypeAliases(typeResult.data, ctx) : typeResult
+
+export const developTypeAliasesAndNullables: Typechecker<ValueType, ValueType> = (type, ctx) => {
+  for (;;) {
+    if (type.type === 'aliasRef') {
+      const developed = developTypeAliases(type, ctx)
+      if (!developed.ok) return developed
+      type = developed.data
+    } else if (type.type === 'nullable' && type.inner.type === 'aliasRef') {
+      const developed = developTypeAliases(type.inner, ctx)
+      if (!developed.ok) return developed
+      type = { type: 'nullable', inner: developed.data }
+    } else {
+      break
+    }
+  }
+
+  return success(type)
+}

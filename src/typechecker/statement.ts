@@ -21,7 +21,7 @@ export type StatementMetadata = Omit<StatementChainMetadata, 'topLevelScope'>
 export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> = (stmt, ctx) => {
   return matchUnion(stmt.parsed, 'type', {
     variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementMetadata> => {
-      const entity = ctx.scopes[ctx.scopes.length - 1].get(varname.parsed)
+      const entity = ctx.scopes[ctx.scopes.length - 1].entities.get(varname.parsed)
 
       if (entity?.type === 'fn') {
         return err(varname.at, {
@@ -50,7 +50,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       })
       if (!validation.ok) return validation
 
-      ctx.scopes[ctx.scopes.length - 1].set(varname.parsed, {
+      ctx.scopes[ctx.scopes.length - 1].entities.set(varname.parsed, {
         type: 'var',
         at: varname.at,
         mutable: mutable.parsed,
@@ -130,20 +130,10 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
 
       const check: TypecheckerResult<ValueType> = prefixOp
         ? resolveDoubleOpType(
-            {
-              leftExprAt: leftAt,
-              leftExprType: expectedType,
-              op: buildExprDoubleOp(prefixOp, expr.at, synth, []),
-            },
+            { leftExprAt: leftAt, leftExprType: expectedType, op: buildExprDoubleOp(prefixOp, expr.at, synth, []) },
             ctx
           )
-        : resolveExprType(expr, {
-            ...ctx,
-            typeExpectation: {
-              type: listPushType ?? expectedType,
-              from: leftAt,
-            },
-          })
+        : resolveExprType(expr, { ...ctx, typeExpectation: { type: listPushType ?? expectedType, from: leftAt } })
 
       if (!check.ok) return check
 
@@ -211,8 +201,8 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
           ? condCheck.data.normalAssertionScope
           : condCheck.data.oppositeAssertionScope
 
-        for (const [varname, scopedVar] of assertionScope) {
-          ctx.scopes[ctx.scopes.length - 1].set(varname, scopedVar)
+        for (const [varname, scopedVar] of assertionScope.entities) {
+          ctx.scopes[ctx.scopes.length - 1].entities.set(varname, scopedVar)
         }
       }
 
@@ -266,7 +256,13 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         ...ctx,
         inLoop: true,
         scopes: ctx.scopes.concat([
-          new Map([[loopVar.parsed, { type: 'var', at: loopVar.at, mutable: false, varType: subjectType.data }]]),
+          {
+            generics: new Map(),
+            methods: [],
+            entities: new Map([
+              [loopVar.parsed, { type: 'var', at: loopVar.at, mutable: false, varType: subjectType.data }],
+            ]),
+          },
         ]),
       })
 
@@ -301,10 +297,14 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         ...ctx,
         inLoop: true,
         scopes: ctx.scopes.concat([
-          new Map([
-            [keyVar.parsed, { type: 'var', at: keyVar.at, mutable: false, varType: iterVarType }],
-            [valueVar.parsed, { type: 'var', at: valueVar.at, mutable: false, varType: subjectType.data.itemsType }],
-          ]),
+          {
+            generics: new Map(),
+            methods: [],
+            entities: new Map([
+              [keyVar.parsed, { type: 'var', at: keyVar.at, mutable: false, varType: iterVarType }],
+              [valueVar.parsed, { type: 'var', at: valueVar.at, mutable: false, varType: subjectType.data.itemsType }],
+            ]),
+          },
         ]),
       })
 
@@ -379,6 +379,11 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     fnDecl: ({ fnType, body }) => {
+      const check = validateFnBody({ fnType, body }, ctx)
+      return check.ok ? success({ neverEnds: false }) : check
+    },
+
+    methodDecl: ({ fnType, body }) => {
       const check = validateFnBody({ fnType, body }, ctx)
       return check.ok ? success({ neverEnds: false }) : check
     },

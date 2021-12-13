@@ -25,30 +25,27 @@ export const nativeLibraryVarTypes = ensureValueTypes<ValueType>()({
 export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   // Numbers
   toFixed: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'number', type: 'number' },
-      { name: 'precision', type: 'number' },
-    ],
+    methodFor: () => 'number',
+    args: () => [{ name: 'precision', type: 'number' }],
     returnType: () => 'string',
   }),
 
   // Strings
-  strlen: _buildNativeLibraryFn({
-    args: () => [{ name: 'str', type: 'string' }],
+  len: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [],
     returnType: () => 'number',
   }),
 
-  strcontains: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'str', type: 'string' },
-      { name: 'lookup', type: 'string' },
-    ],
+  includes: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [{ name: 'lookup', type: 'string' }],
     returnType: () => 'bool',
   }),
 
-  strreplace: _buildNativeLibraryFn({
+  replace: _buildNativeLibraryFn({
+    methodFor: () => 'string',
     args: () => [
-      { name: 'str', type: 'string' },
       { name: 'model', type: 'string' },
       { name: 'replacement', type: 'string' },
     ],
@@ -56,49 +53,39 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   repeat: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'str', type: 'string' },
-      { name: 'repeat', type: 'number' },
-    ],
+    methodFor: () => 'string',
+    args: () => [{ name: 'repeat', type: 'number' }],
     returnType: () => 'string',
   }),
 
   split: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'subject', type: 'string' },
-      { name: 'delimiter', type: 'string' },
-    ],
+    methodFor: () => 'string',
+    args: () => [{ name: 'delimiter', type: 'string' }],
     returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
+  }),
+
+  toPath: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [],
+    returnType: () => 'path',
   }),
 
   // Paths
-  pathtostr: _buildNativeLibraryFn({
-    args: () => [{ name: 'path', type: 'path' }],
+  tostr: _buildNativeLibraryFn({
+    methodFor: () => 'path',
+    args: () => [],
     returnType: () => 'string',
   }),
 
-  strtopath: _buildNativeLibraryFn({
-    args: () => [{ name: 'path', type: 'string' }],
-    returnType: () => 'path',
-  }),
-
-  pathSegments: _buildNativeLibraryFn({
-    args: () => [{ name: 'path', type: 'path' }],
+  segments: _buildNativeLibraryFn({
+    methodFor: () => 'path',
+    args: () => [],
     returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
   }),
 
-  pathFromSegments: _buildNativeLibraryFn({
-    args: () => [{ name: 'segments', type: { type: 'list', itemsType: { type: 'string' } } }],
-    returnType: () => 'path',
-  }),
-
-  joinPaths: _buildNativeLibraryFn({
-    args: () => [{ name: 'paths', type: { type: 'list', itemsType: { type: 'path' } } }],
-    returnType: () => 'path',
-  }),
-
   isAbsolute: _buildNativeLibraryFn({
-    args: () => [{ name: 'path', type: 'path' }],
+    methodFor: () => 'path',
+    args: () => [],
     returnType: () => 'bool',
   }),
 
@@ -113,11 +100,20 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   join: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'subject', type: { type: 'list', itemsType: { type: 'string' } } },
-      { name: 'glue', type: 'string' },
-    ],
+    args: () => [{ name: 'glue', type: 'string' }],
     returnType: () => 'string',
+  }),
+
+  joinPaths: _buildNativeLibraryFn({
+    methodFor: () => ({ type: 'list', itemsType: { type: 'path' } }),
+    args: () => [],
+    returnType: () => 'path',
+  }),
+
+  composePath: _buildNativeLibraryFn({
+    methodFor: () => ({ type: 'list', itemsType: { type: 'string' } }),
+    args: () => [],
+    returnType: () => 'path',
   }),
 
   // Failables
@@ -141,11 +137,9 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   // Debug utilities
-  toStr: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'value', type: 'unknown' },
-      { flag: '--', name: 'pretty', type: 'bool' },
-    ],
+  debugStr: _buildNativeLibraryFn({
+    methodFor: () => 'unknown',
+    args: () => [{ flag: '--', name: 'pretty', type: 'bool' }],
     returnType: () => 'string',
   }),
 
@@ -187,14 +181,14 @@ function fromEntries<K extends string, P>(entries: [K, P][]): { [key in K]: P } 
   return Object.fromEntries(entries) as any
 }
 
-function _nativeLibAt(): CodeSection {
+export function _nativeLibAt(): CodeSection {
   return {
     start: { file: { type: 'internal', path: '<native library>' }, col: 0, line: 0 },
     next: { file: { type: 'internal', path: '<native library>' }, col: 0, line: 1 },
   }
 }
 
-function _forgeToken<T>(data: T): Token<T> {
+export function _forgeToken<T>(data: T): Token<T> {
   return {
     at: _nativeLibAt(),
     matched: -1,
@@ -213,6 +207,7 @@ function _buildNativeLibraryFn<G extends string>({
   args,
   restArg,
   returnType,
+  methodFor,
 }: {
   generics?: G[]
   args: (forgedGenerics: { [name in G]: _Generic }) => {
@@ -223,6 +218,7 @@ function _buildNativeLibraryFn<G extends string>({
   }[]
   restArg?: string
   returnType?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
+  methodFor?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
 }): FnType {
   const forgedGenerics = fromEntries(
     (generics ?? []).map<[G, _Generic]>((name) => [
@@ -232,6 +228,7 @@ function _buildNativeLibraryFn<G extends string>({
   )
 
   const ret = returnType?.(forgedGenerics)
+  const forType = methodFor?.(forgedGenerics)
 
   return {
     generics: Object.values<_Generic>(forgedGenerics).map((g) => g.name),
@@ -247,5 +244,12 @@ function _buildNativeLibraryFn<G extends string>({
     ),
     restArg: restArg !== undefined ? _forgeToken(restArg) : null,
     returnType: ret !== undefined ? _forgeToken(typeof ret === 'string' ? { type: ret } : ret) : null,
+    method:
+      forType !== undefined
+        ? {
+            selfArg: _forgeToken('self'),
+            forType: _forgeToken(typeof forType === 'string' ? { type: forType } : forType),
+          }
+        : null,
   }
 }
