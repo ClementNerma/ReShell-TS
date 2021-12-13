@@ -3,7 +3,7 @@ import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches, maybe } from './lib/conditions'
-import { notFollowedBy } from './lib/consumeless'
+import { always, notFollowedBy } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -90,16 +90,11 @@ const fnArg: Parser<FnArg> = map(
   })
 )
 
-const fn: (requireName: boolean) => Parser<FnType> = (requireName) =>
+const fn: (requireName: boolean) => Parser<FnType & { name: Token<string> | null }> = (requireName) =>
   map(
     combine(
       map(
-        combine(
-          exact('fn'),
-          requireName
-            ? map(combine(s, identifier), ([_, name]) => name)
-            : maybe(map(combine(s, identifier), ([_, name]) => name))
-        ),
+        combine(exact('fn'), requireName ? map(combine(s, identifier), ([_, name]) => name) : always(null)),
         ([_, { parsed: name }]) => name
       ),
       combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
@@ -150,7 +145,7 @@ const fn: (requireName: boolean) => Parser<FnType> = (requireName) =>
       )
     ),
     ([
-      { parsed: named },
+      { parsed: name },
       _,
       { parsed: args },
       { parsed: restArg },
@@ -158,7 +153,7 @@ const fn: (requireName: boolean) => Parser<FnType> = (requireName) =>
       { parsed: returnType },
       { parsed: failureType },
     ]) => ({
-      named,
+      name,
       args,
       restArg,
       returnType,
@@ -168,6 +163,6 @@ const fn: (requireName: boolean) => Parser<FnType> = (requireName) =>
 
 export const fnType: Parser<FnType> = fn(false)
 export const fnDecl: Parser<{ name: Token<string>; fnType: FnType }> = map(fn(true), (fnType) => ({
-  name: fnType.named!,
+  name: fnType.name!,
   fnType,
 }))

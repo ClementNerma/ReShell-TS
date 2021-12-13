@@ -188,7 +188,6 @@ export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type FnType = {
-  named: Token<string> | null
   args: Token<FnArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null
