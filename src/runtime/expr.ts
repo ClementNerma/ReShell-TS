@@ -423,7 +423,13 @@ export const runExprElementContent: Runner<ExprElementContent, ExecValue> = (con
 
         const check = expectValueType(cond.at, result.data.result, 'bool')
         if (check.ok !== true) return check
-        if (check.data.value) return runExprOrNever(expr.parsed, ctx)
+        if (check.data.value)
+          return runExprOrNever(
+            expr.parsed,
+            result.data.type === 'assertion'
+              ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
+              : ctx
+          )
       }
 
       return runExprOrNever(
