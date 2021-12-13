@@ -169,7 +169,10 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
       },*/
     ]),
     restArg: null,
-    returnType: null,
+    returnType: _forgeToken({
+      type: 'list',
+      itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') },
+    }),
   },
 })
 
