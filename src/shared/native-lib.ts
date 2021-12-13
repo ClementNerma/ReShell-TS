@@ -23,24 +23,7 @@ export const nativeLibraryVarTypes = ensureValueTypes<ValueType>()({
 })
 
 export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
-  ok: _buildNativeLibraryFn({
-    generics: ['T', 'E'],
-    args: ({ T }) => [{ name: 'value', type: T }],
-    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
-  }),
-
-  err: _buildNativeLibraryFn({
-    generics: ['T', 'E'],
-    args: ({ E }) => [{ name: 'error', type: E }],
-    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
-  }),
-
-  typed: _buildNativeLibraryFn({
-    generics: ['T'],
-    args: ({ T }) => [{ name: 'value', type: T }],
-    returnType: ({ T }) => T,
-  }),
-
+  // Numbers
   toFixed: _buildNativeLibraryFn({
     args: () => [
       { name: 'number', type: 'number' },
@@ -49,15 +32,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'string',
   }),
 
-  listAt: _buildNativeLibraryFn({
-    generics: ['T'],
-    args: ({ T }) => [
-      { name: 'list', type: { type: 'list', itemsType: T } },
-      { name: 'index', type: 'number' },
-    ],
-    returnType: ({ T }) => ({ type: 'nullable', inner: T }),
-  }),
-
+  // Strings
   repeat: _buildNativeLibraryFn({
     args: () => [
       { name: 'str', type: 'string' },
@@ -74,14 +49,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
   }),
 
-  join: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'subject', type: { type: 'list', itemsType: { type: 'string' } } },
-      { name: 'glue', type: 'string' },
-    ],
-    returnType: () => 'string',
-  }),
-
+  // Paths
   pathtostr: _buildNativeLibraryFn({
     args: () => [{ name: 'path', type: 'path' }],
     returnType: () => 'string',
@@ -112,11 +80,51 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'bool',
   }),
 
-  echo: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'message', type: 'string' },
-      { flag: '-', name: 'n', type: 'bool' },
+  // Lists
+  listAt: _buildNativeLibraryFn({
+    generics: ['T'],
+    args: ({ T }) => [
+      { name: 'list', type: { type: 'list', itemsType: T } },
+      { name: 'index', type: 'number' },
     ],
+    returnType: ({ T }) => ({ type: 'nullable', inner: T }),
+  }),
+
+  join: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'subject', type: { type: 'list', itemsType: { type: 'string' } } },
+      { name: 'glue', type: 'string' },
+    ],
+    returnType: () => 'string',
+  }),
+
+  // Failables
+  ok: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
+
+  err: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ E }) => [{ name: 'error', type: E }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
+
+  // Type utilities
+  typed: _buildNativeLibraryFn({
+    generics: ['T'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T }) => T,
+  }),
+
+  // Debug utilities
+  toStr: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'value', type: 'unknown' },
+      { flag: '--', name: 'pretty', type: 'bool' },
+    ],
+    returnType: () => 'string',
   }),
 
   dump: _buildNativeLibraryFn({
@@ -126,16 +134,17 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     ],
   }),
 
-  toStr: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'value', type: 'unknown' },
-      { flag: '--', name: 'pretty', type: 'bool' },
-    ],
-    returnType: () => 'string',
-  }),
-
   trace: _buildNativeLibraryFn({ args: () => [{ name: 'message', type: 'string', optional: true }] }),
 
+  // Terminal utilities
+  echo: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'message', type: 'string' },
+      { flag: '-', name: 'n', type: 'bool' },
+    ],
+  }),
+
+  // Filesystem utilities
   ls: _buildNativeLibraryFn({
     args: () => [{ name: 'path', type: 'path' }],
     returnType: () => ({ type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } }),

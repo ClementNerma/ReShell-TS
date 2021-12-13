@@ -30,16 +30,7 @@ export type NativeFn = (
 ) => RunnerResult<ExecValue | null>
 
 export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
-  ok: ({ at }, args) =>
-    withArguments(at, args, { value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
-
-  err: ({ at }, args) =>
-    withArguments(at, args, { error: 'unknown' }, ({ error }) =>
-      success({ type: 'failable', success: false, value: error })
-    ),
-
-  typed: ({ at }, args) => withArguments(at, args, { value: 'unknown' }, ({ value }) => success(value)),
-
+  // Numbers
   toFixed: ({ at }, args) =>
     withArguments(at, args, { number: 'number', precision: 'number' }, ({ number, precision }) =>
       success({
@@ -48,12 +39,7 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       })
     ),
 
-  listAt: ({ at }, args) =>
-    withArguments(at, args, { list: 'list', index: 'number' }, ({ list, index }) => {
-      const item = list.items.at(index.value)
-      return success(item ?? { type: 'null' })
-    }),
-
+  // Strings
   repeat: ({ at }, args) =>
     withArguments(at, args, { str: 'string', repeat: 'number' }, ({ str, repeat }) =>
       success({ type: 'string', value: str.value.repeat(repeat.value) })
@@ -67,19 +53,7 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       })
     ),
 
-  join: ({ at }, args) =>
-    withArguments(at, args, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
-      const pieces: string[] = []
-
-      for (const value of subject.items) {
-        const str = expectValueType(at, value, 'string')
-        if (str.ok !== true) return str
-        pieces.push(str.data.value)
-      }
-
-      return success({ type: 'string', value: pieces.join(glue.value) })
-    }),
-
+  // Paths
   pathtostr: ({ at, ctx }, args) =>
     withArguments(at, args, { path: 'path' }, ({ path }) =>
       success({ type: 'string', value: path.segments.join(ctx.platformPathSeparator) })
@@ -132,18 +106,39 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       success({ type: 'bool', value: isAbsolute(path.segments.join(ctx.platformPathSeparator)) })
     ),
 
-  echo: ({ at, pipeTo }, args) =>
-    withArguments(at, args, { message: 'string', n: 'bool' }, ({ message, n }) => {
-      pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
-      return success(null)
+  // Lists
+  listAt: ({ at }, args) =>
+    withArguments(at, args, { list: 'list', index: 'number' }, ({ list, index }) => {
+      const item = list.items.at(index.value)
+      return success(item ?? { type: 'null' })
     }),
 
-  dump: ({ at, ctx, pipeTo }, args) =>
-    withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) => {
-      pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
-      return success(null)
+  join: ({ at }, args) =>
+    withArguments(at, args, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
+      const pieces: string[] = []
+
+      for (const value of subject.items) {
+        const str = expectValueType(at, value, 'string')
+        if (str.ok !== true) return str
+        pieces.push(str.data.value)
+      }
+
+      return success({ type: 'string', value: pieces.join(glue.value) })
     }),
 
+  // Failables
+  ok: ({ at }, args) =>
+    withArguments(at, args, { value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
+
+  err: ({ at }, args) =>
+    withArguments(at, args, { error: 'unknown' }, ({ error }) =>
+      success({ type: 'failable', success: false, value: error })
+    ),
+
+  // Type utilities
+  typed: ({ at }, args) => withArguments(at, args, { value: 'unknown' }, ({ value }) => success(value)),
+
+  // Debug utilities
   toStr: ({ at, ctx }, args) =>
     withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) =>
       success({
@@ -151,6 +146,12 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
         value: valueToStr(value, pretty.value, false, ctx),
       })
     ),
+
+  dump: ({ at, ctx, pipeTo }, args) =>
+    withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) => {
+      pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
+      return success(null)
+    }),
 
   trace: ({ pipeTo, at }, args) =>
     withArguments(at, args, { message: { nullable: 'string' } }, ({ message }) => {
@@ -171,6 +172,14 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       return success(null)
     }),
 
+  // Terminal utilities
+  echo: ({ at, pipeTo }, args) =>
+    withArguments(at, args, { message: 'string', n: 'bool' }, ({ message, n }) => {
+      pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
+      return success(null)
+    }),
+
+  // Filesystem utilities
   ls: ({ at, ctx }, args) =>
     withArguments(at, args, { path: { nullable: 'path' } }, ({ path }) => {
       const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
