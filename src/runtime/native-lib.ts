@@ -22,24 +22,29 @@ export type NativeFn = (
     at: CodeSection
     pipeTo: NonNullable<RunnerContext['pipeTo']>
   },
-  ...args: ExecValue[]
+  args: Map<string, ExecValue>
 ) => RunnerResult<ExecValue>
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
-  ok: (_, value) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }),
-
-  err: (_, error) => ({
+  ok: (_, args) => ({
     ok: null,
     breaking: 'return',
-    value: { type: 'failable', success: false, value: error },
+    value: { type: 'failable', success: true, value: args.get('value')! },
   }),
 
-  echo: ({ pipeTo }, message) => {
-    pipeTo.stdout.write(message.type === 'string' ? message.value : '<echo: invalid string value>')
+  err: (_, args) => ({
+    ok: null,
+    breaking: 'return',
+    value: { type: 'failable', success: false, value: args.get('error')! },
+  }),
+
+  echo: ({ pipeTo }, args) => {
+    const message = args.get('message')!
+    pipeTo.stdout.write(message.type === 'string' ? message : '<echo: invalid string value>')
     return { ok: null, breaking: 'return', value: null }
   },
 
-  dump: ({ ctx, pipeTo }, value) => {
+  dump: ({ ctx, pipeTo }, args) => {
     const valueToStr = (value: ExecValue): string =>
       matchUnion(value, 'type', {
         null: () => 'null',
@@ -61,7 +66,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
         rest: () => `<rest>`,
       })
 
-    pipeTo.stdout.write(valueToStr(value))
+    pipeTo.stdout.write(valueToStr(args.get('value')!))
 
     return { ok: null, breaking: 'return', value: null }
   },

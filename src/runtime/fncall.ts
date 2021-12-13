@@ -75,13 +75,14 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
     ...ctx,
     scopes: ctx.scopes.concat([{ generics: fnCall.generics, entities: fnScope }]),
   }
+
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {
     block: ({ body }) => runBlock(body.parsed, fnCtx),
     expr: ({ body }) => runExpr(body.parsed, fnCtx),
     native: ({ exec }) =>
       exec(
         { at: name.at, ctx: fnCtx, pipeTo: ctx.pipeTo ?? { stdout: process.stdout, stderr: process.stderr } },
-        ...fnScope.values()
+        fnScope
       ),
   })
 
