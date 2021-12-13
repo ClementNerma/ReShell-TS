@@ -9,8 +9,8 @@ import { map } from '../lib/transform'
 import { withLatelyDeclared } from '../lib/utils'
 import { CmdArg, CmdFlag } from './data'
 import { expr } from './expr'
-import { literalValue } from './literals'
 import { identifier } from './tokens'
+import { value } from './value'
 
 // For weirdly-shaped arguments provided to external commands, users just have to put them between double quotes to treat
 // them as strings just like they are originally in other shells
@@ -61,5 +61,5 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
     varname,
   })),
 
-  literal: map(literalValue, (_, value) => ({ type: 'literal', value })),
+  value: map(value, (_, value) => ({ type: 'value', value })),
 })

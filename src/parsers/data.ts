@@ -95,7 +95,7 @@ export type CmdArg =
   | ({ type: 'flag' } & CmdFlag)
   | { type: 'reference'; varname: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
-  | { type: 'literal'; value: Token<LiteralValue> }
+  | { type: 'value'; value: Token<Value> }
 
 export type CmdRedir = { op: Token<CmdRedirOp>; path: Token<Token<string>[]> }
 
