@@ -13,6 +13,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     return err('Internal error: expected type is set as implicit while evaluating value type', value)
   }
 
+  if (expectedType?.inner.type === 'aliasRef') {
+    throw new Error('// TODO: type alias development')
+  }
+
   return matchUnion(value.parsed)('type', {
     null: () => {
       if (!expectedType) {
