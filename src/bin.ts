@@ -4,7 +4,7 @@
 
 import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
-import { join } from 'path'
+import { delimiter, join } from 'path'
 import { install } from 'source-map-support'
 import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
@@ -28,11 +28,11 @@ const argv = process.argv.slice(2)
 if (!argv[0]) fail('Please provide an example name')
 if (!argv[0].match(/^([a-zA-Z0-9_]+)/)) fail('Invalid example name provided')
 
-const path = join(__dirname, '..', 'examples', argv[0] + '.rsh')
+const examplePath = join(__dirname, '..', 'examples', argv[0] + '.rsh')
 
-if (!existsSync(path)) fail('Example not found')
+if (!existsSync(examplePath)) fail('Example not found')
 
-const source = readFileSync(path, 'utf-8')
+const source = readFileSync(examplePath, 'utf-8')
 
 const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
 
@@ -106,7 +106,30 @@ if (argv.includes('--ast')) {
   process.exit(0)
 }
 
-const typecheckerContext = createTypecheckerContext()
+const isWindows = process.platform === 'win32' || process.platform === 'cygwin'
+
+const RAW_PATH = process.env['PATH']
+if (!RAW_PATH) throw new Error('Failed to fetch PATH system variable')
+
+const PATH = RAW_PATH.split(delimiter).map((entry) =>
+  entry.startsWith('"') && entry.endsWith('"') ? entry.substr(1, entry.length - 2) : entry
+)
+
+const typecheckerContext = createTypecheckerContext((cmd) => {
+  for (const entry of PATH) {
+    if (existsSync(join(entry, cmd))) return true
+
+    if (isWindows) {
+      for (const ext of ['.exe', '.cmd', '.bat', '.com']) {
+        if (existsSync(join(entry, cmd + ext))) return true
+        if (existsSync(join(entry, cmd + ext.toLocaleUpperCase()))) return true
+      }
+    }
+  }
+
+  return false
+})
+
 const [typecheckerDuration, typechecked] = measurePerf(() => programChecker(parsed.data, typecheckerContext))
 
 if (!typechecked.ok) {

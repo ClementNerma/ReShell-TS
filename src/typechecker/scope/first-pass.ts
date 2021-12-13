@@ -3,6 +3,7 @@
 
 import { FnType, StatementChain, Token, ValueType } from '../../shared/parsed'
 import { located, Located, success, Typechecker } from '../base'
+import { fnTypeValidator } from '../types/fn'
 import { ensureScopeUnicity } from './search'
 
 export type ScopeFirstPass = {
@@ -74,6 +75,9 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
 
           const fnUnicity = ensureScopeUnicity({ name: fnName, firstPass }, ctx)
           if (!fnUnicity.ok) return fnUnicity
+
+          const fnTypeChecker = fnTypeValidator(sub.parsed.fnType, ctx)
+          if (!fnTypeChecker.ok) return fnTypeChecker
 
           firstPass.functions.set(fnName.parsed, located(fnName.at, sub.parsed.fnType))
           break

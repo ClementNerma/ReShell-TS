@@ -1,6 +1,7 @@
 import { StatementChain, Token, ValueType } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, located, Scope, success, Typechecker, TypecheckerResult } from './base'
+import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
@@ -40,7 +41,6 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           const validation = resolveExprType(expr, {
             ...ctx,
-            scopes,
             typeExpectation: expectedType
               ? {
                   type: expectedType,
@@ -120,6 +120,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
         // Nothing to do here, already handled in first pass
         typeAlias: () => success(void 0),
+
+        fnDecl: ({ name, fnType, body }) => {
+          // TODO: return & failure types
+          return statementChainChecker(body, ctx)
+        },
+
+        cmdCall: (call) => cmdCallTypechecker(call, ctx),
 
         _: (): TypecheckerResult<void> => {
           throw new Error('// TODO: other statement types')

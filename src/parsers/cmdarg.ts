@@ -56,10 +56,10 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
     ([_, expr, __]) => ({ type: 'expr', expr })
   ),
 
-  reference: map(combine(exact('$'), failure(identifier, 'Expected a variable name')), ([_, varname]) => ({
-    type: 'reference',
-    varname,
-  })),
+  // reference: map(combine(exact('$'), failure(identifier, 'Expected a variable name')), ([_, varname]) => ({
+  //   type: 'reference',
+  //   varname,
+  // })),
 
   value: map(value, (_, value) => ({ type: 'value', value })),
 })

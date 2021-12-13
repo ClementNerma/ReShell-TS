@@ -210,7 +210,7 @@ export type CmdArg =
   // NOTE: flags may have a non-direct value, e.g. `--arg value` will be parsed as a long 'arg' flag without direct value,
   // followed by a 'value' expr
   | ({ type: 'flag' } & CmdFlag)
-  | { type: 'reference'; varname: Token<string> }
+  // | { type: 'reference'; varname: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'value'; value: Token<Value> }
 
