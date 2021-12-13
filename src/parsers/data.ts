@@ -13,8 +13,9 @@ export type Program = Token<StatementChain>[]
 
 export type StatementChain =
   | { type: 'empty' }
-  | { type: 'single'; stmt: Token<Statement> }
-  | { type: 'chain'; left: Token<Statement>; op: Token<StatementChainOp>; right: Token<StatementChain> }
+  | { type: 'chain'; start: Token<Statement>; sequence: Token<ChainedStatement>[] }
+
+export type ChainedStatement = { op: Token<StatementChainOp>; chainedStatement: Token<Statement> }
 
 export enum StatementChainOp {
   Then,

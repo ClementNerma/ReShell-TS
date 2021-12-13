@@ -4,6 +4,7 @@ import { lookahead } from '../lib/consumeless'
 import { maybe_s, maybe_s_nl } from '../lib/littles'
 import { eol, oneOfMap } from '../lib/matchers'
 import { or } from '../lib/switches'
+import { silence } from '../lib/transform'
 import { matchStatementClose } from './context'
 import { CmdRedirOp, StatementChainOp } from './data'
 
@@ -29,3 +30,5 @@ export const endOfInlineCmdCall: Parser<void> = lookahead(
 )
 
 export const endOfCmdCallStatement: Parser<void> = or([lookahead(combine(maybe_s, eol())), endOfInlineCmdCall])
+
+export const endOfStatementChain: Parser<void> = silence(combine(maybe_s, or([matchStatementClose, eol()])))

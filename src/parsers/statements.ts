@@ -1,18 +1,17 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { flatten, ifThen, maybe, maybeFlatten } from '../lib/conditions'
-import { lookahead, not } from '../lib/consumeless'
+import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
+import { takeWhile } from '../lib/loops'
 import { bol, eol, exact, match } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, mapToken, selfRef } from '../lib/utils'
+import { flattenMaybeToken, mapToken } from '../lib/utils'
 import { cmdCall } from './cmdcall'
-import { matchStatementClose } from './context'
-import { Statement, StatementChain } from './data'
+import { ChainedStatement, Statement, StatementChain } from './data'
 import { expr } from './expr'
-import { endOfCmdCallStatement, statementChainOp } from './stmtend'
+import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { fnDecl, valueType } from './types'
 
@@ -106,28 +105,31 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
   'Syntax error: expected statement'
 )
 
-export const statementChainFree: Parser<StatementChain> = selfRef((statementChainFree) =>
-  map(
-    combine(
-      statement,
-      ifThen(
-        not(lookahead(or([matchStatementClose, eol()]))),
-        combine(
-          failure(statementChainOp, 'Syntax error: expected end of statement'),
-          maybe_s_nl,
-          failure(statementChainFree, 'Syntax error: expected another statement')
+export const statementChainFree: Parser<StatementChain> = map(
+  combine(
+    statement,
+    takeWhile(
+      failIfElse(
+        endOfStatementChain,
+        map(
+          combine(
+            failure(statementChainOp, 'Syntax error: expected end of statement'),
+            maybe_s_nl,
+            failure(statement, 'Syntax error: expected another statement')
+          ),
+          ([op, _, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
         )
       ),
-      or([matchStatementClose, eol()]),
-      {
-        inter: maybe_s,
-      }
+      { inter: maybe_s }
     ),
-    ([stmt, chain]): StatementChain =>
-      !chain.parsed
-        ? { type: 'single', stmt }
-        : { type: 'chain', left: stmt, op: chain.parsed[0], right: chain.parsed[2] }
-  )
+    endOfStatementChain,
+    { inter: maybe_s }
+  ),
+  ([start, sequence]): StatementChain => ({
+    type: 'chain',
+    start,
+    sequence: sequence.parsed,
+  })
 )
 
 export const statementChain: Parser<StatementChain> = or<StatementChain>([
