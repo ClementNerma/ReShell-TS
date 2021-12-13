@@ -31,6 +31,15 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
         : err(typeAliasName.at, `type alias \`${typeAliasName.parsed}\` was not found`),
     unknown: () => success(void 0),
     nullable: ({ inner }) => typeValidator(inner, ctx),
+    failable: ({ successType, failureType }) => {
+      const successCheck = typeValidator(successType.parsed, ctx)
+      if (!successCheck.ok) return successCheck
+
+      const failureCheck = typeValidator(failureType.parsed, ctx)
+      if (!failureCheck.ok) return failureCheck
+
+      return success(void 0)
+    },
     generic: ({ name }) => {
       const generic = getTypedEntityInScope(name, 'generic', ctx)
       return generic.ok ? success(void 0) : generic

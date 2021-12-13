@@ -495,6 +495,13 @@ function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): Va
     case 'nullable':
       return { type: type.type, inner: resolveGenerics(type.inner, gScopes) }
 
+    case 'failable':
+      return {
+        type: 'failable',
+        successType: { ...type.successType, parsed: resolveGenerics(type.successType.parsed, gScopes) },
+        failureType: { ...type.failureType, parsed: resolveGenerics(type.failureType.parsed, gScopes) },
+      }
+
     case 'generic':
       for (const scope of gScopes.reverse()) {
         const generic = scope.get(type.name.parsed)

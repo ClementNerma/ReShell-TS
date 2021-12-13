@@ -97,6 +97,21 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
         ([_, { parsed: inner }]) => ({ inner })
       ),
 
+      failable: map(
+        combine(
+          exact('failable<'),
+          maybe_s_nl,
+          valueType,
+          maybe_s_nl,
+          exact(',', 'expected a comma (,) to separate the success and failure types'),
+          maybe_s_nl,
+          valueType,
+          maybe_s_nl,
+          exact('>', 'expected a closing (>) symbol after the failure type')
+        ),
+        ([_, __, successType, ___, ____, _____, failureType]) => ({ successType, failureType })
+      ),
+
       unknown: map(exact('unknown'), () => ({})),
 
       aliasRef: toOneProp('typeAliasName', identifier),

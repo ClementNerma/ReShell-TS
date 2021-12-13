@@ -81,6 +81,7 @@ export type ValueType =
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'nullable'; inner: ValueType }
+  | { type: 'failable'; successType: Token<ValueType>; failureType: Token<ValueType> }
   | { type: 'unknown' }
   | { type: 'generic'; name: Token<string> }
   | InternalTypes

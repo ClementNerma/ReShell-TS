@@ -300,6 +300,32 @@ export const isTypeCompatible: Typechecker<
       return success(void 0)
     },
 
+    failable: (c, r) => {
+      const successCheck = isTypeCompatible(
+        {
+          at: c.successType.at,
+          candidate: c.successType.parsed,
+          typeExpectation: { type: r.successType.parsed, from: r.successType.at },
+        },
+        ctx
+      )
+
+      if (!successCheck.ok) return successCheck
+
+      const failureCheck = isTypeCompatible(
+        {
+          at: c.failureType.at,
+          candidate: c.failureType.parsed,
+          typeExpectation: { type: r.failureType.parsed, from: r.failureType.at },
+        },
+        ctx
+      )
+
+      if (!failureCheck.ok) return failureCheck
+
+      return success(void 0)
+    },
+
     generic: (c, r) =>
       c.name.parsed === r.name.parsed
         ? success(void 0)

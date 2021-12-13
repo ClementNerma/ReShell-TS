@@ -34,6 +34,10 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
           }`,
     aliasRef: ({ typeAliasName }) => typeAliasName.parsed,
     nullable: ({ inner }) => '?' + rebuildType(inner, noDepth),
+    failable: ({ successType, failureType }) =>
+      noDepth === true
+        ? 'failable'
+        : `failable<${rebuildType(successType.parsed)}, ${rebuildType(failureType.parsed)}>`,
     unknown: () => 'unknown',
     generic: ({ name }) => `:${name.parsed}`,
 
