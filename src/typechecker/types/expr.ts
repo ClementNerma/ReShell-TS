@@ -43,9 +43,33 @@ export const resolveExprElementType: Typechecker<ExprElement, ExprTypeResolverCo
       }
     },
 
-    ternary: () => {
-      // TODO: check that <cond> is a bool, check that all <then> / <elif> / <else> have the same value
-      throw new Error('// TODO: ternary expressions')
+    ternary: ({ cond, then, elif, els }) => {
+      const condType = resolveExprType(cond, {
+        scopes: ctx.scopes,
+        expectedType: { nullable: false, inner: { type: 'bool' } },
+      })
+
+      if (!condType.ok) return condType
+
+      const thenType = resolveExprType(then, ctx)
+      if (!thenType.ok) return thenType
+
+      for (const { cond, expr } of elif) {
+        const condType = resolveExprType(cond, {
+          scopes: ctx.scopes,
+          expectedType: { nullable: false, inner: { type: 'bool' } },
+        })
+
+        if (!condType.ok) return condType
+
+        const elifType = resolveExprType(expr, { scopes: ctx.scopes, expectedType: thenType.data })
+        if (!elifType.ok) return elifType
+      }
+
+      const elseType = resolveExprType(els, { scopes: ctx.scopes, expectedType: thenType.data })
+      if (!elseType.ok) return elseType
+
+      return success(ctx.expectedType ?? thenType.data)
     },
 
     try: () => {
