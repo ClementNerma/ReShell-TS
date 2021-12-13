@@ -1,7 +1,7 @@
 import { PropertyAccess, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
-import { getTypeAliasInScope } from '../scope/search'
+import { getTypedEntityInScope } from '../scope/search'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
@@ -15,7 +15,7 @@ export const resolvePropAccessType: Typechecker<
   for (const propAccess of propAccesses) {
     while (true) {
       if (previousIterType.type === 'aliasRef') {
-        const alias = getTypeAliasInScope(previousIterType.typeAliasName, ctx)
+        const alias = getTypedEntityInScope(previousIterType.typeAliasName, 'typeAlias', ctx)
 
         if (!alias.ok) {
           return err(
@@ -26,7 +26,7 @@ export const resolvePropAccessType: Typechecker<
 
         previousIterType = alias.data.content
       } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
-        const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
+        const alias = getTypedEntityInScope(previousIterType.inner.typeAliasName, 'typeAlias', ctx)
 
         if (!alias.ok) {
           return err(

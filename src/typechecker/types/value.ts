@@ -3,7 +3,7 @@ import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
-import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
+import { getEntityInScope, getTypedEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureTypeValidator, validateFnCallArgs } from './fn'
@@ -13,7 +13,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let { typeExpectation } = ctx
 
   while (typeExpectation?.type?.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(typeExpectation.type.typeAliasName, ctx)
+    const alias = getTypedEntityInScope(typeExpectation.type.typeAliasName, 'typeAlias', ctx)
 
     if (!alias.ok) {
       return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
@@ -31,7 +31,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
-        const alias = getTypeAliasInScope(expected.typeAliasName, ctx)
+        const alias = getTypedEntityInScope(expected.typeAliasName, 'typeAlias', ctx)
 
         if (!alias.ok) {
           return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
@@ -64,7 +64,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
-        const alias = getTypeAliasInScope(expected.typeAliasName, ctx)
+        const alias = getTypedEntityInScope(expected.typeAliasName, 'typeAlias', ctx)
 
         if (!alias.ok) {
           return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
@@ -391,21 +391,19 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     fnCall: ({ name, args }) => {
       let fnType: FnType
 
-      const fn = getFunctionInScope(name, ctx)
+      const entity = getEntityInScope(name, ctx)
 
-      if (fn.ok) {
-        fnType = fn.data.content
+      if (!entity.ok || entity.data.type === 'typeAlias' || entity.data.type === 'generic') {
+        return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
+      }
+
+      if (entity.data.type === 'fn') {
+        fnType = entity.data.content
       } else {
-        const varType = getVariableInScope(name, ctx)
-
-        if (!varType.ok) {
-          return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
-        }
-
-        let type = varType.data.varType
+        let type = entity.data.varType
 
         if (type.type === 'aliasRef') {
-          const alias = getTypeAliasInScope(type.typeAliasName, ctx)
+          const alias = getTypedEntityInScope(type.typeAliasName, 'typeAlias', ctx)
 
           if (!alias.ok) {
             return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
@@ -461,15 +459,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     },
 
     reference: ({ varname }) => {
-      const referencedVar = getVariableInScope(varname, ctx)
-      const referencedFn = getFunctionInScope(varname, ctx)
+      const referenced = getEntityInScope(varname, ctx)
 
       let foundType: ValueType
 
-      if (referencedVar.ok) {
-        foundType = referencedVar.data.varType
-      } else if (referencedFn.ok) {
-        foundType = { type: 'fn', fnType: referencedFn.data.content }
+      if (referenced.ok && referenced.data.type === 'var') {
+        foundType = referenced.data.varType
+      } else if (referenced.ok && referenced.data.type === 'fn') {
+        foundType = { type: 'fn', fnType: referenced.data.content }
       } else {
         return err(value.at, `variable \`${varname.parsed}\` was not found in this scope`)
       }

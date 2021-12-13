@@ -1,7 +1,7 @@
 import { ValueType } from '../../shared/ast'
 import { matchUnion } from '../../shared/utils'
 import { success, Typechecker } from '../base'
-import { getTypeAliasInScope, getTypedEntityInScope } from '../scope/search'
+import { getTypedEntityInScope } from '../scope/search'
 
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
   matchUnion(type, 'type', {
@@ -25,7 +25,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
         ctx
       ),
     aliasRef: ({ typeAliasName }) => {
-      const typeAlias = getTypeAliasInScope(typeAliasName, ctx)
+      const typeAlias = getTypedEntityInScope(typeAliasName, 'typeAlias', ctx)
       return typeAlias.ok ? success(void 0) : typeAlias
     },
     unknown: () => success(void 0),

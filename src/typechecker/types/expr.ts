@@ -2,7 +2,7 @@ import { Expr, ExprElement, ExprElementContent, ExprOrNever, ExprOrTypeAssertion
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerContext } from '../base'
-import { getVariableInScope } from '../scope/search'
+import { getTypedEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
 import { resolvePropAccessType } from './propaccess'
@@ -92,7 +92,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
 
     case 'assertion':
     case 'invertedAssertion':
-      const subject = getVariableInScope(expr.parsed.varname, ctx)
+      const subject = getTypedEntityInScope(expr.parsed.varname, 'var', ctx)
       if (!subject.ok) return subject
 
       const subjectType = subject.data.varType

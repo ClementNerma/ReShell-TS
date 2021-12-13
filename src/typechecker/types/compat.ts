@@ -1,7 +1,7 @@
 import { ValueType } from '../../shared/ast'
 import { CodeSection } from '../../shared/parsed'
-import { err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { getTypeAliasInScope } from '../scope/search'
+import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { getTypedEntityInScope } from '../scope/search'
 import { rebuildType } from './rebuilder'
 
 export const isTypeCompatible: Typechecker<
@@ -92,7 +92,12 @@ export const isTypeCompatible: Typechecker<
   }
 
   while (candidate.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(candidate.typeAliasName, ctx)
+    // FIXME: bug with TypeScript compiler with refuses to compile this code part without explicit typing
+    const alias: TypecheckerResult<Extract<ScopeEntity, { type: 'typeAlias' }>> = getTypedEntityInScope(
+      candidate.typeAliasName,
+      'typeAlias',
+      ctx
+    )
 
     if (!alias.ok) {
       return expectationErr(
@@ -104,7 +109,12 @@ export const isTypeCompatible: Typechecker<
   }
 
   while (referent.type === 'aliasRef') {
-    const alias = getTypeAliasInScope(referent.typeAliasName, ctx)
+    // FIXME: bug with TypeScript compiler with refuses to compile this code part without explicit typing
+    const alias: TypecheckerResult<Extract<ScopeEntity, { type: 'typeAlias' }>> = getTypedEntityInScope(
+      referent.typeAliasName,
+      'typeAlias',
+      ctx
+    )
 
     if (!alias.ok) {
       return expectationErr(

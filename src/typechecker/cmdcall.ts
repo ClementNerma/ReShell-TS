@@ -2,14 +2,14 @@ import { CmdArg, CmdCall, CmdDeclSubCommand, CmdVariantSignature, ValueType } fr
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
-import { getFunctionInScope } from './scope/search'
+import { getTypedEntityInScope } from './scope/search'
 import { resolveExprType } from './types/expr'
 import { validateFnCallArgs } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
 export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name, args }, ctx) => {
-  const fn = getFunctionInScope(name, ctx)
+  const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {
     return validateFnCallArgs({ at: name.at, args, fnType: fn.data.content }, ctx)

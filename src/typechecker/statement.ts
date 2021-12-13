@@ -6,7 +6,7 @@ import { err, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { flattenStatementChains, scopeFirstPass } from './scope/first-pass'
-import { getFunctionInScope, getVariableInScope } from './scope/search'
+import { getTypedEntityInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveExprOrTypeAssertionType, resolveExprType } from './types/expr'
 import { validateFnBody } from './types/fn'
@@ -56,7 +56,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
     const stmtMetadata: TypecheckerResult<StatementMetadata> = matchUnion(stmt.parsed, 'type', {
       variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementMetadata> => {
-        const fn = getFunctionInScope(varname, ctx)
+        const fn = getTypedEntityInScope(varname, 'fn', ctx)
 
         if (fn.ok) {
           return err(varname.at, {
@@ -105,7 +105,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           return err(prefixOp.at, 'cannot use an arithmetic operator when pushing to a list')
         }
 
-        const tryScopedVar = getVariableInScope(varname, ctx)
+        const tryScopedVar = getTypedEntityInScope(varname, 'var', ctx)
         if (!tryScopedVar.ok) return tryScopedVar
 
         if (!tryScopedVar.data.mutable) {

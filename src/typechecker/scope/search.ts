@@ -38,65 +38,11 @@ export function getTypedEntityInScope<C extends ScopeEntity['type']>(
     if (entity) {
       return entity.type === category
         ? success(entity as Extract<ScopeEntity, { type: C }>)
-        : err(
-            name.at,
-            `expected a ${getEntityCategoryName(category)} but found a ${getEntityCategoryName(entity.type)}`
-          )
+        : err(name.at, `expected a ${getEntityCategoryName(category)}, found a ${getEntityCategoryName(entity.type)}`)
     }
   }
 
   return err(name.at, getEntityCategoryName(category) + ' not found')
-}
-
-export const getTypeAliasInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'typeAlias' }>> = (
-  name,
-  { scopes }
-) => {
-  for (let s = scopes.length - 1; s >= 0; s--) {
-    const entity = scopes[s].get(name.parsed)
-
-    if (entity) {
-      return entity.type === 'typeAlias'
-        ? success(entity)
-        : err(name.at, 'expected a type name, found a ' + getEntityCategoryName(entity.type))
-    }
-  }
-
-  return err(name.at, 'type not found')
-}
-
-export const getFunctionInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'fn' }>> = (
-  name,
-  { scopes }
-) => {
-  for (let s = scopes.length - 1; s >= 0; s--) {
-    const entity = scopes[s].get(name.parsed)
-
-    if (entity) {
-      return entity.type === 'fn'
-        ? success(entity)
-        : err(name.at, 'expected a function, found a ' + getEntityCategoryName(entity.type))
-    }
-  }
-
-  return err(name.at, 'function not found')
-}
-
-export const getVariableInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'var' }>> = (
-  name,
-  { scopes }
-) => {
-  for (let s = scopes.length - 1; s >= 0; s--) {
-    const entity = scopes[s].get(name.parsed)
-
-    if (entity) {
-      return entity.type === 'var'
-        ? success(entity)
-        : err(name.at, 'expected a variable, found a ' + getEntityCategoryName(entity.type))
-    }
-  }
-
-  return err(name.at, 'variable not found')
 }
 
 export function getEntityCategoryName(type: ScopeEntity['type']): string {
