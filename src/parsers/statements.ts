@@ -65,30 +65,22 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         combine(exact('if'), s),
         failure(exprOrTypeAssertion, 'expected a condition'),
-        combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-        withStatementClosingChar(
-          '}',
-          withContinuationKeyword(
-            ['elif', 'else'],
-            withLatelyDeclared(() => blockBody)
-          )
+        failure(s, 'expected a whitespace after the condition'),
+        withContinuationKeyword(
+          ['elif', 'else'],
+          withLatelyDeclared(() => blockBody)
         ),
-        combine(maybe_s_nl, exact('}', 'expected a closing brace (})')),
         extract(
           takeWhile<ElIfBlock>(
             map(
               combine(
                 combine(maybe_s_nl, exact('elif'), s),
                 failure(exprOrTypeAssertion, 'expected a condition'),
-                combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-                withStatementClosingChar(
-                  '}',
-                  withContinuationKeyword(
-                    ['else', 'elif'],
-                    withLatelyDeclared(() => blockBody)
-                  )
-                ),
-                combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
+                failure(s, 'expected a whitespace after the condition'),
+                withContinuationKeyword(
+                  ['else', 'elif'],
+                  withLatelyDeclared(() => blockBody)
+                )
               ),
               ([_, cond, __, { parsed: body }]) => ({ cond, body })
             ),
@@ -98,19 +90,16 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         maybe(
           map(
             combine(
-              combine(maybe_s_nl, exact('else'), s),
-              combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-              withStatementClosingChar(
-                '}',
-                withLatelyDeclared(() => blockBody)
-              ),
-              combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
+              maybe_s_nl,
+              exact('else'),
+              maybe_s_nl,
+              withLatelyDeclared(() => blockBody)
             ),
-            ([_, __, { parsed: body }]) => body
+            ([_, __, ___, { parsed: body }]) => body
           )
         )
       ),
-      ([_, cond, __, { parsed: then }, ___, { parsed: elif }, { parsed: els }]) => ({ cond, then, elif, els })
+      ([_, cond, __, { parsed: then }, { parsed: elif }, { parsed: els }]) => ({ cond, then, elif, els })
     ),
 
     forLoop: map(
@@ -140,38 +129,20 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           })),
           expr: toOneProp(failure(expr, 'expected an expression to iterate on'), 'expr'),
         }),
-        map(
-          combine(
-            combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => blockBody)
-            ),
-            combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
-          ),
-          ([_, { parsed: body }, __]) => body
-        )
+        maybe_s_nl,
+        withLatelyDeclared(() => blockBody)
       ),
-      ([_, loopvar, { parsed: loopvar2 }, __, subject, { parsed: body }]) => ({ loopvar, loopvar2, subject, body })
+      ([_, loopvar, { parsed: loopvar2 }, __, subject, ___, { parsed: body }]) => ({ loopvar, loopvar2, subject, body })
     ),
 
     whileLoop: map(
       combine(
         combine(exact('while'), s),
         failure(exprOrTypeAssertion, 'expected a loop condition'),
-        map(
-          combine(
-            combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => blockBody)
-            ),
-            combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
-          ),
-          ([_, { parsed: body }]) => body
-        )
+        maybe_s_nl,
+        withLatelyDeclared(() => blockBody)
       ),
-      ([_, cond, { parsed: body }]) => ({
+      ([_, cond, __, { parsed: body }]) => ({
         cond,
         body,
       })
@@ -183,40 +154,22 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     tryBlock: map(
       combine(
         exact('try'),
-        map(
-          combine(
-            combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-            withStatementClosingChar(
-              '}',
-              withContinuationKeyword(
-                ['catch'],
-                withLatelyDeclared(() => blockBody)
-              )
-            ),
-            combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
-          ),
-          ([_, { parsed: body }, __]) => body
+        maybe_s_nl,
+        withContinuationKeyword(
+          ['catch'],
+          withLatelyDeclared(() => blockBody)
         ),
         map(
           combine(
             combine(maybe_s_nl, exact('catch', 'expected a "catch" clause'), s),
-            failure(identifier, 'expected an identifier for the "catch" clause')
+            failure(identifier, 'expected an identifier for the "catch" clause'),
+            maybe_s_nl
           ),
           ([_, catchVarname]) => catchVarname
         ),
-        map(
-          combine(
-            combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-            withStatementClosingChar(
-              '}',
-              withLatelyDeclared(() => blockBody)
-            ),
-            combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
-          ),
-          ([_, { parsed: body }, __]) => body
-        )
+        withLatelyDeclared(() => blockBody)
       ),
-      ([_, { parsed: body }, { parsed: catchVarname }, { parsed: catchBody }]) => ({
+      ([_, __, { parsed: body }, { parsed: catchVarname }, { parsed: catchBody }]) => ({
         body,
         catchVarname,
         catchBody,
@@ -257,12 +210,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     fnDecl: map(
       combine(
         withLatelyDeclared(() => fnDecl),
-        combine(maybe_s_nl, exact('{', "expected an opening brace ({) for the function's body"), maybe_s_nl),
-        withStatementClosingChar(
-          '}',
-          withLatelyDeclared(() => blockBody)
-        ),
-        combine(maybe_s_nl, exact('}', "expected a closing brace (}) to end the function's body"))
+        maybe_s_nl,
+        withLatelyDeclared(() => blockBody)
       ),
       ([
         {
@@ -270,7 +219,6 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         },
         _,
         body,
-        __,
       ]) => ({ name, fnType, body })
     ),
 
@@ -396,18 +344,30 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   map(combine(bol(), maybe_s, statementChainFree), ([_, __, { parsed: chain }]) => chain),
 ])
 
-export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
-  or([
-    map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
-    failIfMatchesElse(
-      matchStatementClose,
-      map(
-        combine(
-          maybe_s,
-          withLatelyDeclared(() => statementChainFree)
-        ),
-        ([_, { parsed: chain }]) => chain
+export const blockBody: Parser<Token<StatementChain>[]> = map(
+  combine(
+    exact('{', 'expected an opening brace (})'),
+    maybe_s_nl,
+    withStatementClosingChar(
+      '}',
+      takeWhile<StatementChain>(
+        or([
+          map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
+          failIfMatchesElse(
+            matchStatementClose,
+            map(
+              combine(
+                maybe_s,
+                withLatelyDeclared(() => statementChainFree)
+              ),
+              ([_, { parsed: chain }]) => chain
+            )
+          ),
+        ])
       )
     ),
-  ])
+    maybe_s_nl,
+    exact('}', 'expected a closing brace (})')
+  ),
+  ([_, __, { parsed: body }]) => body
 )

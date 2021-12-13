@@ -8,6 +8,7 @@ import { failure } from './lib/errors'
 import { maybe_s_nl, s } from './lib/littles'
 import { takeWhile1 } from './lib/loops'
 import { exact } from './lib/matchers'
+import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
 import { blockBody } from './statements'
@@ -30,7 +31,13 @@ export const enumMatching: <T>(
       extract(
         takeWhile1(
           map(
-            combine(identifier, maybe_s_nl, exact('=>', 'expected a match arm (=>)'), maybe_s_nl, bodyParser),
+            combine(
+              or<string>([exact('_'), identifier]),
+              maybe_s_nl,
+              exact('=>', 'expected a match arm (=>)'),
+              maybe_s_nl,
+              bodyParser
+            ),
             ([variant, _, __, ___, matchWith]) => ({ variant, matchWith })
           ),
           {
@@ -40,6 +47,7 @@ export const enumMatching: <T>(
           }
         )
       ),
+      maybe_s_nl,
       exact('}', "expected a closing brace (}) after the match's body")
     ),
     ([_, __, subject, ___, ____, _____, { parsed: arms }]) => ({ subject, arms })
