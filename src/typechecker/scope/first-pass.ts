@@ -21,6 +21,23 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
         case 'typeAlias':
           const typename = sub.parsed.typename
 
+          // The following check was originally implemented:
+          //
+          // ```
+          // if (ctx.scopes.length > 0) {
+          //   return err(typename.at, 'Type aliases can only be defined at top level')
+          // }
+          // ```
+          //
+          // It was required for the case where a value of a type named e.g. `X` defined in a scope would be
+          // returned to the parent scope, and then used in another sub scope defining another type named `X`
+          // Given the informations we have in the AST, this would lead the types to be resolved as the same one,
+          // which would result in the types always being shown as compatible even if they weren't.
+          //
+          // Eventually, we don't need this check as there is no way to leak a scoped type alias to the parent scope
+          // Generics are not supported, values of the universal `unknown` type are typed as such and not as their
+          // underlying type, so we don't need to perform an additional check here.
+
           const typeUnicity = ensureScopeUnicity({ name: typename, firstPass }, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
