@@ -296,16 +296,9 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       return runBlock(relevantArm.matchWith.parsed, ctx)
     },
 
-    fnDecl: ({ name, body }) => {
-      const scope = ctx.scopes[ctx.scopes.length - 1]
-      scope.entities.set(name.parsed, { type: 'fn', body })
-      return success(void 0)
-    },
-
-    methodDecl: ({ infos, body }) => {
-      ctx.methods.push({ infos, body })
-      return success(void 0)
-    },
+    // Nothing to do (already treated in blocks' runtime)
+    fnDecl: () => success(void 0),
+    methodDecl: () => success(void 0),
 
     return: ({ expr }) => {
       if (!expr) return { ok: null, breaking: 'return' as const, value: null }
