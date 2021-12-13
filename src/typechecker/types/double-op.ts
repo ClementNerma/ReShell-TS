@@ -17,7 +17,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
 
   const precedence: number[] = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
 
-  for (let g = 4; g >= 3; g--) {
+  for (let g = 5; g >= 3; g--) {
     const i = precedence.lastIndexOf(g)
     if (i === -1) continue
 
