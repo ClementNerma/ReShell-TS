@@ -98,7 +98,11 @@ export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T
     $custom,
     self: () => context,
   }
-  return parser({ file: { type: 'entrypoint' }, line: 0, col: 0 }, sourceServer.entrypoint(), context)
+  return parser(
+    { file: { type: 'entrypoint', path: sourceServer.entrypointPath }, line: 0, col: 0 },
+    sourceServer.entrypoint(),
+    context
+  )
 }
 
 export function parseFile<T>(

@@ -68,7 +68,7 @@ export function formatErr(
     .concat(diag.also.filter((also) => also.at.start.file.type !== 'internal'))
     .map(({ at, message, complements }) => {
       const sourceFile: string = matchUnion(at.start.file, 'type', {
-        entrypoint: () => sourceServer.entrypointPath,
+        entrypoint: ({ path }) => path,
         file: ({ path }) => path,
         internal: ({ path }) => path,
       })

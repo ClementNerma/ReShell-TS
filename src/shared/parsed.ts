@@ -11,4 +11,7 @@ export type CodeLoc = {
   col: number
 }
 
-export type CodeLocFile = { type: 'file'; path: string } | { type: 'entrypoint' } | { type: 'internal'; path: string }
+export type CodeLocFile =
+  | { type: 'file'; path: string }
+  | { type: 'entrypoint'; path: string }
+  | { type: 'internal'; path: string }
