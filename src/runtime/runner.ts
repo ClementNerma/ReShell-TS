@@ -1,7 +1,9 @@
 import {
   Block,
   CondOrTypeAssertion,
+  DoubleOp,
   Expr,
+  ExprDoubleOp,
   ExprElement,
   ExprElementContent,
   ExprOrNever,
@@ -9,9 +11,10 @@ import {
   Statement,
   Value,
 } from '../shared/ast'
+import { getOpPrecedence } from '../shared/constants'
 import { Diagnostic } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
-import { matchStr, matchUnion } from '../shared/utils'
+import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
 import { createRunnerContext, ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 
 export function execProgram(program: Token<Program>): { ok: true } | { ok: false; diag: Diagnostic } {
@@ -68,7 +71,7 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       return success(void 0)
     },
 
-    assignment: ({ varname, propAccesses, prefixOp, listPush, expr }) => {
+    assignment: (/*{ varname, propAccesses, prefixOp, listPush, expr }*/) => {
       throw new Error('TODO: assignments')
     },
 
@@ -250,7 +253,7 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    cmdCall: ({ content }) => {
+    cmdCall: (/*{ content }*/) => {
       throw new Error('TODO: command calls')
     },
 
@@ -262,10 +265,250 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
 const runExpr: Runner<Expr, ExecValue> = (expr, ctx) => {
   const execFrom = runExprElement(expr.from.parsed, ctx)
   if (execFrom.ok !== true) return execFrom
-  if (expr.doubleOps.length === 0) return execFrom // TODO: TO REMOVE
 
-  throw new Error('TODO: expressions')
+  return runDoubleOpSeq({ baseElementAt: expr.from.at, baseElement: execFrom.data, seq: expr.doubleOps }, ctx)
 }
+
+const runDoubleOpSeq: Runner<
+  { baseElementAt: CodeSection; baseElement: ExecValue; seq: Token<ExprDoubleOp>[] },
+  ExecValue
+> = ({ baseElementAt, baseElement, seq }, ctx) => {
+  if (seq.length === 0) return success(baseElement)
+
+  const precedence: number[] = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
+
+  for (let g = 4; g >= 3; g--) {
+    const i = precedence.lastIndexOf(g)
+    if (i === -1) continue
+
+    const left = runDoubleOpSeq({ baseElementAt, baseElement, seq: seq.slice(0, i) }, ctx)
+    if (left.ok !== true) return left
+
+    const rightBase = seq[i].parsed.right
+    const execRightBase = runExprElement(rightBase.parsed, ctx)
+    if (execRightBase.ok !== true) return execRightBase
+
+    const right = runDoubleOpSeq(
+      { baseElementAt: rightBase.at, baseElement: execRightBase.data, seq: seq.slice(i + 1) },
+      ctx
+    )
+    if (right.ok !== true) return right
+
+    return runDoubleOp(
+      {
+        leftAt: {
+          start: baseElementAt.start,
+          next: seq[i].at.next,
+        },
+        left: left.data,
+        op: seq[i].parsed.op,
+        rightAt: {
+          start: rightBase.at.start,
+          next: seq[seq.length - 1].at.next,
+        },
+        right: right.data,
+      },
+      ctx
+    )
+  }
+
+  let leftAt = baseElementAt
+  let left = baseElement
+
+  for (let i = 0; i < seq.length; i++) {
+    if (i < seq.length - 1 && precedence[i + 1] === 2) {
+      const innerLeft = runExprElement(seq[i].parsed.right.parsed, ctx)
+      if (innerLeft.ok !== true) return innerLeft
+
+      const innerRight = runExprElement(seq[i + 1].parsed.right.parsed, ctx)
+      if (innerRight.ok !== true) return innerRight
+
+      const fullOp = runDoubleOp(
+        {
+          leftAt: seq[i].parsed.right.at,
+          left: innerLeft.data,
+          op: seq[i + 1].parsed.op,
+          rightAt: seq[i + 1].parsed.right.at,
+          right: innerRight.data,
+        },
+        ctx
+      )
+
+      if (fullOp.ok !== true) return fullOp
+
+      return runDoubleOp(
+        {
+          leftAt,
+          left,
+          op: seq[i + 1].parsed.op,
+          rightAt: {
+            start: seq[i].parsed.right.at.start,
+            next: seq[i + 1].parsed.right.at.next,
+          },
+          right: fullOp.data,
+        },
+        ctx
+      )
+    }
+
+    const { op, right } = seq[i].parsed
+
+    const execRight = runExprElement(right.parsed, ctx)
+    if (execRight.ok !== true) return execRight
+
+    const result: RunnerResult<ExecValue> = runDoubleOp(
+      { op, leftAt, left, rightAt: right.at, right: execRight.data },
+      ctx
+    )
+
+    if (result.ok !== true) return result
+
+    left = result.data
+    leftAt = right.at
+  }
+
+  return success(left)
+}
+
+const runDoubleOp: Runner<
+  { leftAt: CodeSection; left: ExecValue; op: Token<DoubleOp>; rightAt: CodeSection; right: ExecValue },
+  ExecValue
+> = ({ leftAt, left, op, rightAt, right }) =>
+  matchUnion(op.parsed, 'type', {
+    arith: ({ op }): RunnerResult<ExecValue> => {
+      switch (op.parsed) {
+        case 'Add':
+          return matchUnionWithFallback(
+            left,
+            'type',
+            {
+              number: ({ value }) => {
+                const rightNumber = expectValueType(rightAt, right, 'number')
+                return rightNumber.ok === true
+                  ? success({ type: 'number', value: value + rightNumber.data.value })
+                  : rightNumber
+              },
+
+              string: ({ value }) => {
+                const rightString = expectValueType(rightAt, right, 'string')
+                return rightString.ok === true
+                  ? success({ type: 'string', value: value + rightString.data.value })
+                  : rightString
+              },
+            },
+            () => err(leftAt, `internal error: cannot apply this operator on internal type "${left.type}"`)
+          )
+
+        case 'Sub':
+        case 'Mul':
+        case 'Div':
+        case 'Rem': {
+          const leftNumber = expectValueType(leftAt, left, 'number')
+          if (leftNumber.ok !== true) return leftNumber
+
+          const rightNumber = expectValueType(rightAt, right, 'number')
+          if (rightNumber.ok !== true) return rightNumber
+
+          const out: RunnerResult<number> = matchStr(op.parsed, {
+            Sub: () => success(leftNumber.data.value - rightNumber.data.value),
+            Mul: () => success(leftNumber.data.value * rightNumber.data.value),
+            Div: () => {
+              if (rightNumber.data.value === 0) {
+                return err({ start: leftAt.start, next: rightAt.next }, 'attempted to divide by zero')
+              }
+
+              return success(leftNumber.data.value / rightNumber.data.value)
+            },
+            Rem: () => success(leftNumber.data.value % rightNumber.data.value),
+          })
+
+          return out.ok === true ? success({ type: 'number', value: out.data }) : out
+        }
+
+        case 'Null':
+          return success(left.type === 'null' ? right : left)
+
+        default:
+          return ensureCoverage(op.parsed)
+      }
+    },
+
+    logic: ({ op }) => {
+      const leftBool = expectValueType(leftAt, left, 'bool')
+      if (leftBool.ok !== true) return leftBool
+
+      const rightBool = expectValueType(rightAt, right, 'bool')
+      if (rightBool.ok !== true) return rightBool
+
+      const comp = matchStr(op.parsed, {
+        And: () => leftBool.data.value === rightBool.data.value,
+        Or: () => leftBool.data.value || rightBool.data.value,
+        Xor: () => (leftBool.data.value ? !rightBool.data.value : rightBool.data.value),
+      })
+
+      return success({ type: 'bool', value: comp })
+    },
+
+    comparison: ({ op }) => {
+      switch (op.parsed) {
+        case 'Eq':
+        case 'NotEq': {
+          const comp: RunnerResult<boolean> = matchUnionWithFallback(
+            left,
+            'type',
+            {
+              bool: ({ value }) => {
+                const rightBool = expectValueType(rightAt, right, 'bool')
+                return rightBool.ok === true ? success(value === rightBool.data.value) : rightBool
+              },
+              number: ({ value }) => {
+                const rightNumber = expectValueType(rightAt, right, 'number')
+                return rightNumber.ok === true ? success(value === rightNumber.data.value) : rightNumber
+              },
+              string: ({ value }) => {
+                const rightString = expectValueType(rightAt, right, 'string')
+                return rightString.ok === true ? success(value === rightString.data.value) : rightString
+              },
+              path: ({ segments }) => {
+                const rightSegments = expectValueType(rightAt, right, 'path')
+                return rightSegments.ok === true
+                  ? success(segments.join('/') === rightSegments.data.segments.join('/'))
+                  : rightSegments
+              },
+            },
+            () => err(op.at, `internal error: cannot apply this operator on internal type "${left.type}"`)
+          )
+
+          return comp.ok === true
+            ? success({ type: 'bool', value: op.parsed === 'NotEq' ? !comp.data : comp.data })
+            : comp
+        }
+
+        case 'GreaterThan':
+        case 'GreaterThanOrEqualTo':
+        case 'LessThan':
+        case 'LessThanOrEqualTo': {
+          const leftNumber = expectValueType(leftAt, left, 'number')
+          if (leftNumber.ok !== true) return leftNumber
+
+          const rightNumber = expectValueType(rightAt, right, 'number')
+          if (rightNumber.ok !== true) return rightNumber
+
+          const comp = matchStr(op.parsed, {
+            GreaterThan: () => leftNumber.data.value > rightNumber.data.value,
+            GreaterThanOrEqualTo: () => leftNumber.data.value >= rightNumber.data.value,
+            LessThan: () => leftNumber.data.value < rightNumber.data.value,
+            LessThanOrEqualTo: () => leftNumber.data.value <= rightNumber.data.value,
+          })
+
+          return success({ type: 'bool', value: comp })
+        }
+
+        default:
+          return ensureCoverage(op.parsed)
+      }
+    },
+  })
 
 const runExprElement: Runner<ExprElement, ExecValue> = (element, ctx) => {
   const content = runExprElementContent(element.content.parsed, ctx)
@@ -455,11 +698,11 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
         body: body.parsed,
       }),
 
-    fnCall: ({ name, args }) => {
+    fnCall: (/*{ name, args }*/) => {
       throw new Error('TODO: function calls')
     },
 
-    inlineCmdCallSequence: ({ start, sequence, capture }) => {
+    inlineCmdCallSequence: (/*{ start, sequence, capture }*/) => {
       throw new Error('TODO: inline command call sequences')
     },
 
@@ -478,7 +721,7 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
 
 const runCondOrTypeAssertion: Runner<CondOrTypeAssertion, ExecValue> = (cond, ctx) =>
   matchUnion(cond, 'type', {
-    assertion: ({ varname, minimum, inverted }) => {
+    assertion: (/*{ varname, minimum, inverted }*/) => {
       throw new Error('TODO: type assertions')
     },
 
