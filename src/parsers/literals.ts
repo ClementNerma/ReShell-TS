@@ -8,7 +8,7 @@ import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
 import { LiteralValue } from './data'
 
-export const literalPath: Parser<Token<string>[]> = takeWhileMN(
+export const rawPath: Parser<Token<string>[]> = takeWhileMN(
   unify(takeWhile1N(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
   {
     inter: exact('/'),
@@ -48,5 +48,5 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
 
   string: toOneProp(rawString, 'value'),
 
-  path: toOneProp(literalPath, 'segments'),
+  path: toOneProp(rawPath, 'segments'),
 })

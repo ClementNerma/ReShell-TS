@@ -1,18 +1,19 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { extract, failIf, failIfElse } from '../lib/conditions'
+import { extract, failIf, failIfBool, failIfElse } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
-import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
-import { takeWhile } from '../lib/loops'
+import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
+import { takeWhile, takeWhile1N } from '../lib/loops'
 import { exact, match, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
-import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { logUsage, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClose } from './context'
 import {
+  ComputedPathSegment,
   ComputedStringSegment,
   DoubleArithOp,
   DoubleLogicOp,
@@ -58,6 +59,34 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact('"', 'Opened string has not been closed with a quote (")')
     ),
     ([_, { parsed: segments }, __]) => ({ segments })
+  ),
+
+  computedPath: map(
+    logUsage(failIfBool)(
+      takeWhile1N(
+        or<ComputedPathSegment>([
+          map(exact('/'), () => ({ type: 'separator' })),
+          map(
+            buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|\\.|\\\\.)+`),
+            (_, content) => ({ type: 'literal', content })
+          ),
+          map(
+            combine(
+              exact('${'),
+              failure(
+                withLatelyDeclared(() => expr),
+                'Failed to parse the inner expression'
+              ),
+              exact('}', 'Expected a closing brace (}) to close the inner path expression'),
+              { inter: maybe_s_nl }
+            ),
+            ([_, expr, __]) => ({ type: 'expr', expr })
+          ),
+        ])
+      ),
+      (segments) => !segments.find(({ parsed: segment }) => segment.type === 'separator')
+    ),
+    (segments) => ({ segments })
   ),
 
   list: map(
@@ -349,10 +378,10 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
   )
 )
 
-export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAction>([
-  propertyAccess,
+export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSequenceAction>()('type', {
+  propAccess: toOneProp(propertyAccess, 'access'),
 
-  map(
+  doubleOp: map(
     combine(maybe_s, doubleOp, failure(exprElement, 'Expected an expression after operator'), {
       inter: maybe_s,
     }),
@@ -362,7 +391,7 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAct
       right,
     })
   ),
-])
+})
 
 export const expr: Parser<Expr> = map(
   combine(exprElement, takeWhile(exprSequenceAction)),

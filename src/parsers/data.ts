@@ -126,14 +126,12 @@ export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 
 export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
-export type LiteralValue =
-  | { type: 'null' }
-  | { type: 'bool'; value: Token<boolean> }
-  | { type: 'number'; value: Token<number> }
-  | { type: 'string'; value: Token<string> }
-  | { type: 'path'; segments: Token<Token<string>[]> }
-
 export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
+
+export type ComputedPathSegment =
+  | { type: 'separator' }
+  | { type: 'literal'; content: Token<string> }
+  | { type: 'expr'; expr: Token<Expr> }
 
 export type InlineCmdCall = CmdCall
 
@@ -147,9 +145,17 @@ export enum InlineCmdCallCapture {
 
 export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
 
+export type LiteralValue =
+  | { type: 'null' }
+  | { type: 'bool'; value: Token<boolean> }
+  | { type: 'number'; value: Token<number> }
+  | { type: 'string'; value: Token<string> }
+  | { type: 'path'; segments: Token<Token<string>[]> }
+
 export type Value =
   | LiteralValue
   | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
+  | { type: 'computedPath'; segments: Token<ComputedPathSegment>[] }
   | { type: 'list'; items: Token<Token<Expr>[]> }
   | { type: 'map'; entries: Token<{ key: Token<string>; expr: Token<Expr> }[]> }
   | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
@@ -163,7 +169,9 @@ export type Value =
     }
   | { type: 'reference'; varname: Token<string> }
 
-export type ExprSequenceAction = PropertyAccess | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
+export type ExprSequenceAction =
+  | { type: 'propAccess'; access: Token<PropertyAccess> }
+  | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
 
 export type ExprElement =
   | { type: 'value'; content: Token<Value> }

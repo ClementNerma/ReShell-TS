@@ -10,7 +10,7 @@ import { map } from '../lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from '../lib/utils'
 import { cmdArg } from './cmdarg'
 import { CmdCall, CmdRedir } from './data'
-import { literalPath } from './literals'
+import { rawPath } from './literals'
 import { cmdRedirOp } from './stmtend'
 import { identifier, keyword } from './tokens'
 
@@ -49,7 +49,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
             cmdRedirOp,
             maybe_s,
             failure(
-              withLatelyDeclared(() => literalPath),
+              withLatelyDeclared(() => rawPath),
               'Expected a valid path after redirection operator'
             )
           ),
