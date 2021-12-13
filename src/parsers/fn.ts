@@ -15,7 +15,82 @@ import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { valueType } from './types'
 
-const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>
+const fnArg: Parser<FnArg> = map(
+  combine(
+    or<Pick<FnArg, 'flag' | 'name'>>([
+      map(
+        combine(
+          exact('-'),
+          notFollowedBy(exact('-')),
+          failure(unicodeSingleLetter, 'expected a flag name'),
+          notFollowedBy(unicodeSingleLetter, {
+            error: {
+              message: 'expected a single-letter flag name',
+              complements: [['tip', 'to specify a multi-letters flag name, use a double dash "--"']],
+            },
+          })
+        ),
+        ([flag, __, name]) => ({ flag, name })
+      ),
+      map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({
+        flag,
+        name,
+      })),
+      map(identifier, (_, name) => ({ flag: null, name })),
+    ]),
+    map(
+      combine(
+        maybe_s,
+        maybe(exact('?')),
+        exact(':', "expected a semicolon (:) separator for the argument's type"),
+        maybe_s
+      ),
+      ([_, optional, __, ___]) => !!optional.parsed
+    ),
+    failure(
+      withLatelyDeclared(() => valueType),
+      'expected a type for the argument'
+    ),
+    maybe(
+      map(
+        combine(
+          combine(maybe_s_nl, exact('='), maybe_s_nl),
+          failure(
+            withLatelyDeclared(() => literalValue),
+            (err) => ({
+              message: 'expected a literal value',
+              complements: [
+                [
+                  'tip',
+                  getErrorInput(err).startsWith('"')
+                    ? "literal strings must be single-quoted (')"
+                    : 'lists, maps and structures are not literal values',
+                ],
+              ],
+            })
+          )
+        ),
+        ([_, { parsed: defaultValue }]) => defaultValue
+      )
+    )
+  ),
+  ([
+    {
+      parsed: { name, flag },
+    },
+    { parsed: optional },
+    { parsed: type },
+    { parsed: defaultValue },
+  ]): FnArg => ({
+    name,
+    flag,
+    optional,
+    type,
+    defaultValue,
+  })
+)
+
+const fn: (requireName: boolean) => Parser<FnType> = (requireName) =>
   map(
     combine(
       map(
@@ -28,86 +103,10 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ([_, { parsed: name }]) => name
       ),
       combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
-      takeWhile<FnArg>(
-        map(
-          combine(
-            or<Pick<FnArg, 'flag' | 'name'>>([
-              map(
-                combine(
-                  exact('-'),
-                  notFollowedBy(exact('-')),
-                  failure(unicodeSingleLetter, 'expected a flag name'),
-                  notFollowedBy(unicodeSingleLetter, {
-                    error: {
-                      message: 'expected a single-letter flag name',
-                      complements: [['tip', 'to specify a multi-letters flag name, use a double dash "--"']],
-                    },
-                  })
-                ),
-                ([flag, __, name]) => ({ flag, name })
-              ),
-              map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({
-                flag,
-                name,
-              })),
-              map(identifier, (_, name) => ({ flag: null, name })),
-            ]),
-            map(
-              combine(
-                maybe_s,
-                maybe(exact('?')),
-                exact(':', "expected a semicolon (:) separator for the argument's type"),
-                maybe_s
-              ),
-              ([_, optional, __, ___]) => !!optional.parsed
-            ),
-            failure(
-              withLatelyDeclared(() => valueType),
-              'expected a type for the argument'
-            ),
-            maybe(
-              map(
-                combine(
-                  combine(maybe_s_nl, exact('='), maybe_s_nl),
-                  failure(
-                    withLatelyDeclared(() => literalValue),
-                    (err) => ({
-                      message: 'expected a literal value',
-                      complements: [
-                        [
-                          'tip',
-                          getErrorInput(err).startsWith('"')
-                            ? "literal strings must be single-quoted (')"
-                            : 'lists, maps and structures are not literal values',
-                        ],
-                      ],
-                    })
-                  )
-                ),
-                ([_, { parsed: defaultValue }]) => defaultValue
-              )
-            )
-          ),
-          ([
-            {
-              parsed: { name, flag },
-            },
-            { parsed: optional },
-            { parsed: type },
-            { parsed: defaultValue },
-          ]): FnArg => ({
-            name,
-            flag,
-            optional,
-            type,
-            defaultValue,
-          })
-        ),
-        {
-          inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
-          interExpect: 'expected an argument name',
-        }
-      ),
+      takeWhile(fnArg, {
+        inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
+        interExpect: 'expected an argument name',
+      }),
       maybe(
         map(
           combine(
@@ -167,8 +166,8 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
     })
   )
 
-export const fnType: Parser<FnType> = _fnRightPartParser(false)
-export const fnDecl: Parser<{ name: Token<string>; fnType: FnType }> = map(_fnRightPartParser(true), (fnType) => ({
+export const fnType: Parser<FnType> = fn(false)
+export const fnDecl: Parser<{ name: Token<string>; fnType: FnType }> = map(fn(true), (fnType) => ({
   name: fnType.named!,
   fnType,
 }))
