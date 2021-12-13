@@ -6,8 +6,7 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
-import { ExecContext, ExecError, Executed, initialExecContext } from './exec/context'
-import { programExec } from './exec/program'
+import { ProgramError, programExec } from './exec/program'
 import { Engine } from './lib/engine/main'
 import { initContext } from './parsers/context'
 import { Program } from './parsers/data'
@@ -36,7 +35,7 @@ const iter = argv[1] ? parseInt(argv[1]) : 1
 
 const iterSrc = source.repeat(iter)
 
-const engine = new Engine<Program, ExecError, Executed, ExecContext>(program, programExec, {
+const engine = new Engine<Program, void, void, ProgramError>(program, programExec, {
   loggers: {
     debug: (text) => console.debug(chalk.gray(text)),
     info: (text) => console.info(chalk.blueBright(text)),
@@ -65,7 +64,15 @@ const parsed = engine.parse(iterSrc, initContext())
 const elapsed = Date.now() - started
 
 if (parsed.ok) {
-  engine.execute(parsed.data, initialExecContext)
+  const started = Date.now()
+  const exec = engine.execute(parsed.data, void 0)
+  const elapsed = Date.now() - started
+
+  if (exec.ok) {
+    console.dir(exec.data, { depth: null })
+  }
+
+  console.log(`Executed in ${elapsed} ms`)
 }
 
 console.log(`Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`)

@@ -1,6 +1,6 @@
 import { ParserLoc, Token } from '../base'
 
-export type Executor<T, E, O, C> = (input: Token<T>, context: C) => ExecutorResult<O, E>
+export type Executor<T, C, O, E> = (input: Token<T>, context: C) => ExecutorResult<O, E>
 
 export type ExecutorResult<O, E> = { ok: true; data: O } | { ok: false; err: E; loc: ParserLoc }
 

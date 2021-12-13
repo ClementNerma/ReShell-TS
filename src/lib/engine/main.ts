@@ -3,14 +3,14 @@ import { Parser, ParserResult, parseSource, Token } from '../base'
 import { formatErr } from '../utils'
 import { Executor, ExecutorResult } from './exec'
 
-export class Engine<T, E, O, C> {
+export class Engine<T, C, O, E> {
   constructor(
     private readonly parser: Parser<T>,
-    private readonly executor: Executor<T, E, O, C>,
+    private readonly executor: Executor<T, C, O, E>,
     private readonly settings: Settings
   ) {}
 
-  parse(input: string, context: C, disableErrorReporting?: boolean): ParserResult<T> {
+  parse<C>(input: string, context: C, disableErrorReporting?: boolean): ParserResult<T> {
     const result = parseSource(input, this.parser, context)
 
     if (!disableErrorReporting && !result.ok) {
