@@ -319,13 +319,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         { at, parsed: [___, ____, filePathToken], matched },
         context
       ) => {
-        const fileContent = context.sourceServer.read(filePath, context.currentFilePath)
+        const resolvedFilePath = context.sourceServer.resolvePath(filePath, context.currentFilePath)
+        const fileContent = context.sourceServer.read(resolvedFilePath)
 
         if (fileContent === false) {
           return err(filePathToken.at.start, filePathToken.at.next, context, 'file was not found')
         }
 
-        const sub = parseFile(context.sourceServer, filePath, fileContent, program, context.$custom)
+        const sub = parseFile(context.sourceServer, resolvedFilePath, fileContent, program, context.$custom)
 
         if (!sub.ok) return sub
 

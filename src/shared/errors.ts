@@ -30,7 +30,7 @@ export const formattableErr = (at: CodeSection, input: FormatableErrInput): Form
 export type ErrorParsingFormatters = {
   wrapper?: (error: string) => string
   header?: (header: string) => string
-  filename?: (filename: string) => string
+  filePath?: (filePath: string) => string
   location?: (col: string) => string
   gutter?: (text: string) => string
   paddingChar?: (char: string) => string
@@ -58,14 +58,14 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
     .concat(err.also)
     .map(({ at, message, complements }) => {
       const sourceFile: string = matchUnion(at.start.file, 'type', {
-        entrypoint: () => sourceServer.entrypointFilename,
+        entrypoint: () => sourceServer.entrypointPath,
         file: ({ path }) => path,
         internal: ({ path }) => path,
       })
 
       const { line, col } = at.start
 
-      const header = `--> At ${format('filename', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
+      const header = `--> At ${format('filePath', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
 
       if (at.start.file.type === 'internal') {
         return `${header}\n<internal file>`
@@ -73,7 +73,7 @@ export function formatErr(err: FormatableError, sourceServer: SourceFilesServer,
 
       const fileContent: StrView | false = matchUnion(at.start.file, 'type', {
         entrypoint: () => sourceServer.entrypoint(),
-        file: ({ path }) => sourceServer.read(path, null),
+        file: ({ path }) => sourceServer.read(path),
       })
 
       if (fileContent === false) return `${header}\n<file not found in source server>`

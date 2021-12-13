@@ -1,6 +1,7 @@
 import { StrView } from './strview'
 
-export type SourceFilesServerAgent = (filename: string, relativeTo: string | null) => string | false
+export type SourceFilesServerAgent = (path: string) => string | false
+export type SourceFilesServerPathResolver = (path: string, relativeTo: string) => string
 
 export class SourceFilesServer {
   private filesCache = new Map<string, StrView>()
@@ -8,7 +9,8 @@ export class SourceFilesServer {
 
   constructor(
     private readonly agent: SourceFilesServerAgent,
-    public readonly entrypointFilename: string,
+    private readonly pathResolver: SourceFilesServerPathResolver,
+    public readonly entrypointPath: string,
     entrypointContent: string
   ) {
     this.entrypointContent = StrView.create(entrypointContent)
@@ -18,16 +20,20 @@ export class SourceFilesServer {
     return this.entrypointContent
   }
 
-  read(file: string, relativeTo: string | null): StrView | false {
+  read(file: string): StrView | false {
     const cached = this.filesCache.get(file)
     if (cached !== undefined) return cached
 
-    const content = this.agent(file, relativeTo)
+    const content = this.agent(file)
     if (content === false) return false
 
     const strView = StrView.create(content)
     this.filesCache.set(file, strView)
 
     return strView
+  }
+
+  resolvePath(file: string, relativeTo: string): string {
+    return this.pathResolver(file, relativeTo)
   }
 }

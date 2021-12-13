@@ -93,7 +93,7 @@ export function addCols(start: CodeLoc, cols: number): CodeLoc {
 export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T>, $custom: unknown): ParserResult<T> {
   const context: ParsingContext = {
     sourceServer,
-    currentFilePath: sourceServer.entrypointFilename,
+    currentFilePath: sourceServer.entrypointPath,
     currentFile: sourceServer.entrypoint(),
     $custom,
     self: () => context,
@@ -103,20 +103,20 @@ export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T
 
 export function parseFile<T>(
   sourceServer: SourceFilesServer,
-  filename: string,
+  filePath: string,
   content: StrView,
   parser: Parser<T>,
   $custom: unknown
 ): ParserResult<T> {
   const context: ParsingContext = {
     sourceServer,
-    currentFilePath: filename,
+    currentFilePath: filePath,
     currentFile: content,
     $custom,
     self: () => context,
   }
 
-  return parser({ file: { type: 'file', path: filename }, line: 0, col: 0 }, content, context)
+  return parser({ file: { type: 'file', path: filePath }, line: 0, col: 0 }, content, context)
 }
 
 export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)

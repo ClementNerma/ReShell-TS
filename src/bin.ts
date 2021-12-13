@@ -39,7 +39,7 @@ const iterSrc = iter > 1 ? `if true { ${source} }\n`.repeat(iter) : source
 
 const errorFormatters: ErrorParsingFormatters = {
   header: chalk.yellowBright,
-  filename: chalk.cyanBright,
+  filePath: chalk.cyanBright,
   location: chalk.magentaBright,
   gutter: chalk.cyanBright,
   locationPointer: chalk.redBright,
@@ -57,11 +57,8 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
 }
 
 const sourceServer = new SourceFilesServer(
-  (filename, relativeTo) => {
-    if (relativeTo) filename = join(dirname(relativeTo), filename)
-    if (!existsSync(filename)) return false
-    return readFileSync(filename, 'utf8')
-  },
+  (path) => (existsSync(path) ? readFileSync(path, 'utf8') : false),
+  (path, relativeTo) => join(dirname(relativeTo), path),
   relative(process.cwd(), inputPath),
   iterSrc
 )
