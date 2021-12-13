@@ -1,8 +1,9 @@
 import { Value } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
-import { matchUnion } from '../shared/utils'
+import { matchStr, matchUnion } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
+import { collectableStream, runCmdCall } from './cmdcall'
 import { runExpr } from './expr'
 import { executeFnCall } from './fncall'
 import { nativeLibraryVariables } from './native-lib'
@@ -188,9 +189,27 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       return executeFnCall({ name, precomp }, ctx)
     },
 
-    inlineCmdCallSequence: (/*{ start, sequence, capture }*/) => {
-      throw new Error('TODO: inline command call sequences')
-      // TODO: generics resolution
+    inlineCmdCallSequence: ({ content, capture }) => {
+      const outputPieces: Buffer[] = []
+
+      const call = runCmdCall(content, {
+        ...ctx,
+        pipeTo: {
+          stdout: collectableStream(
+            matchStr(capture.parsed, { Stdout: () => true, Stderr: () => false, Both: () => true }),
+            (piece) => outputPieces.push(piece)
+          ),
+
+          stderr: collectableStream(
+            matchStr(capture.parsed, { Stdout: () => false, Stderr: () => true, Both: () => true }),
+            (piece) => outputPieces.push(piece)
+          ),
+        },
+      })
+
+      if (call.ok !== true) return call
+
+      return success({ type: 'string', value: Buffer.concat(outputPieces).toString('utf8') })
     },
 
     reference: ({ varname }) => {

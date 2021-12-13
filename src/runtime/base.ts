@@ -1,3 +1,4 @@
+import { Writable } from 'stream'
 import { Block, ClosureBody, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
@@ -13,6 +14,10 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
+  pipeTo: null | {
+    stdout: Writable
+    stderr: Writable
+  }
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
@@ -26,6 +31,7 @@ export const createRunnerContext = (
   syncNoWorkSleep: RunnerContext['syncNoWorkSleep']
 ): RunnerContext => ({
   scopes: [],
+  pipeTo: null,
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,

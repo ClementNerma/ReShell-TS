@@ -414,7 +414,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     cmdCall: ({ content }) => {
-      const cmdCallCheck = cmdCallTypechecker(content, ctx)
+      const cmdCallCheck = cmdCallTypechecker(content.parsed, ctx)
       return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
     },
 

@@ -1,13 +1,10 @@
-import { spawnSync } from 'child_process'
 import { Statement } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
-import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
-import { escapeCmdArg, runCmdArg } from './cmdarg'
+import { runCmdCall } from './cmdcall'
 import { runCondOrTypeAssertion, runDoubleOp, runExpr, runNonNullablePropertyAccess } from './expr'
-import { executeFnCall } from './fncall'
 import { runProgram } from './program'
 import { expectValueType } from './value'
 
@@ -307,48 +304,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    cmdCall: ({ content: { base, pipes /*, redir*/ } }) => {
-      if (!base.parsed.unaliased) {
-        const fnCall = getLocatedPrecomp(ctx.fnCalls, base.parsed.name.at)
-
-        if (fnCall) {
-          const exec = executeFnCall({ name: base.parsed.name, precomp: fnCall }, ctx)
-          return exec.ok === true ? success(void 0) : exec
-        }
-      }
-
-      const commands: [string, string[]][] = []
-
-      for (const { parsed: sub } of [base].concat(pipes)) {
-        const strArgs: string[] = []
-
-        for (const arg of sub.args) {
-          const execArg = runCmdArg(arg.parsed, ctx)
-          if (execArg.ok !== true) return execArg
-
-          strArgs.push(execArg.data)
-        }
-
-        commands.push([sub.name.parsed, strArgs])
-      }
-
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-      // HACK: This code is neither multi-platform nor properly escaping arguments
-      // Find another way to perform piping as the current pseudo-TTY libs are not
-      // good enough for extended usage.
-      const generated = commands
-        .map(([name, args]) => `${name} ${args.map((arg) => escapeCmdArg(arg)).join(' ')}`)
-        .join(' | ')
-
-      const cmd = spawnSync('sh', ['-c', generated], { stdio: 'inherit' })
-      // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
-
-      return cmd.error
-        ? err(stmt.at, 'spawn error: ' + cmd.error.message)
-        : cmd.status !== null && cmd.status !== 0
-        ? err(stmt.at, 'command failed with status ' + cmd.status.toString())
-        : success(void 0)
-    },
+    cmdCall: ({ content }) => runCmdCall(content, ctx),
 
     cmdDecl: () => success(void 0),
 

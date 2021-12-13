@@ -4,7 +4,6 @@ import {
   ComputedPathSegment,
   ComputedStringSegment,
   FnCallArg,
-  InlineChainedCmdCall,
   InlineCmdCallCapture,
   Value,
   ValueType,
@@ -34,7 +33,7 @@ import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { literalValue, rawString } from './literals'
 import { enumMatchingExpr } from './matching'
 import { blockWithBraces } from './statements'
-import { endOfInlineCmdCall, statementChainOp } from './stmtend'
+import { endOfInlineCmdCall } from './stmtend'
 import { identifier, keyword } from './tokens'
 import { valueType } from './types'
 
@@ -315,24 +314,9 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ),
         'expected inline command call'
       ),
-      takeWhile<InlineChainedCmdCall>(
-        map(
-          combine(
-            maybe_s,
-            statementChainOp,
-            maybe_s_nl,
-            failure(
-              withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
-              'expected inline command call after chaining operator'
-            )
-          ),
-          ([_, op, __, chainedCmdCall]) => ({ op, chainedCmdCall })
-        ),
-        { inter: maybe_s, interExpect: false }
-      ),
       combine(maybe_s_nl, exact(')', "expected closing paren ')' after inline command call"))
     ),
-    ([capture, _, start, { parsed: sequence }]) => ({ start, sequence, capture })
+    ([capture, _, content]) => ({ content, capture })
   ),
 
   // FIX: TypeScript compiler produced an error because of the produced union being too complex

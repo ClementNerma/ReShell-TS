@@ -54,7 +54,7 @@ export type Statement =
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Block> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
-  | { type: 'cmdCall'; content: CmdCall }
+  | { type: 'cmdCall'; content: Token<CmdCall> }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
 
@@ -163,12 +163,7 @@ export type Value =
   // | { type: 'closure'; fnType: FnType; body: Token<Block> }
   | { type: 'callback'; args: Token<ClosureCallArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }
-  | {
-      type: 'inlineCmdCallSequence'
-      start: Token<InlineCmdCall>
-      sequence: Token<InlineChainedCmdCall>[]
-      capture: Token<InlineCmdCallCapture> | null
-    }
+  | { type: 'inlineCmdCallSequence'; content: Token<CmdCall>; capture: Token<InlineCmdCallCapture> }
   | { type: 'reference'; varname: Token<string> }
 
 export type LiteralValue =
@@ -190,10 +185,6 @@ export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Tok
 export type ClosureCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
 
 export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Block> }
-
-export type InlineCmdCall = CmdCall
-
-export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
 
 export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 

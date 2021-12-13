@@ -16,23 +16,30 @@ export const nativeLibraryVariables = buildWithNativeLibraryVarNames<(ctx: Runne
   }),
 })
 
-export type NativeFn = (ctx: RunnerContext, at: CodeSection, ...args: ExecValue[]) => RunnerResult<ExecValue>
+export type NativeFn = (
+  input: {
+    ctx: Exclude<RunnerContext, 'pipeTo'>
+    at: CodeSection
+    pipeTo: NonNullable<RunnerContext['pipeTo']>
+  },
+  ...args: ExecValue[]
+) => RunnerResult<ExecValue>
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
-  ok: (ctx, at, value) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }),
+  ok: (_, value) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }),
 
-  err: (ctx, at, error) => ({
+  err: (_, error) => ({
     ok: null,
     breaking: 'return',
     value: { type: 'failable', success: false, value: error },
   }),
 
-  echo: (ctx, at, message) => {
-    console.log(message.type === 'string' ? message.value : '<echo: invalid string value>')
+  echo: ({ pipeTo }, message) => {
+    pipeTo.stdout.write(message.type === 'string' ? message.value : '<echo: invalid string value>')
     return { ok: null, breaking: 'return', value: null }
   },
 
-  dump: (ctx, at, value) => {
+  dump: ({ ctx, pipeTo }, value) => {
     const valueToStr = (value: ExecValue): string =>
       matchUnion(value, 'type', {
         null: () => 'null',
@@ -54,19 +61,19 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
         rest: () => `<rest>`,
       })
 
-    console.log(valueToStr(value))
+    pipeTo.stdout.write(valueToStr(value))
 
     return { ok: null, breaking: 'return', value: null }
   },
 
-  trace: (ctx, at) => {
+  trace: ({ pipeTo, at }) => {
     const file: string = matchUnion(at.start.file, 'type', {
       entrypoint: ({ path }) => path,
       file: ({ path }) => path,
       internal: ({ path }) => `<internal:${path}>`,
     })
 
-    console.log(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`)
+    pipeTo.stdout.write(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`)
 
     return { ok: null, breaking: 'return', value: null }
   },

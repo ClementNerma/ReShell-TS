@@ -630,17 +630,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success(returnType)
     },
 
-    inlineCmdCallSequence: ({ start, sequence }) => {
+    inlineCmdCallSequence: ({ content }) => {
       const foundType = assertExpectedType('string')
       if (!foundType.ok) return foundType
 
-      const check = cmdCallTypechecker(start.parsed, ctx)
+      const check = cmdCallTypechecker(content.parsed, ctx)
       if (!check.ok) return check
-
-      for (const sub of sequence) {
-        const check = cmdCallTypechecker(sub.parsed.chainedCmdCall.parsed, ctx)
-        if (!check.ok) return check
-      }
 
       return success(foundType.data)
     },
