@@ -12,13 +12,13 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name
   const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {
-    const check = validateFnCall({ at: name.at, generics: null, args, fnType: fn.data.content }, ctx)
+    const check = validateFnCall({ at: name.at, nameAt: name.at, generics: null, args, fnType: fn.data.content }, ctx)
     return check.ok ? success(void 0) : check
   } else {
     const decl = ctx.commandDeclarations.get(name.parsed)
 
     if (decl) {
-      return cmdDeclSubCmdCallTypechecker({ at: name.at, subCmd: decl.content, args }, ctx)
+      return cmdDeclSubCmdCallTypechecker({ at: name.at, nameAt: name.at, subCmd: decl.content, args }, ctx)
     }
 
     if (!ctx.checkIfCommandExists(name.parsed)) {
@@ -35,9 +35,9 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name
 }
 
 export const cmdDeclSubCmdCallTypechecker: Typechecker<
-  { at: CodeSection; subCmd: CmdDeclSubCommand; args: Token<CmdArg>[] },
+  { at: CodeSection; nameAt: CodeSection; subCmd: CmdDeclSubCommand; args: Token<CmdArg>[] },
   void
-> = ({ at, subCmd, args }, ctx) => {
+> = ({ at, nameAt, subCmd, args }, ctx) => {
   if (args.length > 0) {
     const remaining = args.slice(1)
 
@@ -59,6 +59,7 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
                 start: remaining.length > 0 ? remaining[0].at.start : args[0].at.start,
                 next: remaining.length > 0 ? remaining[remaining.length - 1].at.next : args[0].at.next,
               },
+              nameAt,
               signature: variant.parsed.signature,
               callArgs: remaining,
             },
@@ -76,6 +77,7 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
           start: args.length > 0 ? args[0].at.start : at.next,
           next: args.length > 0 ? args[args.length - 1].at.next : at.next,
         },
+        nameAt,
         signature: subCmd.base.parsed.signature,
         callArgs: args,
       },
@@ -101,15 +103,16 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
 }
 
 export const cmdSignatureCallValidator: Typechecker<
-  { at: CodeSection; signature: CmdVariantSignature; callArgs: Token<CmdArg>[] },
+  { at: CodeSection; nameAt: CodeSection; signature: CmdVariantSignature; callArgs: Token<CmdArg>[] },
   void
-> = ({ at, signature, callArgs }, ctx) =>
+> = ({ at, nameAt, signature, callArgs }, ctx) =>
   matchUnion(signature, 'type', {
-    subCmd: ({ content }) => cmdDeclSubCmdCallTypechecker({ at, subCmd: content, args: callArgs }, ctx),
+    subCmd: ({ content }) => cmdDeclSubCmdCallTypechecker({ at, nameAt, subCmd: content, args: callArgs }, ctx),
     direct: ({ args, rest }) => {
       const check = validateFnCall(
         {
           at,
+          nameAt,
           generics: null,
           args: callArgs,
           fnType: {

@@ -151,7 +151,11 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
 
-  const runnerContext = createRunnerContext(typechecked.data.typeAliases, typechecked.data.callbackTypes)
+  const runnerContext = createRunnerContext(
+    typechecked.data.typeAliases,
+    typechecked.data.callbackTypes,
+    typechecked.data.fnCallGenerics
+  )
 
   const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 

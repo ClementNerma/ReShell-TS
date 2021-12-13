@@ -18,6 +18,7 @@ export type TypecheckerContext = {
   restArgs: string[]
   commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
   callbackTypes: Map<Value, FnType>
+  fnCallGenerics: Map<CodeSection, Map<string, ValueType>>
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
@@ -37,6 +38,7 @@ export function createTypecheckerContext(
     restArgs: [],
     commandDeclarations: new Map(),
     callbackTypes: new Map(),
+    fnCallGenerics: new Map(),
     checkIfCommandExists: cmdChecker,
     emitDiagnostic: diagnosticHandler,
   }

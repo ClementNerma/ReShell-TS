@@ -109,8 +109,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       }
     }
 
-    return expected.type === type || expected.type === 'unknown'
+    return expected.type === type
       ? success(expected as Extract<ValueType, { type: T }>)
+      : expected.type === 'unknown'
+      ? success(null)
       : errIncompatibleValueType({
           typeExpectation,
           foundType: type,
@@ -592,7 +594,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!compat.ok) return compat
       }
 
-      const fnCallCheck = validateFnCall({ at: name.at, fnType, generics, args, resolvedGenerics }, ctx)
+      const fnCallCheck = validateFnCall(
+        { at: name.at, nameAt: name.at, fnType, generics, args, resolvedGenerics },
+        ctx
+      )
 
       if (!fnCallCheck.ok) return fnCallCheck
 

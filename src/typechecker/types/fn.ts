@@ -220,6 +220,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
 export const validateFnCall: Typechecker<
   {
     at: CodeSection
+    nameAt: CodeSection
     fnType: FnType
     generics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
@@ -227,7 +228,7 @@ export const validateFnCall: Typechecker<
     resolvedGenerics?: GenericResolutionScope
   },
   [ValueType, GenericResolutionScope]
-> = ({ at, fnType, generics, args, declaredCommand, resolvedGenerics }, ctx) => {
+> = ({ at, nameAt, fnType, generics, args, declaredCommand, resolvedGenerics }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
@@ -393,6 +394,8 @@ export const validateFnCall: Typechecker<
     })
   }
 
+  const resolvedGScope = new Map<string, ValueType>()
+
   for (const { name, mapped } of gScope) {
     if (mapped === null) {
       return err(at, {
@@ -400,7 +403,11 @@ export const validateFnCall: Typechecker<
         also: [{ at: name.at, message: 'generic is defined here' }],
       })
     }
+
+    resolvedGScope.set(name.parsed, mapped)
   }
+
+  ctx.fnCallGenerics.set(nameAt, resolvedGScope)
 
   return success([
     fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics) : { type: 'void' },

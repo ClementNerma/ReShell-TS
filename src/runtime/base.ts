@@ -14,15 +14,18 @@ export type RunnerContext = {
   scopes: Scope[]
   typeAliases: Map<string, { at: CodeSection; content: ValueType }>
   callbackTypes: Map<Value, FnType>
+  fnCallGenerics: Map<CodeSection, Map<string, ValueType>>
 }
 
 export const createRunnerContext = (
   typeAliases: RunnerContext['typeAliases'],
-  callbackTypes: RunnerContext['callbackTypes']
+  callbackTypes: RunnerContext['callbackTypes'],
+  fnCallGenerics: RunnerContext['fnCallGenerics']
 ): RunnerContext => ({
   scopes: [],
   typeAliases,
   callbackTypes,
+  fnCallGenerics,
 })
 
 export type Scope = {
