@@ -390,6 +390,15 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         const matchOn = resolveExprType(subject, ctx)
         if (!matchOn.ok) return matchOn
 
+        while (matchOn.data.type === 'aliasRef') {
+          const typeAlias = ctx.typeAliases.get(matchOn.data.typeAliasName.parsed)
+          if (!typeAlias) {
+            return err(subject.at, 'internal error: type alias was not found during development in matching')
+          }
+
+          matchOn.data = typeAlias.content
+        }
+
         if (matchOn.data.type !== 'enum') {
           return err(
             subject.at,
@@ -419,15 +428,6 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             continue
           }
 
-          const relevant = toMatch.findIndex((v) => v.parsed === variant.parsed)
-
-          if (relevant === -1) {
-            return err(variant.at, {
-              message: `unknown variant \`${variant.parsed}\``,
-              complements: [['valid variants', toMatch.map((v) => v.parsed).join(', ')]],
-            })
-          }
-
           const firstMatch = usedVariants.find((v) => v.parsed === variant.parsed)
 
           if (firstMatch) {
@@ -436,6 +436,17 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               also: [{ at: firstMatch.at, message: 'matched here previously' }],
             })
           }
+
+          const relevant = toMatch.findIndex((v) => v.parsed === variant.parsed)
+
+          if (relevant === -1) {
+            return err(variant.at, {
+              message: `unknown variant \`${variant.parsed}\``,
+              complements: [['valid variants', matchOn.data.variants.map((v) => v.parsed).join(', ')]],
+            })
+          }
+
+          usedVariants.push(variant)
 
           toMatch.splice(relevant, 1)
           neverEnds &&= check.data.neverEnds
