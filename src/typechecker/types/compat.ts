@@ -1,39 +1,21 @@
 import { CodeSection, ValueType } from '../../shared/parsed'
 import { err, success, Typechecker, TypecheckerResult } from '../base'
-import { rebuildType } from './rebuilder'
+import { errIncompatibleValueType } from './value'
 
 export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSection; _path?: string[] }, void> = (
   { candidate, at, _path },
   context
 ) => {
-  const expectationErr = (message?: string) => {
-    const rebuiltReferentTypeNoDepth = rebuildType(referent, true)
-    const rebuiltCandidateTypeNoDepth = rebuildType(candidate, true)
-
-    const rebuiltReferentType = rebuildType(referent)
-    const rebuiltCandidateType = rebuildType(candidate)
-
-    return err(at, {
-      message:
-        (path.length > 0 ? path.join(' > ') + ' > ' : '') +
-        (message ?? `expected \`${rebuiltReferentTypeNoDepth}\`, found \`${rebuiltCandidateTypeNoDepth}\``),
-      complements:
-        rebuiltReferentType !== rebuiltReferentTypeNoDepth || rebuiltCandidateType !== rebuiltCandidateTypeNoDepth
-          ? [
-              ['Expected', rebuildType(referent)],
-              ['Found   ', rebuildType(candidate)],
-            ]
-          : [],
-      also: from
-        ? [
-            {
-              at: from,
-              message: 'type expectation originates here',
-            },
-          ]
-        : [],
+  const expectationErr = (message?: string) =>
+    errIncompatibleValueType({
+      message: path.length > 0 ? path.join(' > ') + ' > ' + message : message,
+      typeExpectation: {
+        type: referent,
+        from,
+      },
+      foundType: candidate,
+      valueAt: at,
     })
-  }
 
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
     isTypeCompatible(

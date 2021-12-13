@@ -1,4 +1,4 @@
-import { PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
+import { CodeSection, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
@@ -15,13 +15,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
   const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> =>
     typeExpectation && typeExpectation.type.inner.type !== type
-      ? errIncompatibleValueType(
-          {
-            typeExpectation,
-            foundType: type,
-          },
-          value
-        )
+      ? errIncompatibleValueType({
+          typeExpectation,
+          foundType: type,
+          valueAt: value.at,
+        })
       : success({ nullable: false, inner: { type } })
 
   const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['inner']['type'], PrimitiveTypes['type']>>(
@@ -29,13 +27,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   ): TypecheckerResult<Extract<ValueType['inner'], { type: T }> | void> =>
     typeExpectation
       ? typeExpectation.type.inner.type !== type
-        ? errIncompatibleValueType(
-            {
-              typeExpectation,
-              foundType: type,
-            },
-            value
-          )
+        ? errIncompatibleValueType({
+            typeExpectation,
+            foundType: type,
+            valueAt: value.at,
+          })
         : success(typeExpectation.type.inner as Extract<ValueType['inner'], { type: T }>)
       : success(void 0)
 
@@ -244,7 +240,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (typeExpectation) {
         if (typeExpectation.type.inner.type !== 'struct') {
-          return errIncompatibleValueType({ typeExpectation, foundType: 'struct' }, value)
+          return errIncompatibleValueType({ typeExpectation, foundType: 'struct', valueAt: value.at })
         }
 
         expectedMembers = new Map()
@@ -358,27 +354,26 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   })
 }
 
-const errIncompatibleValueType = (
-  {
-    text,
-    typeExpectation,
-    foundType,
-  }: {
-    text?: string
-    typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
-    foundType: ValueType | ValueType['inner']['type']
-  },
-  value: Token<Value>
-) => {
+export const errIncompatibleValueType = ({
+  message,
+  typeExpectation,
+  foundType,
+  valueAt,
+}: {
+  message?: string
+  typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
+  foundType: ValueType | ValueType['inner']['type']
+  valueAt: CodeSection
+}) => {
   const expectedNoDepth = rebuildType(typeExpectation.type, true)
   const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
 
   const expected = rebuildType(typeExpectation.type)
   const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
 
-  return err(value.at, {
+  return err(valueAt, {
     message:
-      text ??
+      message ??
       `expected \`${rebuildType(typeExpectation.type, true)}\`, found \`${
         typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
       }\``,
