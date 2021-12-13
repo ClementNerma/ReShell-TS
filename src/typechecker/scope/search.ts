@@ -1,6 +1,6 @@
 import { ValueType } from '../../shared/ast'
 import { isLocEq } from '../../shared/loc-cmp'
-import { CodeSection, Token } from '../../shared/parsed'
+import { CodeLoc, CodeSection, Token } from '../../shared/parsed'
 import { matchStrWithValues } from '../../shared/utils'
 import {
   err,
@@ -61,11 +61,12 @@ export function getEntityCategoryName(type: ScopeEntity['type']): string {
 
 export function getContextuallyResolvedGeneric(
   resolvedGenerics: TypecheckerContext['resolvedGenerics'],
+  inFnCallAt: CodeLoc,
   name: string,
   orig: CodeSection
 ): { mapped: ValueType | null } | undefined {
   for (let s = resolvedGenerics.length - 1; s >= 0; s--) {
-    const got = getResolvedGenericInSingleScope(resolvedGenerics[s], name, orig)
+    const got = getResolvedGenericInSingleScope(resolvedGenerics[s], inFnCallAt, name, orig)
     if (got) return got
   }
 
@@ -74,8 +75,11 @@ export function getContextuallyResolvedGeneric(
 
 export function getResolvedGenericInSingleScope(
   gScope: GenericResolutionScope,
+  inFnCallAt: CodeLoc,
   name: string,
   orig: CodeSection
 ): { mapped: ValueType | null } | undefined {
-  return gScope.find((c) => c.name.parsed === name && isLocEq(orig.start, c.orig.start))
+  return gScope.find(
+    (c) => c.name.parsed === name && isLocEq(orig.start, c.orig.start) && isLocEq(inFnCallAt, c.inFnCallAt)
+  )
 }

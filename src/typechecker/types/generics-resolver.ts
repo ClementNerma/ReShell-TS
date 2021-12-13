@@ -1,7 +1,7 @@
 import { ValueType } from '../../shared/ast'
 import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection, Token } from '../../shared/parsed'
-import { ensureCoverage, GenericResolutionScope } from '../base'
+import { ensureCoverage, TypecheckerContext } from '../base'
 import { getContextuallyResolvedGeneric } from '../scope/search'
 
 /**
@@ -16,11 +16,8 @@ import { getContextuallyResolvedGeneric } from '../scope/search'
  *   is to indicate what has *changed* during the resolution.
  * We try this until there is no longer any generic resolved in the type, indicating the resolution is complete. We can the return it to the caller.
  */
-export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): ValueType {
-  function _subroutine(
-    type: ValueType,
-    gScopes: GenericResolutionScope[]
-  ): [ValueType, { name: Token<string>; orig: CodeSection }[]] {
+export function resolveGenerics(type: ValueType, ctx: TypecheckerContext): ValueType {
+  function _subroutine(type: ValueType): [ValueType, { name: Token<string>; orig: CodeSection }[]] {
     switch (type.type) {
       case 'bool':
       case 'number':
@@ -33,12 +30,12 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
         return [type, []]
 
       case 'list': {
-        const [resolved, deps] = _subroutine(type.itemsType, gScopes)
+        const [resolved, deps] = _subroutine(type.itemsType)
         return [{ type: type.type, itemsType: resolved }, deps]
       }
 
       case 'map': {
-        const [resolved, deps] = _subroutine(type.itemsType, gScopes)
+        const [resolved, deps] = _subroutine(type.itemsType)
         return [{ type: type.type, itemsType: resolved }, deps]
       }
 
@@ -49,7 +46,7 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
           {
             type: type.type,
             members: type.members.map(({ name, type }) => {
-              const [resolved, deps] = _subroutine(type, gScopes)
+              const [resolved, deps] = _subroutine(type)
               allDeps.push(...deps)
               return { name, type: resolved }
             }),
@@ -64,7 +61,7 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
         let returnType: typeof type.fnType.returnType = null
 
         if (type.fnType.returnType) {
-          const [resolved, deps] = _subroutine(type.fnType.returnType.parsed, gScopes)
+          const [resolved, deps] = _subroutine(type.fnType.returnType.parsed)
           allDeps.push(...deps)
           returnType = { ...type.fnType.returnType, parsed: resolved }
         }
@@ -75,7 +72,7 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
             fnType: {
               generics: type.fnType.generics,
               args: type.fnType.args.map((arg) => {
-                const [resolved, deps] = _subroutine(arg.parsed.type.parsed, gScopes)
+                const [resolved, deps] = _subroutine(arg.parsed.type.parsed)
                 allDeps.push(...deps)
 
                 return {
@@ -93,13 +90,13 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
       }
 
       case 'nullable': {
-        const [inner, deps] = _subroutine(type.inner, gScopes)
+        const [inner, deps] = _subroutine(type.inner)
         return [{ type: type.type, inner }, deps]
       }
 
       case 'failable': {
-        const [success, sdeps] = _subroutine(type.successType.parsed, gScopes)
-        const [failure, fdeps] = _subroutine(type.failureType.parsed, gScopes)
+        const [success, sdeps] = _subroutine(type.successType.parsed)
+        const [failure, fdeps] = _subroutine(type.failureType.parsed)
 
         return [
           {
@@ -112,17 +109,26 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
       }
 
       case 'generic': {
+        if (!ctx.inFnCallAt) return [type, []]
+
         const allDeps: { name: Token<string>; orig: CodeSection }[] = [{ name: type.name, orig: type.orig }]
 
         const previous = { ...type }
-        type = getContextuallyResolvedGeneric(gScopes, type.name.parsed, type.orig)?.mapped ?? type
+        const resolved = getContextuallyResolvedGeneric(
+          ctx.resolvedGenerics,
+          ctx.inFnCallAt,
+          type.name.parsed,
+          type.orig
+        )
+
+        type = resolved?.mapped ?? type
 
         if (!isResolvedGenericDifferent(type, previous)) {
           return [type, []]
         }
 
         for (;;) {
-          const [resolved, deps] = _subroutine(type, gScopes)
+          const [resolved, deps] = _subroutine(type)
           if (deps.length === 0) break
           allDeps.push(...deps)
           type = resolved
@@ -147,7 +153,7 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
     }
   }
 
-  return _subroutine(type, gScopes)[0]
+  return _subroutine(type)[0]
 }
 
 /**

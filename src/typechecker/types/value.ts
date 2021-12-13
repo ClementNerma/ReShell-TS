@@ -14,9 +14,10 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   let { typeExpectation } = ctx
 
-  if (typeExpectation?.type.type === 'generic') {
+  if (typeExpectation?.type.type === 'generic' && ctx.inFnCallAt) {
     const generic = getContextuallyResolvedGeneric(
       ctx.resolvedGenerics,
+      ctx.inFnCallAt,
       typeExpectation.type.name.parsed,
       typeExpectation.type.orig
     )

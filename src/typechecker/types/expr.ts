@@ -23,7 +23,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
   const withOpsType = resolveDoubleOpSequenceType(
     {
       baseElement: expr.parsed.from,
-      baseElementType: resolveGenerics(fromType.data, ctx.resolvedGenerics),
+      baseElementType: resolveGenerics(fromType.data, ctx),
       seq: expr.parsed.doubleOps,
     },
     ctx

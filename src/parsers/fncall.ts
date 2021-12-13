@@ -1,5 +1,5 @@
 import { FnCall, FnCallArg, ValueType } from '../shared/ast'
-import { withStatementClosingChar } from './context'
+import { withinFnCall, withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -35,41 +35,43 @@ export const fnCall: Parser<FnCall> = map(
     combine(maybe_s, exact('('), maybe_s_nl),
     withStatementClosingChar(
       ')',
-      takeWhile(
-        failIfMatchesElse(
-          stmtEnd,
-          failure(
-            mappedCases<FnCallArg>()('type', {
-              flag: map(
-                combine(
-                  oneOf(['--', '-']),
-                  failIfMatches(unicodeDigit),
-                  failure(identifier, 'expected a flag identifier'),
-                  maybe(
-                    map(
-                      combine(
-                        exact('='),
-                        maybe_s_nl,
-                        failure(
-                          withLatelyDeclared(() => expr),
-                          'expected an expression after the flag separator (:) symbol'
-                        )
-                      ),
-                      ([_, __, directValue]) => directValue
+      withinFnCall(
+        takeWhile(
+          failIfMatchesElse(
+            stmtEnd,
+            failure(
+              mappedCases<FnCallArg>()('type', {
+                flag: map(
+                  combine(
+                    oneOf(['--', '-']),
+                    failIfMatches(unicodeDigit),
+                    failure(identifier, 'expected a flag identifier'),
+                    maybe(
+                      map(
+                        combine(
+                          exact('='),
+                          maybe_s_nl,
+                          failure(
+                            withLatelyDeclared(() => expr),
+                            'expected an expression after the flag separator (:) symbol'
+                          )
+                        ),
+                        ([_, __, directValue]) => directValue
+                      )
                     )
-                  )
+                  ),
+                  ([prefixSym, _, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
                 ),
-                ([prefixSym, _, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
-              ),
-              expr: toOneProp(
-                'expr',
-                withLatelyDeclared(() => expr)
-              ),
-            }),
-            'invalid argument provided'
-          )
-        ),
-        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument' }
+                expr: toOneProp(
+                  'expr',
+                  withLatelyDeclared(() => expr)
+                ),
+              }),
+              'invalid argument provided'
+            )
+          ),
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument' }
+        )
       )
     ),
     combine(maybe_s_nl, exact(')', 'expected a closing parenthesis to end the list of arguments'))

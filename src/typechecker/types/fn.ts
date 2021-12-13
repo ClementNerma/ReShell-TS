@@ -14,7 +14,7 @@ import {
 } from '../base'
 import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
-import { getContextuallyResolvedGeneric, getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
+import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from '../types/compat'
 import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
@@ -295,28 +295,14 @@ export const validateAndRegisterFnCall: Typechecker<
   },
   ValueType
 > = ({ at, nameAt, fnType, generics, args, declaredCommand }, ctx) => {
-  for (const generic of fnType.generics) {
-    if (getContextuallyResolvedGeneric(ctx.resolvedGenerics, generic.parsed, generic.at)) {
-      return err(nameAt, {
-        message: 'generic-based function was called twice in expression',
-        complements: [
-          [
-            'details',
-            'due to a current limitation of the typesystem, you cannot call the same generic-based function twice in the same expression',
-          ],
-        ],
-      })
-    }
-  }
-
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
-    callAt: at,
     name,
     orig: name.at,
     mapped: null,
+    inFnCallAt: at.start,
   }))
 
-  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
+  ctx = { ...ctx, inFnCallAt: at.start, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
 
   if (generics) {
     if (generics.parsed.length < fnType.generics.length) {
@@ -339,7 +325,7 @@ export const validateAndRegisterFnCall: Typechecker<
 
       const suppliedFor = fnType.generics[g]
 
-      const scoped = getResolvedGenericInSingleScope(gScope, suppliedFor.parsed, suppliedFor.at)
+      const scoped = getResolvedGenericInSingleScope(gScope, at.start, suppliedFor.parsed, suppliedFor.at)
 
       if (!scoped) {
         return err(generics.parsed[g].at, "internal error: generic not found in function's generics scope")
@@ -424,7 +410,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(expr, {
           ...ctx,
           typeExpectation: {
-            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx),
             from: relatedArg.at,
           },
         })
@@ -452,7 +438,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(directValue, {
           ...ctx,
           typeExpectation: {
-            type: resolveGenerics(flag.parsed.type.parsed, ctx.resolvedGenerics),
+            type: resolveGenerics(flag.parsed.type.parsed, ctx),
             from: flag.at,
           },
         })
@@ -468,7 +454,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveFnCallType(content.parsed, {
           ...ctx,
           typeExpectation: {
-            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx),
             from: relatedArg.at,
           },
         })
@@ -494,7 +480,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveValueType(value, {
           ...ctx,
           typeExpectation: {
-            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx.resolvedGenerics),
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx),
             from: relatedArg.at,
           },
         })
@@ -578,9 +564,7 @@ export const validateAndRegisterFnCall: Typechecker<
     },
   })
 
-  const returnType: ValueType = fnType.returnType
-    ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics)
-    : { type: 'void' }
+  const returnType: ValueType = fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx) : { type: 'void' }
 
   if (ctx.typeExpectation) {
     const compat = isTypeCompatible(
@@ -589,7 +573,10 @@ export const validateAndRegisterFnCall: Typechecker<
         candidate: returnType,
         typeExpectation: {
           from: ctx.typeExpectation.from,
-          type: resolveGenerics(ctx.typeExpectation.type, ctx.resolvedGenerics.concat([gScope])),
+          type: resolveGenerics(ctx.typeExpectation.type, {
+            ...ctx,
+            resolvedGenerics: ctx.resolvedGenerics.concat([gScope]),
+          }),
         },
       },
       ctx

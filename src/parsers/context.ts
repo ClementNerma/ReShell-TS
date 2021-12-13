@@ -1,4 +1,5 @@
-import { CodeSection, Token } from '../shared/parsed'
+import { ValueType } from '../shared/ast'
+import { CodeLoc, CodeSection, Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { FailableMapped } from './lib/conditions'
@@ -16,6 +17,7 @@ export type CustomContext = {
   statementClose: StatementClosingChar | null
   continuationKeywords: string[]
   genericsDefinitions: Map<string, CodeSection>[]
+  inFnCallAt: CodeLoc | null
   inTypeAliasDefinition: boolean
 }
 
@@ -23,6 +25,7 @@ export const initContext: () => CustomContext = () => ({
   statementClose: null,
   continuationKeywords: [],
   genericsDefinitions: [],
+  inFnCallAt: null,
   inTypeAliasDefinition: false,
 })
 
@@ -42,7 +45,7 @@ export const addGenericsDefinition = (context: CustomContext, generics: Token<st
 export const completeGenericsDefinition = (
   name: Token<string>,
   context: CustomContext
-): FailableMapped<{ name: Token<string>; orig: CodeSection }> => {
+): FailableMapped<Omit<Extract<ValueType, { type: 'generic' }>, 'type'>> => {
   for (let i = context.genericsDefinitions.length - 1; i >= 0; i--) {
     const orig = context.genericsDefinitions[i].get(name.parsed)
     if (orig) return { ok: true, data: { name, orig } }
@@ -65,6 +68,9 @@ export const withContinuationKeyword = <T>(continuationKeywords: string[], parse
 
 export const withinTypeAliasDefinition = <T>(parser: Parser<T>): Parser<T> =>
   withTypedCtx<T, CustomContext>(($custom) => ({ ...$custom, inTypeAliasDefinition: true }), parser)
+
+export const withinFnCall = <T>(parser: Parser<T>): Parser<T> =>
+  withTypedCtx<T, CustomContext>(($custom, start) => ({ ...$custom, inFnCallAt: start }), parser)
 
 export const getStatementClose: <T>(action: (char: string | null) => Parser<T>) => CtxAction<T> =
   (action) => ($custom) =>

@@ -1,6 +1,6 @@
 import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
-import { CodeSection, Token } from '../shared/parsed'
+import { CodeLoc, CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
 import { nativeLibraryScope, nativeLibraryTypeAliasesMap } from './scope/native-lib'
 
@@ -12,7 +12,7 @@ export type TypecheckerContext = {
   typeAliases: PrecompData['typeAliases']
   resolvedGenerics: GenericResolutionScope[]
   inLoop: boolean
-  // inFnCallAt: CodeSection | null
+  inFnCallAt: CodeLoc | null
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
   typeExpectationNature: null | string
   fnExpectation: null | {
@@ -37,7 +37,7 @@ export function createTypecheckerContext(
     typeAliasesPrelook: new Set(),
     resolvedGenerics: [],
     inLoop: false,
-    // inFnCallAt: null,
+    inFnCallAt: null,
     typeExpectation: null,
     typeExpectationNature: null,
     fnExpectation: null,
@@ -73,6 +73,7 @@ export type GenericResolutionScope = {
   name: Token<string>
   orig: CodeSection
   mapped: ValueType | null
+  inFnCallAt: CodeLoc
 }[]
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })

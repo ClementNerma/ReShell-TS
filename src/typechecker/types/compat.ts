@@ -28,7 +28,7 @@ export const isTypeCompatible: Typechecker<
     if (!developedReferent.ok) return developedReferent
 
     const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true })
-    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx.resolvedGenerics))
+    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx))
 
     const ctxForCandidate = fillKnownGenerics
       ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) }
@@ -40,7 +40,7 @@ export const isTypeCompatible: Typechecker<
     const found = rebuildType(
       resolveGenerics(
         developedCandidate.data,
-        fillKnownGenerics ? ctx.resolvedGenerics.concat([fillKnownGenerics]) : ctx.resolvedGenerics
+        fillKnownGenerics ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) } : ctx
       )
     )
 
@@ -112,8 +112,13 @@ export const isTypeCompatible: Typechecker<
   if (!developedReferent.ok) return developedReferent
   referent = developedReferent.data
 
-  if (referent.type === 'generic') {
-    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, referent.name.parsed, referent.orig)
+  if (referent.type === 'generic' && ctx.inFnCallAt) {
+    const generic = getContextuallyResolvedGeneric(
+      ctx.resolvedGenerics,
+      ctx.inFnCallAt,
+      referent.name.parsed,
+      referent.orig
+    )
 
     if (generic?.mapped === null) {
       generic.mapped = candidate
@@ -123,9 +128,14 @@ export const isTypeCompatible: Typechecker<
     }
   }
 
-  if (candidate.type === 'generic') {
+  if (candidate.type === 'generic' && ctx.inFnCallAt) {
     if (fillKnownGenerics) {
-      const set = getResolvedGenericInSingleScope(fillKnownGenerics, candidate.name.parsed, candidate.orig)
+      const set = getResolvedGenericInSingleScope(
+        fillKnownGenerics,
+        ctx.inFnCallAt,
+        candidate.name.parsed,
+        candidate.orig
+      )
 
       if (set === undefined) {
         return expectationErr('internal error: candidate generic is unknown although filling map was provided')
@@ -140,7 +150,7 @@ export const isTypeCompatible: Typechecker<
         if (!compat.ok) return compat
       }
     } else {
-      const resolved = resolveGenerics(candidate, ctx.resolvedGenerics)
+      const resolved = resolveGenerics(candidate, ctx)
 
       if (isResolvedGenericDifferent(resolved, candidate)) {
         return subCheck({ candidate: resolved, referent })

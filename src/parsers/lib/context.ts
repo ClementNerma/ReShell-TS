@@ -1,4 +1,5 @@
-import { Token } from '../../shared/parsed'
+import { CodeLoc, Token } from '../../shared/parsed'
+import { StrView } from '../../shared/strview'
 import { Parser, ParsingContext, success } from './base'
 
 // TODO: Show in the doc that the functions below are unsafe (can throw type errors at runtime)
@@ -7,10 +8,11 @@ export function withTypedCtxData<T, C>(data: C): (parser: Parser<T>) => Parser<T
   return (parser) => (start, input, context) => parser(start, input, { ...context, $custom: data })
 }
 
-export type ContextMapper<C> = ($custom: C, context: ParsingContext) => C
+export type ContextMapper<C> = ($custom: C, start: CodeLoc, input: StrView, context: ParsingContext) => C
 
 export function withTypedCtx<T, C>(mapper: ContextMapper<C>, parser: Parser<T>): Parser<T> {
-  return (start, input, context) => parser(start, input, { ...context, $custom: mapper(context.$custom as C, context) })
+  return (start, input, context) =>
+    parser(start, input, { ...context, $custom: mapper(context.$custom as C, start, input, context) })
 }
 
 export type ContextRuntimeMapper<C, T> = ($custom: C, context: ParsingContext) => Parser<T>
