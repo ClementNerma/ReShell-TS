@@ -22,7 +22,7 @@ import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact, match, oneOfMap } from './lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
-import { withLatelyDeclared } from './lib/utils'
+import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { literalValue, rawString } from './literals'
 import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
@@ -156,6 +156,16 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       combine(maybe_s_nl, exact('}', 'expected a closing brace (}) to close the structure'))
     ),
     ([_, { parsed: members }, __]) => ({ members })
+  ),
+
+  enumVariant: map(
+    combine(
+      exact('enum::'),
+      maybe(identifier),
+      exact('.', 'expected a dot (.) separator'),
+      failure(identifier, 'expected a variant name')
+    ),
+    ([_, enumName, __, variant]) => ({ enumName: flattenMaybeToken(enumName), variant })
   ),
 
   // closure: map(

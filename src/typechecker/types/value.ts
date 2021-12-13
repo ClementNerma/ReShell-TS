@@ -369,6 +369,73 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success<ValueType>(typeExpectation?.type ?? { type: 'struct', members: outputTypes })
     },
 
+    enumVariant: ({ enumName, variant }) => {
+      const assert = assertExpectedNonPrimitiveType('enum')
+      if (!assert.ok) return assert
+
+      let variants: Token<string>[]
+
+      if (enumName) {
+        const enumTypeEntity = getTypedEntityInScope(enumName, 'typeAlias', ctx)
+        if (!enumTypeEntity.ok) return enumTypeEntity
+
+        if (enumTypeEntity.data.content.type !== 'enum') {
+          return err(
+            enumName.at,
+            `this type is not an enumeration (found \`${rebuildType(enumTypeEntity.data.content, true)}\`)`
+          )
+        }
+
+        variants = enumTypeEntity.data.content.variants
+      } else if (assert.data) {
+        if (assert.data.type !== 'enum') {
+          return err(variant.at, `expected type is not an enumeration (found \`${rebuildType(assert.data, true)}\`)`)
+        }
+
+        variants = assert.data.variants
+      } else {
+        return err(variant.at, {
+          message: 'cannot determine the enum type from this variant',
+          complements: [['tip', 'consider adding the type name explicitly here: enum::EnumName.' + variant.parsed]],
+        })
+      }
+
+      if (enumName && assert.data) {
+        for (const variant of variants) {
+          if (!assert.data.variants.find((v) => v.parsed === variant.parsed)) {
+            return err(variant.at, {
+              message: `incompatible enum types: variant \`${variant.parsed}\` does not exist in expected type`,
+              complements: [
+                ['found variants', variants.map((v) => v.parsed).join(', ')],
+                ['expected variants', assert.data.variants.map((v) => v.parsed).join(', ')],
+              ],
+            })
+          }
+        }
+
+        for (const variant of assert.data.variants) {
+          if (!variants.find((v) => v.parsed === variant.parsed)) {
+            return err(variant.at, {
+              message: `incompatible enum types: variant \`${variant.parsed}\` does not exist in provided type`,
+              complements: [
+                ['found variants', variants.map((v) => v.parsed).join(', ')],
+                ['expected variants', assert.data.variants.map((v) => v.parsed).join(', ')],
+              ],
+            })
+          }
+        }
+      }
+
+      if (!variants.find((v) => v.parsed === variant.parsed)) {
+        return err(variant.at, {
+          message: 'variant not found in enum',
+          complements: [['variants', variants.map((v) => v.parsed).join(', ')]],
+        })
+      }
+
+      return success({ type: 'enum', variants })
+    },
+
     // closure: ({ fnType, body }) => {
     //   const assert = assertExpectedNonPrimitiveType('fn')
     //   if (!assert.ok) return assert

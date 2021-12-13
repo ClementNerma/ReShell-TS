@@ -36,9 +36,16 @@ export function getTypedEntityInScope<C extends ScopeEntity['type']>(
     const entity = scopes[s].get(name.parsed)
 
     if (entity) {
-      return entity.type === category
-        ? success(entity as Extract<ScopeEntity, { type: C }>)
-        : err(name.at, `expected a ${getEntityCategoryName(category)}, found a ${getEntityCategoryName(entity.type)}`)
+      if (entity.type !== category) {
+        if ((entity.type === 'var' || entity.type === 'fn') && (category === 'var' || category === 'fn')) {
+          return err(
+            name.at,
+            `expected a ${getEntityCategoryName(category)}, found a ${getEntityCategoryName(entity.type)}`
+          )
+        }
+      } else {
+        return success(entity as Extract<ScopeEntity, { type: C }>)
+      }
     }
   }
 

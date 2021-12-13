@@ -157,6 +157,7 @@ export type Value =
   | { type: 'list'; items: Token<Expr>[] }
   | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
+  | { type: 'enumVariant'; enumName: Token<string> | null; variant: Token<string> }
   // | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
