@@ -275,25 +275,25 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
   const lastPos = { start: lastSection.next, next: lastSection.next }
 
   if (positional.length > 0 && !positional[0].parsed.optional) {
-    return err(
-      lastPos,
-      `missing required argument \`${positional[0].parsed.name.parsed}\` of type \`${rebuildType(
+    return err(lastPos, {
+      message: `missing required argument \`${positional[0].parsed.name.parsed}\` of type \`${rebuildType(
         positional[0].parsed.type,
         true
-      )}\``
-    )
+      )}\``,
+      also: [{ at: positional[0].at, message: 'argument is defined here' }],
+    })
   }
 
   const missingFlag = [...flags.values()].find((arg) => !arg.parsed.optional)
 
   if (missingFlag) {
-    return err(
-      lastPos,
-      `missing required flag \`${missingFlag.parsed.name.parsed}\` of type \`${rebuildType(
+    return err(lastPos, {
+      message: `missing required flag \`${missingFlag.parsed.name.parsed}\` of type \`${rebuildType(
         missingFlag.parsed.type,
         true
-      )}\``
-    )
+      )}\``,
+      also: [{ at: missingFlag.at, message: 'flag is defined here' }],
+    })
   }
 
   if (fnType.failureType !== null) {
