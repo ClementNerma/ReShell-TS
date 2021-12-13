@@ -223,7 +223,12 @@ export const validateFnCallArgs: Typechecker<
       action: ({ name }) =>
         err(
           name.at,
-          declaredCommand ? 'no signature match this call' : 'non-quoted arguments are only allowed for commands'
+          declaredCommand
+            ? {
+                message: 'no signature match this call',
+                complements: [['tip', `if you want to reference a variable, wrap it like this: \${${name.parsed}}`]],
+              }
+            : 'non-quoted arguments are only allowed for commands'
         ),
 
       expr: ({ expr }) => {
