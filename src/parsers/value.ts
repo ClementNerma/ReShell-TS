@@ -181,7 +181,8 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   callback: map(
     combine(
-      combine(exact('fn'), maybe_s, exact('('), maybe_s_nl),
+      exact('|'),
+      maybe_s,
       takeWhile(
         mappedCases<ClosureCallArg>()('type', {
           flag: withLatelyDeclared(() => cmdFlag),
@@ -204,13 +205,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           ([_, __, ___, ____, restArg]) => restArg
         )
       ),
-      combine(
-        maybe_s_nl,
-        exact(')', "expected a closing parenthesis ')' after the arguments list"),
-        maybe_s_nl,
-        exact('=>', 'expected a body arrow (=>)'),
-        maybe_s_nl
-      ),
+      combine(maybe_s_nl, exact('|', "expected a '|' symbol after the arguments list"), maybe_s_nl),
       mappedCases<ClosureBody>()('type', {
         block: accelerateWithLookahead(
           exact('{'),
@@ -229,7 +224,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ),
       })
     ),
-    ([_, { parsed: args }, { parsed: restArg }, __, body]) => ({ args, restArg, body })
+    ([_, __, { parsed: args }, { parsed: restArg }, ___, body]) => ({ args, restArg, body })
   ),
 
   fnCall: map(fnCall, (content) => ({ content })),
