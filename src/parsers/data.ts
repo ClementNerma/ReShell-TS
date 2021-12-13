@@ -113,7 +113,8 @@ export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall
 export type Value =
   | LiteralValue
   | { type: 'list'; items: Token<Token<Expr>[]> }
-  | { type: 'map'; entries: Token<{ key: Token<string>; expr: Token<Expr> }[]> }
+  | { type: 'map'; entries: Token<{ key: Token<LiteralString>; expr: Token<Expr> }[]> }
+  | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
   | { type: 'inlineCmdCallSequence'; start: Token<InlineCmdCall>; sequence: Token<InlineChainedCmdCall>[] }
   | { type: 'reference'; varname: Token<string> }
 

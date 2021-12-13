@@ -22,13 +22,11 @@ import {
   SingleOp,
   Value,
 } from './data'
-import { literalValue } from './literals'
+import { literalString, literalValue } from './literals'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
-  reference: toOneProp(identifier, 'varname'),
-
   list: map(
     combine(
       exact('['),
@@ -46,6 +44,35 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   map: map(
     combine(
+      exact('map:('),
+      extract(
+        takeWhile(
+          map(
+            combine(
+              literalString,
+              exact(':'),
+              withLatelyDeclared(() => expr),
+              { inter: maybe_s_nl }
+            ),
+            ([key, _, expr]) => ({ key, expr })
+          ),
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+          }
+        )
+      ),
+      exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
+      {
+        inter: maybe_s_nl,
+      }
+    ),
+    ([_, entries, __]) => ({
+      entries: mapToken(entries, (_, { parsed }) => parsed),
+    })
+  ),
+
+  struct: map(
+    combine(
       exact('{'),
       extract(
         takeWhile(
@@ -56,7 +83,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
             ),
-            ([key, _, expr]) => ({ key, expr })
+            ([member, _, expr]) => ({ member, expr })
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
@@ -103,6 +130,8 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       sequence: sequenceRest.parsed,
     })
   ),
+
+  reference: toOneProp(identifier, 'varname'),
 })
 
 export const _opSym: Parser<void> = silence(oneOf(['+', '-', '*', '/', '%', '&', '|', '^', '!']))
