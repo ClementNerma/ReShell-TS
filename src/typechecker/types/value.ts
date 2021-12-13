@@ -367,7 +367,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         const varType = getVariableInScope(name, ctx)
 
         if (!varType.ok) {
-          return err(name.at, `function \`${name}\` was not found in this scope`)
+          return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
         }
 
         const type = varType.data.content.type
