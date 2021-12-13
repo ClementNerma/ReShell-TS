@@ -38,7 +38,7 @@ export function failIf(
     cond(input, context, start) ? err(start, context, error) : success(start, start, void 0, '')
 }
 
-export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
+export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok ? err(start, context, error) : success(start, start, void 0, '')
