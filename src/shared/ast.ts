@@ -94,7 +94,7 @@ export type ExprOrNever = { type: 'expr'; content: Token<Expr> } | Extract<State
 
 export type CondOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; inverted: boolean; minimum: Token<TypeAssertionAgainst> }
+  | { type: 'assertion'; varname: Token<string>; inverted: boolean; exact: Token<TypeAssertionAgainst> }
 
 export type TypeAssertionAgainst =
   | { against: 'null' }

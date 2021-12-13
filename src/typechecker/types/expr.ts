@@ -82,7 +82,7 @@ export const resolveCondOrTypeAssertionType: Typechecker<
       const subjectType = subject.data.varType
 
       const assertionType: TypecheckerResult<{ normal: ValueType | null; inverted: ValueType | null }> = matchUnion(
-        expr.parsed.minimum.parsed,
+        expr.parsed.exact.parsed,
         'against',
         {
           null: () => {
