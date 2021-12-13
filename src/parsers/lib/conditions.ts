@@ -150,3 +150,12 @@ export function thenErr<T>(parser: Parser<T>, thenErr: (parsed: ParserErr) => Pa
     return parsed.ok ? parsed : thenErr(parsed)
   }
 }
+
+export function accelerateWithLookahead<T>(lookahead: Parser<unknown>, parser: Parser<T>): Parser<T> {
+  return (start, input, context) => {
+    const lookaheadResult = lookahead(start, input, context)
+    if (!lookaheadResult.ok) return lookaheadResult
+
+    return parser(start, input, context)
+  }
+}

@@ -2,11 +2,11 @@ import { LiteralValue } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatches, failIfMatchesElse, notFollowedBy } from './lib/conditions'
-import { lookahead, not } from './lib/consumeless'
+import { accelerateWithLookahead, failIfMatches, notFollowedBy } from './lib/conditions'
+import { lookahead } from './lib/consumeless'
 import { digit, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhile1, takeWhileN } from './lib/loops'
-import { exact, match, oneOfMap, regex } from './lib/matchers'
+import { exact, match, oneOfFirstChar, oneOfMap, regex } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map, toOneProp, unify } from './lib/transform'
 
@@ -38,8 +38,8 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
 
   number: toOneProp(
     'value',
-    failIfMatchesElse(
-      not(or<unknown>([exact('-'), digit])),
+    accelerateWithLookahead(
+      oneOfFirstChar(['-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
       notFollowedBy(
         or([
           regex(/(-)?0x([0-9a-fA-F]+)/, ([_, neg, num]) => parseInt(num, 16) * (neg ? -1 : 1)),

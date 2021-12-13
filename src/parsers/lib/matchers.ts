@@ -21,6 +21,20 @@ export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputDa
   }
 }
 
+export function oneOfFirstChar<S extends string>(candidates: S[], error?: ErrInputData): Parser<S> {
+  return (start, input, context) => {
+    const firstChar = input.firstChar()
+
+    for (const candidate of candidates) {
+      if (firstChar === candidate) {
+        return success(start, addCols(start, candidate.length), candidate, candidate)
+      }
+    }
+
+    return err(start, start, context, error)
+  }
+}
+
 export function word<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     if (!input.startsWith(candidate)) return err(start, start, context, error)
