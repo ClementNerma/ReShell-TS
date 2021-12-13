@@ -76,6 +76,10 @@ export function formatErr(err: ParserErr, formatters?: Formatters): string {
   return f?.wrapper?.(text) ?? text
 }
 
+export function withNormalizedNewlines<T>(parser: Parser<T>): Parser<T> {
+  return (start, input, context) => parser(start, input.replace(/\r\n|\r/g, '\n'), context)
+}
+
 export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<T>) => U): Token<U> {
   return { ...token, parsed: mapper(token.parsed, token) }
 }
