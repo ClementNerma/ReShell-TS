@@ -1,5 +1,6 @@
 import { CodeSection, ValueType } from '../../shared/parsed'
 import { err, success, Typechecker, TypecheckerResult } from '../base'
+import { getTypeAliasInScope } from '../scope/search'
 import { errIncompatibleValueType } from './value'
 
 export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSection; _path?: string[] }, void> = (
@@ -27,9 +28,10 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
     return err(at, 'Internal error: type expectation is not defined in context when checking for type compatibility')
   }
 
-  const {
-    typeExpectation: { from, type: referent },
-  } = context
+  const { typeExpectation } = context
+  const { from } = typeExpectation
+
+  let referent = typeExpectation.type
 
   const path = _path ?? []
 
@@ -45,8 +47,28 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
     return expectationErr()
   }
 
-  if (candidate.inner.type === 'aliasRef' || referent.inner.type === 'aliasRef') {
-    throw new Error('// TODO: type alias comparison')
+  if (candidate.inner.type === 'aliasRef') {
+    const alias = getTypeAliasInScope(candidate.inner.typeAliasName, context)
+
+    if (!alias.ok) {
+      return expectationErr(
+        'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+      )
+    }
+
+    candidate = { nullable: candidate.nullable || alias.data.content.nullable, inner: alias.data.content.inner }
+  }
+
+  if (referent.inner.type === 'aliasRef') {
+    const alias = getTypeAliasInScope(referent.inner.typeAliasName, context)
+
+    if (!alias.ok) {
+      return expectationErr(
+        'Internal error: referent type alias reference not found in scope while checking for type compatibility'
+      )
+    }
+
+    referent = { nullable: referent.nullable || alias.data.content.nullable, inner: alias.data.content.inner }
   }
 
   if (candidate.inner.type !== referent.inner.type) {

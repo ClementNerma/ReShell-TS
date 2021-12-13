@@ -1,23 +1,29 @@
 import { CodeSection, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { getFunctionInScope, getVariableInScope } from '../scope/search'
+import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
-  const { typeExpectation } = ctx
+  let { typeExpectation } = ctx
 
   if (typeExpectation?.type?.inner.type === 'aliasRef') {
-    throw new Error('// TODO: type alias development')
-  }
+    const alias = getTypeAliasInScope(typeExpectation.type.inner.typeAliasName, ctx)
 
-  // typeExpectation =>
-  //   !== type => ERROR
-  //   === unknown -> OK void
-  //   else -> input
-  // else => input
+    if (!alias.ok) {
+      return err(value.at, 'Internal error: type alias reference not found in scope during value type resolution')
+    }
+
+    typeExpectation = {
+      from: typeExpectation.from,
+      type: {
+        nullable: typeExpectation.type.nullable || alias.data.content.nullable,
+        inner: alias.data.content.inner,
+      },
+    }
+  }
 
   const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> =>
     typeExpectation && typeExpectation.type.inner.type !== type
