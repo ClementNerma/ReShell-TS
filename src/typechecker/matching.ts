@@ -1,6 +1,7 @@
 import { Expr } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { err, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { developTypeAliasesIn } from './types/aliases'
 import { resolveExprType } from './types/expr'
 import { rebuildType } from './types/rebuilder'
 
@@ -11,18 +12,8 @@ export function enumMatchingTypechecker<T, X>(
   armChecker: Typechecker<T, X>,
   inspect?: (mapped: X, matchWith: T) => void
 ): TypecheckerResult<void> {
-  const matchOn = resolveExprType(subject, { ...ctx, typeExpectation: null })
+  const matchOn = developTypeAliasesIn(resolveExprType(subject, { ...ctx, typeExpectation: null }), ctx)
   if (!matchOn.ok) return matchOn
-
-  while (matchOn.data.type === 'aliasRef') {
-    const typeAlias = ctx.typeAliases.get(matchOn.data.typeAliasName.parsed)
-
-    if (!typeAlias) {
-      return err(subject.at, 'internal error: type alias was not found during development in matching')
-    }
-
-    matchOn.data = typeAlias.content
-  }
 
   if (matchOn.data.type !== 'enum') {
     return err(subject.at, `matching can only be performed on enums, found \`${rebuildType(matchOn.data, true)}\``)

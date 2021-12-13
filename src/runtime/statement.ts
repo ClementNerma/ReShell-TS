@@ -320,5 +320,5 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
 
     cmdDecl: () => success(void 0),
 
-    fileInclusion: () => err(stmt.at, 'internal error: file inclusion was not flattened before running statemetn'),
+    fileInclusion: () => err(stmt.at, 'internal error: file inclusion was not flattened before running statement'),
   })

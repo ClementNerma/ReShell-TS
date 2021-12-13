@@ -4,6 +4,7 @@ import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection } from '../../shared/parsed'
 import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getResolvedGenericInSingleScope } from '../scope/search'
+import { developTypeAliases } from './aliases'
 import { getFnDeclArgType } from './fn'
 import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
@@ -108,29 +109,13 @@ export const isTypeCompatible: Typechecker<
     return expectationErr()
   }
 
-  while (candidate.type === 'aliasRef') {
-    const alias = ctx.typeAliases.get(candidate.typeAliasName.parsed)
+  const developedCandidate = developTypeAliases(candidate, ctx)
+  if (!developedCandidate.ok) return developedCandidate
+  candidate = developedCandidate.data
 
-    if (!alias) {
-      return expectationErr(
-        'internal error: candidate type alias reference not found in scope while checking for type compatibility'
-      )
-    }
-
-    candidate = alias.content
-  }
-
-  while (referent.type === 'aliasRef') {
-    const alias = ctx.typeAliases.get(referent.typeAliasName.parsed)
-
-    if (!alias) {
-      return expectationErr(
-        'internal error: referent type alias reference not found in scope while checking for type compatibility'
-      )
-    }
-
-    referent = alias.content
-  }
+  const developedReferent = developTypeAliases(referent, ctx)
+  if (!developedReferent.ok) return developedReferent
+  referent = developedReferent.data
 
   if (referent.type === 'generic') {
     for (const gScope of ctx.resolvedGenerics.reverse()) {

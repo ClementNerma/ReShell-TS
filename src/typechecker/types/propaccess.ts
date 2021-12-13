@@ -1,6 +1,7 @@
 import { PropertyAccess, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
+import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
@@ -12,33 +13,11 @@ export const resolvePropAccessType: Typechecker<
   let upToPrevPropAccessSection: CodeSection = leftAt
 
   for (const propAccess of propAccesses) {
-    for (;;) {
-      if (previousIterType.type === 'aliasRef') {
-        const alias = ctx.typeAliases.get(previousIterType.typeAliasName.parsed)
-
-        if (!alias) {
-          return err(
-            leftAt,
-            'internal error: candidate type alias reference not found in scope while checking for type compatibility'
-          )
-        }
-
-        previousIterType = alias.content
-      } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
-        const alias = ctx.typeAliases.get(previousIterType.inner.typeAliasName.parsed)
-
-        if (!alias) {
-          return err(
-            leftAt,
-            'internal error: candidate type alias reference not found in scope while checking for type compatibility'
-          )
-        }
-
-        previousIterType = { type: 'nullable', inner: alias.content }
-      } else {
-        break
-      }
-    }
+    do {
+      const developed = developTypeAliases(previousIterType, ctx)
+      if (!developed.ok) return developed
+      previousIterType = developed.data
+    } while (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef')
 
     switch (propAccess.parsed.access.type) {
       case 'refIndex': {

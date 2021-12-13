@@ -5,6 +5,7 @@ import { ensureCoverage, err, success, Typechecker, TypecheckerContext, Typechec
 import { cmdCallTypechecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
+import { developTypeAliases } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureCallValidator, resolveFnCallType } from './fn'
@@ -36,38 +37,38 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     }
   }
 
-  while (typeExpectation?.type.type === 'aliasRef') {
-    const alias = ctx.typeAliases.get(typeExpectation.type.typeAliasName.parsed)
-
-    if (!alias) {
-      return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
-    }
-
-    typeExpectation = { from: typeExpectation.from, type: alias.content }
+  if (typeExpectation) {
+    const developed = developTypeAliases(typeExpectation.type, ctx)
+    if (!developed.ok) return developed
+    typeExpectation = { from: typeExpectation.from, type: developed.data }
   }
 
-  const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {
-    if (!typeExpectation) return success({ type })
+  let developedExpectedType: ValueType | null = null
 
-    let expected: ValueType = typeExpectation.type
+  if (typeExpectation) {
+    developedExpectedType = typeExpectation.type
 
     for (;;) {
-      if (expected.type === 'nullable') {
-        expected = expected.inner
-      } else if (expected.type === 'aliasRef') {
-        const alias = ctx.typeAliases.get(expected.typeAliasName.parsed)
+      if (developedExpectedType.type === 'nullable') {
+        developedExpectedType = developedExpectedType.inner
+      } else if (developedExpectedType.type === 'aliasRef') {
+        const alias = ctx.typeAliases.get(developedExpectedType.typeAliasName.parsed)
 
         if (!alias) {
           return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
         }
 
-        expected = alias.content
+        developedExpectedType = alias.content
       } else {
         break
       }
     }
+  }
 
-    return expected.type === type || expected.type === 'unknown'
+  const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {
+    if (!typeExpectation || !developedExpectedType) return success({ type })
+
+    return developedExpectedType.type === type || developedExpectedType.type === 'unknown'
       ? success({ type })
       : errIncompatibleValueType({
           typeExpectation,
@@ -80,29 +81,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['type'], PrimitiveValueType['type']>>(
     type: T
   ): TypecheckerResult<Extract<ValueType, { type: T }> | null> => {
-    if (!typeExpectation) return success(null)
+    if (!typeExpectation || !developedExpectedType) return success(null)
 
-    let expected: ValueType = typeExpectation.type
-
-    for (;;) {
-      if (expected.type === 'nullable') {
-        expected = expected.inner
-      } else if (expected.type === 'aliasRef') {
-        const alias = ctx.typeAliases.get(expected.typeAliasName.parsed)
-
-        if (!alias) {
-          return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
-        }
-
-        expected = alias.content
-      } else {
-        break
-      }
-    }
-
-    return expected.type === type
-      ? success(expected as Extract<ValueType, { type: T }>)
-      : expected.type === 'unknown'
+    return developedExpectedType.type === type
+      ? success(developedExpectedType as Extract<ValueType, { type: T }>)
+      : developedExpectedType.type === 'unknown'
       ? success(null)
       : errIncompatibleValueType({
           typeExpectation,

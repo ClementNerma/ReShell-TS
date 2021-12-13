@@ -16,6 +16,7 @@ import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
 import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from '../types/compat'
+import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
 import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
@@ -255,26 +256,17 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
   if (entity.data.type === 'fn') {
     fnType = entity.data.content
   } else {
-    let type = entity.data.varType
+    const type = developTypeAliases(entity.data.varType, ctx)
+    if (!type.ok) return type
 
-    if (type.type === 'aliasRef') {
-      const alias = ctx.typeAliases.get(type.typeAliasName.parsed)
-
-      if (!alias) {
-        return err(type.typeAliasName.at, 'internal error: type alias reference not found during value type resolution')
-      }
-
-      type = alias.content
-    }
-
-    if (type.type !== 'fn') {
+    if (type.data.type !== 'fn') {
       return err(
         name.at,
-        `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type, true)}\`)`
+        `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type.data, true)}\`)`
       )
     }
 
-    fnType = type.fnType
+    fnType = type.data.fnType
   }
 
   let resolvedGenerics: GenericResolutionScope = []
