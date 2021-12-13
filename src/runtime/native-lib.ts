@@ -269,6 +269,27 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     return success({ type: 'list', items: out })
   }),
 
+  reduce: withArguments({ self: 'list', init: 'unknown', reducer: 'fn' }, ({ self, init, reducer }, { ctx }) => {
+    let acc: ExecValue = init
+
+    for (let i = 0; i < self.items.length; i++) {
+      const reduced = unsafeCallbackExec(
+        reducer,
+        new Map<string, ExecValue>([
+          ['acc', acc],
+          ['value', self.items[i]],
+        ]),
+        ctx
+      )
+
+      if (reduced.ok !== true) return reduced
+
+      acc = reduced.data
+    }
+
+    return success(acc)
+  }),
+
   map: withArguments({ self: 'list', mapper: 'fn' }, ({ self, mapper }, { ctx }) => {
     const out: ExecValue[] = []
 
