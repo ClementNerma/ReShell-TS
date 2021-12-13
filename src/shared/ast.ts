@@ -124,6 +124,7 @@ export type ElIfExpr = { cond: Token<CondOrTypeAssertion>; expr: Token<ExprOrNev
 export type ValueChaining =
   | { type: 'propertyAccess'; nullable: boolean; access: PropertyAccess }
   | { type: 'method'; nullable: boolean; call: FnCall }
+  | { type: 'earlyReturn' }
 
 export type PropertyAccess =
   | { type: 'refIndex'; index: Token<Expr> }

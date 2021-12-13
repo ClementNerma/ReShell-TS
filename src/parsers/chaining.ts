@@ -38,6 +38,8 @@ export const valueChaining: Parser<ValueChaining> = mappedCases<ValueChaining>()
       (access) => ({ nullable: true, access })
     ),
   ]),
+
+  earlyReturn: map(exact('?'), () => ({})),
 })
 
 export const propertyAccess: Parser<PropertyAccess> = mappedCases<PropertyAccess>()('type', {

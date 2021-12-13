@@ -2,7 +2,7 @@ import { ExprElementContent, FnCallArg, FnDeclArg, PropertyAccess, ValueChaining
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, ScopeMethod, success, Typechecker, TypecheckerResult } from '../base'
-import { developTypeAliasesAndNullables } from './aliases'
+import { developTypeAliases, developTypeAliasesAndNullables } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { validateAndRegisterFnCall } from './fn'
@@ -154,6 +154,56 @@ export const resolveValueChainings: Typechecker<
         if (!resolved.ok) return resolved
 
         return success(nullable ? { type: 'nullable', inner: resolved.data } : resolved.data)
+      },
+
+      earlyReturn: () => {
+        if (!ctx.fnExpectation) {
+          return err(chaining.at, 'early returns are only allowed in functions')
+        }
+
+        if (!ctx.fnExpectation.returnType) {
+          return err(chaining.at, 'early return is not permitted as the current function does not have a return type')
+        }
+
+        const developed = developTypeAliases(ctx.fnExpectation.returnType.type, ctx)
+        if (!developed.ok) return developed
+
+        /*if (previousIterType.type === 'nullable') {
+          if (developed.data.type !== 'nullable') {
+            return err(
+              chaining.at,
+              'trying to return a nullable value but this function does not have a nullable return type'
+            )
+          }
+
+          return success(developed.data.inner)
+        } else*/ if (previousIterType.type === 'failable') {
+          if (developed.data.type !== 'failable') {
+            return err(
+              chaining.at,
+              'trying to return a failable value but this function does not have a failable return type'
+            )
+          }
+
+          const compat = isTypeCompatible(
+            {
+              at: upToPreviousChaining,
+              candidate: previousIterType.failureType.parsed,
+              typeExpectation: {
+                from: ctx.fnExpectation.returnType.from,
+                type: developed.data.failureType.parsed,
+              },
+            },
+            { ...ctx, typeExpectationNature: 'because of return operator failure type' }
+          )
+
+          if (!compat.ok) return compat
+
+          return success(developed.data.successType.parsed)
+        } else {
+          // return err(chaining.at, 'the early return operator is only applyable on nullable and failable value types')
+          return err(chaining.at, 'the early return operator is only applyable failable value types')
+        }
       },
     })
 

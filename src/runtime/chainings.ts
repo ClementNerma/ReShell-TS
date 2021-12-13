@@ -79,6 +79,14 @@ const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining
 
       return runMethod(call, ctx)
     },
+
+    earlyReturn: () => {
+      if (value.type !== 'failable') {
+        return err(chaining.at, 'internal error: tried to apply early operator on non-failable value')
+      }
+
+      return value.success ? success(value.value) : { ok: null, breaking: 'return', value: value.value }
+    },
   })
 
 export const runPropertyAccess: Runner<
