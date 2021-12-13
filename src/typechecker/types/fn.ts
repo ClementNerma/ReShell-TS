@@ -1,7 +1,7 @@
 import { ClosureArg, ClosureBody, CmdArg, FnArg, FnType, StatementChain, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
+import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerResult } from '../base'
 import { cmdArgTypechecker } from '../cmdcall'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
@@ -12,7 +12,7 @@ import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
   let hadOptionalPos: Token<FnArg> | null = null
-  const args = new Map<string, Located<ValueType>>()
+  const args = new Map<string, { at: CodeSection; type: ValueType }>()
 
   for (const arg of fnType.args) {
     if (arg.parsed.flag !== null) {
@@ -32,7 +32,7 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
         })
       }
 
-      args.set(name.parsed, located(name.at, arg.parsed.type))
+      args.set(name.parsed, { at: name.at, type: arg.parsed.type })
     } else {
       const name = arg.parsed.name
 
@@ -50,7 +50,7 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
         })
       }
 
-      args.set(name.parsed, located(name.at, arg.parsed.type))
+      args.set(name.parsed, { at: name.at, type: arg.parsed.type })
 
       if (arg.parsed.optional) {
         if (hadOptionalPos !== null) {
@@ -327,17 +327,15 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
 }
 
 export function fnScopeCreator(fnType: FnType): Scope {
-  return {
-    functions: new Map(),
-    typeAliases: new Map(),
-    variables: new Map(
-      fnType.args.map((arg): [string, ScopeVar] => [
-        arg.parsed.name.parsed,
-        located(arg.at, {
-          mutable: false,
-          type: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
-        }),
-      ])
-    ),
-  }
+  return new Map(
+    fnType.args.map((arg): [string, ScopeEntity] => [
+      arg.parsed.name.parsed,
+      {
+        type: 'var',
+        at: arg.at,
+        mutable: false,
+        varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
+      },
+    ])
+  )
 }

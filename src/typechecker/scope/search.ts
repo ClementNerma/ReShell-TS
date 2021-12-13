@@ -1,55 +1,96 @@
 import { Token } from '../../shared/parsed'
-import { err, Located, Scope, ScopeFn, ScopeTypeAlias, ScopeVar, success, Typechecker, TypecheckerErr } from '../base'
-
-export const categoryMapping: { [key in keyof Scope]: string } = {
-  typeAliases: 'type',
-  functions: 'function',
-  variables: 'variable',
-}
+import { matchStr } from '../../shared/utils'
+import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerErr, TypecheckerResult } from '../base'
 
 export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { scopes }) => {
-  for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
-    const orig = map.get(name.parsed)
-    if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
-  }
-
-  return success(void 0)
+  const orig = scopes[scopes.length - 1].get(name.parsed)
+  return orig ? generateDuplicateDeclError(orig, name) : success(void 0)
 }
 
-export const getTypeAliasInScope: Typechecker<Token<string>, ScopeTypeAlias> = (name, { scopes }) => {
+export const getEntityInScope: Typechecker<Token<string>, ScopeEntity> = (name, { scopes }) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeType = scopes[s].typeAliases.get(name.parsed)
-    if (scopeType) return success(scopeType)
+    const entity = scopes[s].get(name.parsed)
+    if (entity) return success(entity)
   }
 
-  return err(name.at, 'type not found in this scope')
+  return err(name.at, 'entity not found')
 }
 
-export const getFunctionInScope: Typechecker<Token<string>, ScopeFn> = (name, { scopes }) => {
+export function getTypedEntityInScope<C extends ScopeEntity['type']>(
+  name: Token<string>,
+  category: C,
+  { scopes }: TypecheckerContext
+): TypecheckerResult<Extract<ScopeEntity, { type: C }>> {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeFn = scopes[s].functions.get(name.parsed)
-    if (scopeFn) return success(scopeFn)
+    const entity = scopes[s].get(name.parsed)
+
+    if (entity) {
+      return entity.type === category
+        ? success(entity as Extract<ScopeEntity, { type: C }>)
+        : err(
+            name.at,
+            `expected a ${getEntityCategoryName(category)} but found a ${getEntityCategoryName(entity.type)}`
+          )
+    }
   }
 
-  return err(name.at, 'function not found in this scope')
+  return err(name.at, getEntityCategoryName(category) + ' not found')
 }
 
-export const getVariableInScope: Typechecker<Token<string>, ScopeVar> = (name, { scopes }) => {
+export const getTypeAliasInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'typeAlias' }>> = (
+  name,
+  { scopes }
+) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeVar = scopes[s].variables.get(name.parsed)
-    if (scopeVar) return success(scopeVar)
+    const entity = scopes[s].get(name.parsed)
+
+    if (entity) {
+      return entity.type === 'typeAlias'
+        ? success(entity)
+        : err(name.at, 'expected a type name, found a ' + getEntityCategoryName(entity.type))
+    }
   }
 
-  return err(name.at, 'variable not found in this scope')
+  return err(name.at, 'type not found')
 }
 
-export const generateDuplicateDeclError = (
-  original: Located<unknown>,
-  category: string,
-  duplicate: Token<string>
-): TypecheckerErr =>
+export const getFunctionInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'fn' }>> = (
+  name,
+  { scopes }
+) => {
+  for (let s = scopes.length - 1; s >= 0; s--) {
+    const entity = scopes[s].get(name.parsed)
+
+    if (entity) {
+      return entity.type === 'fn'
+        ? success(entity)
+        : err(name.at, 'expected a function, found a ' + getEntityCategoryName(entity.type))
+    }
+  }
+
+  return err(name.at, 'function not found')
+}
+
+export const getVariableInScope: Typechecker<Token<string>, Extract<ScopeEntity, { type: 'var' }>> = (
+  name,
+  { scopes }
+) => {
+  for (let s = scopes.length - 1; s >= 0; s--) {
+    const entity = scopes[s].get(name.parsed)
+
+    if (entity) {
+      return entity.type === 'var'
+        ? success(entity)
+        : err(name.at, 'expected a variable, found a ' + getEntityCategoryName(entity.type))
+    }
+  }
+
+  return err(name.at, 'variable not found')
+}
+
+export const generateDuplicateDeclError = (original: ScopeEntity, duplicate: Token<string>): TypecheckerErr =>
   err(duplicate.at, {
-    message: `a ${category} with this name was previously declared in this scope`,
+    message: `a ${getEntityCategoryName(original.type)} with this name was previously declared in this scope`,
     also: [
       {
         at: original.at,
@@ -57,3 +98,11 @@ export const generateDuplicateDeclError = (
       },
     ],
   })
+
+export function getEntityCategoryName(type: ScopeEntity['type']): string {
+  return matchStr(type, {
+    typeAlias: () => 'type alias',
+    fn: () => 'function',
+    var: () => 'variable',
+  })
+}

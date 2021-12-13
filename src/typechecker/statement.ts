@@ -1,7 +1,7 @@
 import { StatementChain, ValueType } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, located, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { err, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getFunctionInScope, getVariableInScope } from './scope/search'
@@ -61,9 +61,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               also: [
                 {
                   at: fn.data.at,
-                  message: 'original declaration occurs here'
-                }
-              ]
+                  message: 'original declaration occurs here',
+                },
+              ],
             })
           }
 
@@ -87,10 +87,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           })
           if (!validation.ok) return validation
 
-          currentScope.variables.set(
-            varname.parsed,
-            located(varname.at, { mutable: mutable.parsed, type: expectedType ?? validation.data })
-          )
+          currentScope.set(varname.parsed, {
+            type: 'var',
+            at: varname.at,
+            mutable: mutable.parsed,
+            varType: expectedType ?? validation.data,
+          })
 
           return success({ neverEnds: false })
         },
@@ -103,9 +105,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           const tryScopedVar = getVariableInScope(varname, ctx)
           if (!tryScopedVar.ok) return tryScopedVar
 
-          const { content: scopedVar } = tryScopedVar.data
-
-          if (!scopedVar.mutable) {
+          if (!tryScopedVar.data.mutable) {
             return err(varname.at, {
               message: `cannot assign to non-mutable variable \`${varname.parsed}\``,
               complements: [
@@ -114,13 +114,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             })
           }
 
-          let expectedType: ValueType = scopedVar.type
+          let expectedType: ValueType = tryScopedVar.data.varType
 
           if (propAccesses.length > 0) {
             const check = resolvePropAccessType(
               {
                 leftAt: varname.at,
-                leftType: scopedVar.type,
+                leftType: expectedType,
                 propAccesses: propAccesses.map(({ at, matched, parsed }) => ({
                   at,
                   matched,
@@ -231,8 +231,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             condCheck.data.type === 'assertion' &&
             ((condCheck.data.inverted && thenCheck.data.neverEnds) || (!condCheck.data.inverted && neverEnds))
           ) {
-            for (const [varname, vartype] of condCheck.data.assertionScope.variables.entries()) {
-              currentScope.variables.set(varname, vartype)
+            for (const [varname, scopedVar] of condCheck.data.assertionScope.entries()) {
+              currentScope.set(varname, scopedVar)
             }
           }
 
@@ -274,11 +274,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             ...ctx,
             inLoop: true,
             scopes: scopes.concat([
-              {
-                functions: new Map(),
-                typeAliases: new Map(),
-                variables: new Map([[loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data })]]),
-              },
+              new Map([[loopvar.parsed, { type: 'var', at: loopvar.at, mutable: false, varType: subjectType.data }]]),
             ]),
           })
 
@@ -348,16 +344,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           return statementChainChecker(catchBody, {
             ...ctx,
             scopes: ctx.scopes.concat([
-              {
-                typeAliases: new Map(),
-                functions: new Map(),
-                variables: new Map([
-                  [
-                    catchVarname.parsed,
-                    { at: catchVarname.at, content: { mutable: false, type: wrapper.ref.content } },
-                  ],
-                ]),
-              },
+              new Map([
+                [
+                  catchVarname.parsed,
+                  { type: 'var', at: catchVarname.at, mutable: false, varType: wrapper.ref.content },
+                ],
+              ]),
             ]),
           })
         },

@@ -15,7 +15,7 @@ export type TypecheckerContext = {
     failureType: { type: ValueType; from: CodeSection } | null
   }
   restArgs: string[]
-  expectedFailureWriter: null | { ref: null | Located<ValueType> }
+  expectedFailureWriter: null | { ref: null | { at: CodeSection; content: ValueType } }
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
@@ -43,27 +43,20 @@ export type TypecheckerSuccess<O> = { ok: true; data: O }
 
 export type TypecheckerErr = { ok: false } & Diagnostic
 
-export type Scope = {
-  typeAliases: Map<string, ScopeTypeAlias>
-  functions: Map<string, ScopeFn>
-  variables: Map<string, ScopeVar>
-}
+export type Scope = Map<string, ScopeEntity>
 
-export type ScopeTypeAlias = Located<ValueType>
-export type ScopeFn = Located<FnType>
-export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
+export type ScopeEntity =
+  | { type: 'typeAlias'; at: CodeSection; content: ValueType }
+  | { type: 'fn'; at: CodeSection; content: FnType }
+  | ({ type: 'var'; at: CodeSection } & ScopeVar)
+
+export type ScopeVar = { mutable: boolean; varType: ValueType }
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (at: CodeSection, err: DiagnosticInput): TypecheckerErr => ({
   ok: false,
   ...diagnostic(at, err, DiagnosticLevel.Error),
 })
-
-export type Located<T> = { at: CodeSection; content: T }
-
-export const located = <T>(at: CodeSection, content: T): Located<T> => ({ at, content })
-
-// export const tokenToLocated = <T>(token: Token<T>): Located<T> => ({ loc: token.start, data: token.parsed })
 
 export const ensureCoverage = (value: never): never => {
   throw new Error('Internal error: reached a theorically unreachable statement')

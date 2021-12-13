@@ -95,7 +95,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       const subject = getVariableInScope(expr.parsed.varname, ctx)
       if (!subject.ok) return subject
 
-      const subjectType = subject.data.content.type
+      const subjectType = subject.data.varType
 
       let assertionType: ValueType
 
@@ -125,19 +125,17 @@ export const resolveExprOrTypeAssertionType: Typechecker<
         assertionType = subjectType.inner
       }
 
-      const assertionScope: Scope = {
-        functions: new Map(),
-        typeAliases: new Map(),
-        variables: new Map(),
-      }
-
-      assertionScope.variables.set(expr.parsed.varname.parsed, {
-        at: expr.at,
-        content: {
-          mutable: subject.data.content.mutable,
-          type: assertionType,
-        },
-      })
+      const assertionScope: Scope = new Map([
+        [
+          expr.parsed.varname.parsed,
+          {
+            type: 'var',
+            at: expr.at,
+            mutable: subject.data.mutable,
+            varType: assertionType,
+          },
+        ],
+      ])
 
       return success({ type: 'assertion', assertionScope, inverted: expr.parsed.type === 'invertedAssertion' })
 
@@ -247,13 +245,9 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       return resolveExprOrNeverType(catchExpr, {
         ...ctx,
         scopes: ctx.scopes.concat([
-          {
-            typeAliases: new Map(),
-            functions: new Map(),
-            variables: new Map([
-              [catchVarname.parsed, { at: catchVarname.at, content: { mutable: false, type: wrapper.ref.content } }],
-            ]),
-          },
+          new Map([
+            [catchVarname.parsed, { type: 'var', at: catchVarname.at, mutable: false, varType: wrapper.ref.content }],
+          ]),
         ]),
         typeExpectation: {
           from: trying.at,

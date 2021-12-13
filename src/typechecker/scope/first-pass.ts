@@ -3,10 +3,10 @@
 
 import { StatementChain } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
-import { err, located, Scope, success, Typechecker } from '../base'
+import { err, Scope, success, Typechecker } from '../base'
 import { statementChainChecker } from '../statement'
 import { fnTypeValidator } from '../types/fn'
-import { ensureScopeUnicity, getFunctionInScope, getTypeAliasInScope, getVariableInScope } from './search'
+import { ensureScopeUnicity, getEntityInScope } from './search'
 
 export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
   const withFileInclusions = scopeFirstPassFileInclusions(chain, ctx)
@@ -24,7 +24,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
 }
 
 const scopeFirstPassFileInclusions: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
-  const currentScope: Scope = { typeAliases: new Map(), functions: new Map(), variables: new Map() }
+  const currentScope: Scope = new Map()
 
   ctx = {
     ...ctx,
@@ -35,46 +35,33 @@ const scopeFirstPassFileInclusions: Typechecker<Token<StatementChain>[], Scope> 
     if (stmt.parsed.type === 'empty') continue
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      switch (sub.parsed.type) {
-        case 'fileInclusion':
-          const check = statementChainChecker(sub.parsed.content, ctx)
-          if (!check.ok) return check
-
-          if (sub.parsed.imports === null) {
-            break
-          }
-
-          const scope = check.data.topLevelScope
-
-          for (const { entity, alias } of sub.parsed.imports) {
-            const typeAlias = getTypeAliasInScope(entity, { ...ctx, scopes: [scope] })
-
-            if (typeAlias.ok) {
-              const unicity = ensureScopeUnicity(alias ?? entity, ctx)
-              if (!unicity.ok) return unicity
-
-              currentScope.typeAliases.set(alias?.parsed ?? entity.parsed, located(entity.at, typeAlias.data.content))
-            } else {
-              const fn = getFunctionInScope(entity, { ...ctx, scopes: [scope] })
-
-              if (fn.ok) {
-                const unicity = ensureScopeUnicity(alias ?? entity, ctx)
-                if (!unicity.ok) return unicity
-
-                currentScope.functions.set(alias?.parsed ?? entity.parsed, located(entity.at, fn.data.content))
-              } else {
-                const variable = getVariableInScope(entity, { ...ctx, scopes: [scope] })
-
-                if (variable.ok) {
-                  currentScope.variables.set(alias?.parsed ?? entity.parsed, located(entity.at, variable.data.content))
-                } else {
-                  return err(entity.at, `entity \`${entity.parsed}\` was not found in this file`)
-                }
-              }
-            }
-          }
-          break
+      if (sub.parsed.type !== 'fileInclusion') {
+        continue
       }
+
+      const check = statementChainChecker(sub.parsed.content, ctx)
+      if (!check.ok) return check
+
+      if (sub.parsed.imports === null) {
+        break
+      }
+
+      const scope = check.data.topLevelScope
+
+      for (const { entity, alias } of sub.parsed.imports) {
+        const imported = getEntityInScope(entity, { ...ctx, scopes: [scope] })
+
+        if (imported.ok) {
+          const unicity = ensureScopeUnicity(alias ?? entity, ctx)
+          if (!unicity.ok) return unicity
+
+          currentScope.set(alias?.parsed ?? entity.parsed, imported.data)
+        } else {
+          return err(entity.at, `entity \`${entity.parsed}\` was not found in this file`)
+        }
+      }
+
+      break
     }
   }
 
@@ -140,7 +127,11 @@ const completeScopeFirstPassTypeAliases: Typechecker<[Token<StatementChain>[], S
           const typeUnicity = ensureScopeUnicity(typename, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
-          scope.typeAliases.set(typename.parsed, located(typename.at, sub.parsed.content.parsed))
+          scope.set(typename.parsed, {
+            at: typename.at,
+            type: 'typeAlias',
+            content: sub.parsed.content.parsed,
+          })
           break
       }
     }
@@ -165,7 +156,11 @@ const completeScopeFirstPassFunctions: Typechecker<[Token<StatementChain>[], Sco
           const fnTypeChecker = fnTypeValidator(sub.parsed.fnType, ctx)
           if (!fnTypeChecker.ok) return fnTypeChecker
 
-          scope.functions.set(fnName.parsed, located(fnName.at, sub.parsed.fnType))
+          scope.set(fnName.parsed, {
+            at: fnName.at,
+            type: 'fn',
+            content: sub.parsed.fnType,
+          })
           break
       }
     }
