@@ -64,8 +64,14 @@ const parsed = engine.parse(iterSrc, initContext())
 const elapsed = Date.now() - started
 
 if (parsed.ok) {
+  const infos = [
+    `AST JSON weighs ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`,
+    `Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`,
+  ]
+
   if (argv[1] === '--ast') {
     console.dir(parsed.data, { depth: null })
+    infos.forEach((info) => console.log(info))
   } else {
     const started = Date.now()
     const exec = engine.execute(parsed.data, void 0)
@@ -75,8 +81,7 @@ if (parsed.ok) {
       console.dir(exec.data, { depth: null })
     }
 
+    infos.forEach((info) => console.log(info))
     console.log(`Executed in ${elapsed} ms`)
   }
 }
-
-console.log(`Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`)
