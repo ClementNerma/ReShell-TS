@@ -232,7 +232,7 @@ const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 =>
     LessThan: () => 3,
   })
 
-function buildExprDoubleOp(
+export function buildExprDoubleOp(
   doubleOp: Token<DoubleOp>,
   exprAt: CodeSection,
   element: Token<ExprElement>,

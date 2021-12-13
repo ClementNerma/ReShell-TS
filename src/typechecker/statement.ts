@@ -3,7 +3,7 @@ import { matchUnion } from '../shared/utils'
 import { err, located, Scope, success, Typechecker, TypecheckerResult } from './base'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
-import { resolveDoubleOpType } from './types/double-op'
+import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveExprType } from './types/expr'
 import { resolvePropAccessType } from './types/propaccess'
 import { typeValidator } from './types/validator'
@@ -100,21 +100,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
                 {
                   leftExprAt: varname.at,
                   leftExprType: expectedType,
-                  op: {
-                    op: prefixOp,
-                    right: {
-                      at: expr.at,
-                      matched: expr.matched,
-                      parsed: {
-                        content: {
-                          at: expr.at,
-                          matched: expr.matched,
-                          parsed: { type: 'synth', inner: expr },
-                        },
-                        propAccess: [],
-                      },
-                    },
-                  },
+                  op: buildExprDoubleOp(prefixOp, expr.at, expr.parsed.from, expr.parsed.doubleOps),
                 },
                 ctx
               )
