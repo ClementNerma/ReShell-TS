@@ -27,20 +27,25 @@ function _sumUpDiagnostics(diags: Diagnostic[]): string {
 }
 
 function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: string | undefined): Parser<unknown> {
-  const parserName = `{${alias ?? originalFn.name ?? '?'}}`
+  const parserName = `${alias ?? originalFn.name ?? '?'}`
   const trimStr = (str: string) => (str.length < 80 ? str : str.substr(0, 80) + '...').replace(/\n/g, '\\n')
 
+  let call = 0
+
   return (start, input, ctx) => {
-    console.log(`${parserName} Called at line ${start.line} col ${start.col} | ${trimStr(input.littleView())}`)
+    call++
+    const parserNameWithCall = `{${parserName}:${call}}`
+
+    console.log(`${parserNameWithCall} Called at line ${start.line} col ${start.col} | ${trimStr(input.littleView())}`)
 
     const result = parser(start, input, ctx)
 
     console.log(
       result.ok
-        ? `${parserName} Succeeded at line ${result.data.at.next.line} col ${result.data.at.next.col} | ${trimStr(
-            result.data.matched
-          )}`
-        : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | (${result.history.length}) ${trimStr(
+        ? `${parserNameWithCall} Succeeded at line ${result.data.at.next.line} col ${
+            result.data.at.next.col
+          } | ${trimStr(result.data.matched)}`
+        : `${parserNameWithCall} FAILED (${result.precedence ? 'Pr' : '--'}) | (${result.history.length}) ${trimStr(
             _sumUpDiagnostics(result.history)
           )}`
     )
