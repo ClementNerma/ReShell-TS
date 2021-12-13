@@ -1,11 +1,11 @@
-import { CodeSection, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
+import { CodeSection, FnType, PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { fnTypeValidator } from './fn'
+import { fnTypeValidator, validateFnCallArgs } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -34,6 +34,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             typeExpectation,
             foundType: type,
             valueAt: value.at,
+            ctx,
           })
         : success(typeExpectation.type)
       : success({ nullable: false, inner: { type } })
@@ -47,6 +48,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             typeExpectation,
             foundType: type,
             valueAt: value.at,
+            ctx,
           })
         : success(typeExpectation.type.inner as Extract<ValueType['inner'], { type: T }>)
       : success(void 0)
@@ -256,7 +258,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       if (typeExpectation) {
         if (typeExpectation.type.inner.type !== 'struct') {
-          return errIncompatibleValueType({ typeExpectation, foundType: 'struct', valueAt: value.at })
+          return errIncompatibleValueType({ typeExpectation, foundType: 'struct', valueAt: value.at, ctx })
         }
 
         expectedMembers = new Map()
@@ -349,8 +351,81 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success(fnType.returnType?.parsed ?? { nullable: false, inner: { type: 'void' } })
     },
 
-    fnCall: ({ type, name, args }) => {
-      throw new Error('// TODO: values => fnCall')
+    fnCall: ({ name, args }) => {
+      let fnType: FnType
+
+      const fn = getFunctionInScope(name, ctx)
+
+      if (fn.ok) {
+        fnType = fn.data.content
+      } else {
+        const varType = getVariableInScope(name, ctx)
+
+        if (!varType.ok) {
+          return err(name.at, `function \`${name}\` was not found in this scope`)
+        }
+
+        const type = varType.data.content.type
+
+        if (type.inner.type !== 'fn') {
+          return err(
+            name.at,
+            `the name \`${name}\` refers to a non-function variable (found \`${rebuildType(type, true)}\`)`
+          )
+        }
+
+        if (type.nullable) {
+          return err(name.at, 'cannot call a nullable variable')
+        }
+
+        fnType = type.inner.fnType
+      }
+
+      if (fnType.returnType === null) {
+        return err(name.at, "cannot call a function which doesn't have a return type inside an expression")
+      }
+
+      if (ctx.typeExpectation) {
+        const compat = isTypeCompatible({ at: name.at, candidate: fnType.returnType.parsed }, ctx)
+        if (!compat.ok) return compat
+      }
+
+      if (fnType.failureType !== null) {
+        if (ctx.expectedFailureWriter) {
+          if (ctx.expectedFailureWriter.ref === null) {
+            ctx.expectedFailureWriter.ref = {
+              at: name.at,
+              content: fnType.failureType.parsed,
+            }
+          } else {
+            const compat = isTypeCompatible(
+              { at: name.at, candidate: fnType.failureType.parsed },
+              {
+                ...ctx,
+                typeExpectation: {
+                  type: ctx.expectedFailureWriter.ref.content,
+                  from: ctx.expectedFailureWriter.ref.at,
+                },
+                typeExpectationNature: 'failure type',
+              }
+            )
+
+            if (!compat.ok) return compat
+          }
+        } else if (ctx.fnExpectation?.failureType) {
+          const compat = isTypeCompatible(
+            { at: name.at, candidate: fnType.failureType.parsed },
+            { ...ctx, typeExpectation: ctx.fnExpectation.failureType, typeExpectationNature: 'failure type' }
+          )
+
+          if (!compat.ok) return compat
+        }
+      }
+
+      const validator = validateFnCallArgs({ at: name.at, fnType, args }, ctx)
+      if (!validator.ok) return validator
+
+      return success(fnType.returnType.parsed)
     },
 
     inlineCmdCallSequence: ({ start, sequence, capture }) => {
@@ -388,11 +463,13 @@ export const errIncompatibleValueType = ({
   typeExpectation,
   foundType,
   valueAt,
+  ctx,
 }: {
   message?: string
   typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
   foundType: ValueType | ValueType['inner']['type']
   valueAt: CodeSection
+  ctx: TypecheckerContext
 }) => {
   const expectedNoDepth = rebuildType(typeExpectation.type, true)
   const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
@@ -403,9 +480,10 @@ export const errIncompatibleValueType = ({
   return err(valueAt, {
     message:
       message ??
-      `expected \`${rebuildType(typeExpectation.type, true)}\`, found \`${
-        typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
-      }\``,
+      `expected ${ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
+        typeExpectation.type,
+        true
+      )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, true)}\``,
     complements:
       expectedNoDepth !== expected || foundNoDepth !== found
         ? [

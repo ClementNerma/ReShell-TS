@@ -16,6 +16,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
       },
       foundType: candidate,
       valueAt: atOverride ?? at,
+      ctx
     })
 
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
@@ -168,7 +169,10 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
         const retTypeCompat = isTypeCompatible(
           { candidate: c.fnType.returnType.parsed, at: c.fnType.returnType.at },
-          { ...ctx, typeExpectation: { type: r.fnType.returnType.parsed, from: r.fnType.returnType.at } }
+          {
+            ...ctx,
+            typeExpectation: { type: r.fnType.returnType.parsed, from: r.fnType.returnType.at },
+          }
         )
 
         if (!retTypeCompat) return retTypeCompat

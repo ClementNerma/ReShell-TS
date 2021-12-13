@@ -205,6 +205,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
                   type: ctx.expectedFailureWriter.ref.content,
                   from: ctx.expectedFailureWriter.ref.at,
                 },
+                typeExpectationNature: 'failure type',
               })
 
               return resolved.ok ? success(void 0) : resolved
@@ -237,7 +238,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
             })
           }
 
-          const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.failureType })
+          const resolved = resolveExprType(expr, {
+            ...ctx,
+            typeExpectation: ctx.fnExpectation.failureType,
+            typeExpectationNature: 'failure type',
+          })
+
           return resolved.ok ? success(void 0) : resolved
         },
 

@@ -128,20 +128,14 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
         Not: () =>
           resolveExprElementContentType(right, {
             ...ctx,
-            typeExpectation: {
-              type: { nullable: false, inner: { type: 'bool' } },
-              from: null,
-            },
+            typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
           }),
       }),
 
     ternary: ({ cond, then, elif, els }) => {
       const condType = resolveExprOrTypeAssertionType(cond, {
         ...ctx,
-        typeExpectation: {
-          type: { nullable: false, inner: { type: 'bool' } },
-          from: null,
-        },
+        typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: null },
       })
 
       if (!condType.ok) return condType
@@ -156,10 +150,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       for (const { cond, expr } of elif) {
         const condType = resolveExprOrTypeAssertionType(cond, {
           ...ctx,
-          typeExpectation: {
-            type: { nullable: false, inner: { type: 'bool' } },
-            from: then.at,
-          },
+          typeExpectation: { type: { nullable: false, inner: { type: 'bool' } }, from: then.at },
         })
 
         if (!condType.ok) return condType
