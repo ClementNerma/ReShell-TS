@@ -1,4 +1,4 @@
-import { Parser, ParserErrStackEntryMessage, ParsingContext } from './base'
+import { FormatableExtractsInput, Parser, ParsingContext } from './base'
 
 export function matches<C>(input: string, parser: Parser<unknown>, $custom: C) {
   const context: ParsingContext = { source: { ref: input }, $custom, self: () => context }
@@ -13,6 +13,6 @@ export function addComplementsIf(
   message: string,
   cond: boolean,
   complements: [string, string][]
-): string | ParserErrStackEntryMessage {
+): string | FormatableExtractsInput {
   return cond ? { message, complements } : message
 }

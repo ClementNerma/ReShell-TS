@@ -1,6 +1,6 @@
-import { err, ErrFnData, ErrorMapping, neutralError, Parser, ParsingContext, success, withErr } from './base'
+import { err, ErrInputData, neutralError, Parser, ParsingContext, success, withErr, WithErrData } from './base'
 
-export function failure<T>(parser: Parser<T>, error: ErrorMapping): Parser<T> {
+export function failure<T>(parser: Parser<T>, error: WithErrData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok ? parsed : withErr(parsed, context, error)
@@ -10,7 +10,7 @@ export function failure<T>(parser: Parser<T>, error: ErrorMapping): Parser<T> {
 export function contextualFailure<T>(
   parser: Parser<T>,
   cond: (context: ParsingContext) => boolean,
-  error: ErrorMapping
+  error: WithErrData
 ): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
@@ -21,7 +21,7 @@ export function contextualFailure<T>(
 export function contextualFailIf(
   parser: Parser<unknown>,
   cond: (context: ParsingContext) => boolean,
-  error: ErrFnData
+  error: ErrInputData
 ): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
@@ -33,7 +33,7 @@ export function contextualFailIf(
   }
 }
 
-export function failureMaybe<T>(parser: Parser<T>, error: ErrorMapping | undefined): Parser<T> {
+export function failureMaybe<T>(parser: Parser<T>, error: WithErrData | undefined): Parser<T> {
   return error === undefined
     ? parser
     : (start, input, context) => {

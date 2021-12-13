@@ -47,11 +47,10 @@ export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>
 }
 
 export type ErrorParsingFormatters = {
-  noErrorMessageFallback?: (err: ParserErr) => string
+  noErrorMessageFallback?: (text: string) => string
   wrapper?: (error: string) => string
   header?: (header: string) => string
-  lineNumber?: (line: number) => string
-  colNumber?: (col: number) => string
+  gutter?: (text: string) => string
   paddingChar?: (char: string) => string
   locationPointer?: (char: string) => string
   failedLine?: (line: string) => string
@@ -61,33 +60,51 @@ export type ErrorParsingFormatters = {
 }
 
 export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
+  const format = (formatterName: keyof ErrorParsingFormatters, text: string) => {
+    const formatter = f?.[formatterName]
+    return formatter ? formatter(text) : text
+  }
+
   if (err.stack.length === 0) {
-    return f?.noErrorMessageFallback?.(err) ?? '<no error provided>'
+    return format('noErrorMessageFallback', '<no error provided>')
   }
 
   const farest = err.stack[0]
 
-  const { line, col } = farest.loc
+  const text = [farest.error]
+    .concat(farest.also)
+    .map(({ loc, length, message, complements }) => {
+      const { line, col } = loc
 
-  const lineLen = line.toString().length
-  const linePad = ' '.repeat(lineLen)
+      const lineLen = line.toString().length
+      const linePad = ' '.repeat(lineLen)
 
-  const header = `--> At line ${line + 1}, column ${col + 1}`
-  const failedLine = err.context.source.ref.split(/\n/)[line]
+      const header = `--> At line ${line + 1}, column ${col + 1}`
+      const failedLine = err.context.source.ref.split(/\n/)[line]
 
-  const text =
-    `${linePad} ${f?.header?.(header) ?? header}\n` +
-    `${linePad} |\n` +
-    `${line + 1} | ${f?.failedLine?.(failedLine) ?? failedLine}\n` +
-    `${linePad} | ${' '.repeat(col)}${f?.locationPointer?.('^') ?? '^'} ${
-      f?.errorMessage?.(farest.message) ?? farest.message
-    }` +
-    (farest.complements
-      ?.map(([name, text]) => {
-        name = f?.complementName?.(name) ?? name
-        return `\n${linePad} | ${' '.repeat(col)}  ${f?.complement?.(`${name}: ${text}`) ?? `${name}: ${text}`}`
-      })
-      ?.join('') ?? '')
+      const locPtr = format('locationPointer', '^'.repeat(length ?? 1))
+
+      const paddingGutter = format('gutter', linePad + ' |')
+
+      const complementsText = complements
+        .map(
+          ([name, text]) =>
+            `\n${paddingGutter} ${' '.repeat(col)}  ${format(
+              'complement',
+              `${format('complementName', name)}: ${text}`
+            )}`
+        )
+        .join('')
+
+      return (
+        `${format('gutter', linePad)} ${format('header', header)}\n` +
+        `${paddingGutter}\n` +
+        `${format('gutter', (line + 1).toString() + ' |')} ${format('failedLine', failedLine)}\n` +
+        `${paddingGutter} ${' '.repeat(col)}${locPtr} ${format('errorMessage', message)}` +
+        complementsText
+      )
+    })
+    .join('\n\n')
 
   return f?.wrapper?.(text) ?? text
 }

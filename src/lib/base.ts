@@ -15,9 +15,19 @@ export type ParserErr = {
   context: ParsingContext
 }
 
-export type ParserErrStackEntry = ParserErrStackEntryMessage & { loc: ParserLoc; context: ParsingContext }
+export type ParserErrStackEntry = {
+  loc: ParserLoc
+  context: ParsingContext
+  error: FormatableExtract
+  also: FormatableExtract[]
+}
 
-export type ParserErrStackEntryMessage = { message: string; complements?: [string, string][] }
+export type FormatableExtract = {
+  loc: ParserLoc
+  length?: number
+  message: string
+  complements: [string, string][]
+}
 
 export type ParserLoc = {
   line: number
@@ -75,19 +85,46 @@ export function neutralError<T>(start: ParserLoc, neutralValue?: T): Extract<Par
   }
 }
 
-export type ErrFnData = null | string | ParserErrStackEntryMessage | ParserErr['stack']
+export type FormatableExtractsInput =
+  | string
+  | { length?: number; message: string; complements?: [string, string][] | null }
 
-export function err(loc: ParserLoc, context: ParsingContext, errData?: ErrFnData, precedence?: boolean): ParserErr {
+export const buildFormatableExtract = (loc: ParserLoc, input: FormatableExtractsInput): FormatableExtract => {
+  // Fallback message provided
+  return typeof input === 'string'
+    ? {
+        loc,
+        message: input,
+        complements: [],
+      }
+    : {
+        loc,
+        length: input.length,
+        message: input.message,
+        complements: input.complements ?? [],
+      }
+}
+
+export type ErrInputData = null | FormatableExtractsInput | ParserErr['stack']
+
+export function err(
+  loc: ParserLoc,
+  context: ParsingContext,
+  errData?: ErrInputData,
+  also?: FormatableExtract[],
+  precedence?: boolean
+): ParserErr {
   return errData === undefined || errData === null
     ? { ok: false, stack: [], precedence: !!precedence, loc, context }
-    : // Fallback message provided
-    typeof errData === 'string'
-    ? { ok: false, stack: [{ message: errData, loc, context }], precedence: precedence ?? true, loc, context }
-    : // Message and optional tip provided
-    'message' in errData
-    ? { ok: false, stack: [{ ...errData, loc, context }], precedence: precedence ?? true, loc, context }
-    : // Stack provided
-      { ok: false, stack: errData, precedence: !!precedence, loc, context }
+    : {
+        ok: false,
+        stack: Array.isArray(errData)
+          ? errData
+          : [{ loc, context, error: buildFormatableExtract(loc, errData), also: also ?? [] }],
+        precedence: !!precedence,
+        loc,
+        context,
+      }
 }
 
 export function addLoc(start: ParserLoc, add: ParserLoc): ParserLoc {
@@ -116,18 +153,24 @@ export function parseSource<T>(source: string, parser: Parser<T>, $custom: unkno
   return parser({ line: 0, col: 0 }, source, context)
 }
 
-export type ErrorMapping =
-  | string
-  | ParserErrStackEntryMessage
-  | ((err: ParserErr) => string | ParserErrStackEntryMessage)
+export type WithErrData =
   | undefined
+  | FormatableExtractsInput
+  | { error: FormatableExtractsInput; also: FormatableExtract[] }
+  | ((err: ParserErr) => FormatableExtractsInput | { error: FormatableExtractsInput; also: FormatableExtract[] })
 
-export function withErr(error: ParserErr, context: ParsingContext, mapping: ErrorMapping): ParserErr {
+export function withErr(error: ParserErr, context: ParsingContext, mapping: WithErrData): ParserErr {
   if (mapping !== undefined) {
     const data = typeof mapping === 'function' ? mapping(error) : mapping
+
+    const loc = error.loc
+
     error.stack.push(
-      typeof data === 'string' ? { message: data, loc: error.loc, context } : { ...data, loc: error.loc, context }
+      typeof data === 'object' && 'also' in data
+        ? { loc, context, error: buildFormatableExtract(loc, data.error), also: data.also }
+        : { loc, context, error: buildFormatableExtract(loc, data), also: [] }
     )
+
     error.precedence = true
   }
 

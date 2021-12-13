@@ -1,5 +1,4 @@
 import {
-  ErrorMapping,
   Parser,
   ParserResult,
   ParserSucess,
@@ -7,11 +6,12 @@ import {
   sliceInput,
   success,
   Token,
-  withErr
+  withErr,
+  WithErrData,
 } from './base'
 
 type CombineOptions = {
-  error?: ErrorMapping
+  error?: WithErrData
   inter?: Parser<unknown>
 }
 

@@ -1,6 +1,6 @@
 import {
   err,
-  ErrFnData,
+  ErrInputData,
   neutralError,
   Parser,
   ParserErr,
@@ -8,7 +8,7 @@ import {
   ParserSucess,
   ParsingContext,
   sliceInput,
-  Token
+  Token,
 } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
@@ -28,7 +28,7 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
   }
 }
 
-export function failIf(failIf: Parser<unknown>, error?: ErrFnData): Parser<unknown> {
+export function failIf(failIf: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
   return (start, input, context) => {
     const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
     return parsed.ok ? err(start, context, error) : neutralError(start)
@@ -45,16 +45,16 @@ export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T
 export function failIfBool<T>(
   parser: Parser<T>,
   cond: (value: T, token: Token<T>) => boolean,
-  error?: ErrFnData
+  error?: ErrInputData
 ): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
-    return cond(parsed.data.parsed, parsed.data) ?  err(start, context, error): parsed
+    return cond(parsed.data.parsed, parsed.data) ? err(start, context, error) : parsed
   }
 }
 
-export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknown>, error?: ErrFnData): Parser<T> {
+export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknown>, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed

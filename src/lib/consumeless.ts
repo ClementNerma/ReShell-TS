@@ -1,7 +1,6 @@
 import {
   err,
-  ErrFnData,
-  ErrorMapping,
+  ErrInputData,
   neutralError,
   Parser,
   ParserErr,
@@ -9,6 +8,7 @@ import {
   ParserSucess,
   sliceInput,
   withErr,
+  WithErrData,
 } from './base'
 
 export function inspectOk<T>(parser: Parser<T>, inspector: (result: ParserSucess<T>) => void): Parser<T> {
@@ -47,7 +47,7 @@ export function inspect<T>(parser: Parser<T>, inspector: (result: ParserResult<T
   }
 }
 
-export function lookahead<T>(parser: Parser<T>, error?: ErrorMapping): Parser<void> {
+export function lookahead<T>(parser: Parser<T>, error?: WithErrData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok ? neutralError(start) : withErr(parsed, context, error)
@@ -55,7 +55,7 @@ export function lookahead<T>(parser: Parser<T>, error?: ErrorMapping): Parser<vo
 }
 
 export type LookaheadOptions = {
-  error?: ErrFnData
+  error?: ErrInputData
   precedencePassthrough?: boolean
 }
 
@@ -80,7 +80,7 @@ export function notFollowedBy<T>(parser: Parser<T>, by: Parser<T>, options?: Loo
   }
 }
 
-export function followedBy<T>(parser: Parser<T>, error?: ErrFnData): Parser<T> {
+export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed

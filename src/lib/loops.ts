@@ -1,10 +1,10 @@
-import { err, ErrorMapping, Parser, ParserLoc, ParsingContext, sliceInput, success, Token, withErr } from './base'
+import { err, Parser, ParserLoc, ParsingContext, sliceInput, success, Token, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
   inter?: Parser<unknown>
   interMatchingMakesExpectation?: boolean
-  matchError?: ErrorMapping
+  matchError?: WithErrData
 }
 
 export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Parser<Token<T>[]> {

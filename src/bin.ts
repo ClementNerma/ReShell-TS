@@ -37,10 +37,10 @@ const iterSrc = source.repeat(iter)
 
 const errorFormatters = (parser: boolean): ErrorParsingFormatters => ({
   header: chalk.yellowBright,
+  gutter: chalk.cyanBright,
   locationPointer: chalk.redBright,
-  errorMessage: (message) => chalk.whiteBright((parser ? 'Syntax error: ' : '') + message),
-  failedLine: chalk.cyanBright,
-  complementName: chalk.whiteBright,
+  errorMessage: chalk.redBright,
+  complement: chalk.cyanBright,
 })
 
 const started = Date.now()
@@ -48,7 +48,7 @@ const parsed = parseSource(iterSrc, program, initContext())
 const elapsed = Date.now() - started
 
 if (!parsed.ok) {
-  console.error(chalk.redBright(formatErr(parsed, errorFormatters(true))))
+  console.error(formatErr(parsed, errorFormatters(true)))
   process.exit(1)
 }
 
@@ -68,7 +68,9 @@ const exec = programChecker(parsed.data, void 0)
 const elapsedTypechecker = Date.now() - startedTypechecker
 
 if (!exec.ok) {
-  console.error(formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.err), errorFormatters(false)))
+  console.error(
+    formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.error, exec.also), errorFormatters(false))
+  )
   process.exit(1)
 }
 

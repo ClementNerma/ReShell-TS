@@ -1,4 +1,4 @@
-import { err, ErrFnData, ErrorMapping, Parser, ParserErr, ParserLoc, ParsingContext, withErr } from './base'
+import { err, ErrInputData, Parser, ParserErr, ParserLoc, ParsingContext, withErr, WithErrData } from './base'
 import { map } from './transform'
 
 export type OrErrorFn<R> = (input: string, errors: Array<ParserErr>, context: ParsingContext, start: ParserLoc) => R
@@ -14,10 +14,10 @@ export enum OrErrorStrategy {
 export type OrErrorStrategyData =
   | string // FallbackConst
   | [OrErrorStrategy.DoNothing]
-  | [OrErrorStrategy.Const, ErrFnData]
-  | [OrErrorStrategy.Fn, OrErrorFn<ErrFnData>]
-  | [OrErrorStrategy.FallbackConst, ErrorMapping]
-  | [OrErrorStrategy.FallbackFn, OrErrorFn<ErrorMapping>]
+  | [OrErrorStrategy.Const, ErrInputData]
+  | [OrErrorStrategy.Fn, OrErrorFn<ErrInputData>]
+  | [OrErrorStrategy.FallbackConst, WithErrData]
+  | [OrErrorStrategy.FallbackFn, OrErrorFn<WithErrData>]
 
 export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser<T> {
   return (start, input, context) => {

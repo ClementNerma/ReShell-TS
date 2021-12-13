@@ -1,9 +1,9 @@
-import { ErrorMapping, Parser, Token, withErr } from './base'
+import { Parser, Token, withErr, WithErrData } from './base'
 
 export function map<T, U>(
   parser: Parser<T>,
   mapper: (value: T, parsed: Token<T>) => U,
-  error?: ErrorMapping
+  error?: WithErrData
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
@@ -16,7 +16,7 @@ export function map<T, U>(
 export function mapFull<T, U>(
   parser: Parser<T>,
   mapper: (value: T, parsed: Token<T>) => Token<U>,
-  error?: ErrorMapping
+  error?: WithErrData
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)

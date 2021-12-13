@@ -24,8 +24,26 @@ export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope
         case 'variableDecl':
           const varname = sub.parsed.varname.parsed
 
-          if (scope.variables.has(varname)) {
-            return err('A variable with this name was already declared in this scope', sub.parsed.varname.start)
+          const existing = scope.variables.get(varname)
+
+          if (existing) {
+            return err(
+              {
+                error: {
+                  message: 'A variable with this name was already declared in this scope',
+                  length: varname.length,
+                },
+                also: [
+                  {
+                    loc: existing.loc,
+                    length: varname.length,
+                    message: 'Original declaration occurs here',
+                    complements: [],
+                  },
+                ],
+              },
+              sub.parsed.varname.start
+            )
           }
 
           let vartype: ValueType
@@ -43,7 +61,10 @@ export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope
             vartype = validation.data
           }
 
-          scope.variables.set(varname, located(sub.start, { mutable: sub.parsed.mutable.parsed, type: vartype }))
+          scope.variables.set(
+            varname,
+            located(sub.parsed.varname.start, { mutable: sub.parsed.mutable.parsed, type: vartype })
+          )
 
           break
 
