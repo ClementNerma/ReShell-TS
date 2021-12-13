@@ -1,7 +1,7 @@
 import { matchUnion } from '../../parsers/utils'
 import { LiteralValue, ValueType } from '../../shared/parsed'
 
-export const rebuildType = (type: ValueType): string => {
+export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
   return (
     (type.nullable ? '?' : '') +
     matchUnion(type.inner)('type', {
@@ -10,25 +10,30 @@ export const rebuildType = (type: ValueType): string => {
       number: () => 'number',
       string: () => 'string',
       path: () => 'path',
-      list: ({ itemsType }) => `list[${rebuildType(itemsType.parsed)}]`,
-      map: ({ itemsType }) => `map[${rebuildType(itemsType.parsed)}]`,
+      list: ({ itemsType }) => (noDepth ? 'list' : `list[${rebuildType(itemsType)}]`),
+      map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
       struct: ({ members }) =>
-        `struct { ${members.parsed.map(({ name, type }) => `${name}: ${rebuildType(type.parsed)}`)} }`,
+        noDepth ? 'struct' : `struct { ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`)} }`,
       fn: ({ fnType: { named, args, returnType, failureType } }) =>
-        `fn${named ? ' ' + named.parsed + ' ' : ''}(${args.map(
-          ({ parsed: { name, optional, type, defaultValue } }) =>
-            `${name.parsed}${optional.parsed ? '?' : ''}: ${rebuildType(type.parsed)}${
-              defaultValue ? ' = ' + rebuildLiteralValue(defaultValue.parsed) : ''
-            }${
-              returnType || failureType
-                ? ` -> ${returnType ? rebuildType(returnType.parsed) : 'void'}${
-                    failureType ? ' throws ' + rebuildType(failureType.parsed) : ''
-                  }`
-                : ''
-            }`
-        )})`,
+        noDepth
+          ? 'fn'
+          : `fn${named ? ' ' + named.parsed + ' ' : ''}(${args.map(
+              ({ name, optional, type, defaultValue }) =>
+                `${name}${optional ? '?' : ''}: ${rebuildType(type)}${
+                  defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
+                }${
+                  returnType || failureType
+                    ? ` -> ${returnType ? rebuildType(returnType) : 'void'}${
+                        failureType ? ' throws ' + rebuildType(failureType) : ''
+                      }`
+                    : ''
+                }`
+            )})`,
       aliasRef: ({ typeAliasName }) => '@' + typeAliasName,
       unknown: () => 'unknown',
+
+      // Internal types
+      implicit: () => '<implicit>',
     })
   )
 }

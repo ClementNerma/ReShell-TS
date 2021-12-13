@@ -15,7 +15,7 @@ import {
   FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
-  Value,
+  Value
 } from '../shared/parsed'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
@@ -244,5 +244,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     ([capture, start, { parsed: sequence }]) => ({ start, sequence, capture })
   ),
 
-  reference: toOneProp(identifier, 'varname'),
+  // FIX: TypeScript compiler produced an error because of the produced union being too complex
+  // with "toOneProp(identifier, 'varname')"
+  reference: map(identifier, (_, varname) => ({ varname })),
 })

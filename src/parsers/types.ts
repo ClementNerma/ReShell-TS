@@ -78,7 +78,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
         exact('}', "Expected a closing brace (}) after the list of the struct's members"),
         { inter: maybe_s_nl }
       ),
-      ([_, members, __]) => ({ members })
+      ([_, { parsed: members }, __]) => ({ members })
     ),
 
     fn: map(

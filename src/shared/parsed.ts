@@ -124,13 +124,15 @@ export type NonNullableValueType =
   | { type: 'path' }
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
-  | { type: 'struct'; members: Token<{ name: string; type: ValueType }[]> }
+  | { type: 'struct'; members: StructTypeMember[] }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'unknown' }
   | InternalTypes
 
 export type InternalTypes = { type: 'implicit' }
+
+export type StructTypeMember = { name: string; type: ValueType }
 
 export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 

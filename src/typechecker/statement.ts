@@ -34,12 +34,12 @@ export const statementChainChecker: TypecheckerArr<StatementChain, Scope[], void
             expectedType = vartype.parsed
           }
 
-          const validation = resolveExprType(expr, scopes)
+          const validation = resolveExprType(expr, { scopes, expectedType: expectedType ?? null })
           if (!validation.ok) return validation
 
           scope.variables.set(
             varname.parsed,
-            located(varname.start, { mutable: mutable.parsed, type: expectedType ?? validation.data })
+            located(varname.start, { mutable: mutable.parsed, type: validation.data })
           )
 
           return false
