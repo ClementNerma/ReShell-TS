@@ -53,6 +53,7 @@ export type NativeLibraryFnNames =
   | 'typed'
   | 'toFixed'
   | 'listAt'
+  | 'repeat'
   | 'echo'
   | 'dump'
   | 'toStr'
@@ -165,6 +166,28 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
       type: 'nullable',
       inner: { type: 'generic', name: _forgeToken('T', 'listAt:T'), orig: nativeLibAt('listAt:T') },
     }),
+  },
+
+  repeat: {
+    generics: [],
+    args: _forgeTokens([
+      {
+        flag: null,
+        name: _forgeToken('str'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'string' }),
+      },
+      {
+        flag: null,
+        name: _forgeToken('repeat'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'number' }),
+      },
+    ]),
+    restArg: null,
+    returnType: _forgeToken({ type: 'string' }),
   },
 
   echo: {

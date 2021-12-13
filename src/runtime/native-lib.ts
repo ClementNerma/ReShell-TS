@@ -105,6 +105,15 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     return { ok: null, breaking: 'return', value: item ?? { type: 'null' } }
   },
 
+  repeat: ({ at }, map) => {
+    const args = getArguments(at, map, { str: 'string', repeat: 'number' })
+    if (args.ok !== true) return args
+
+    const { str, repeat } = args.data
+
+    return { ok: null, breaking: 'return', value: { type: 'string', value: str.value.repeat(repeat.value) } }
+  },
+
   echo: ({ at, pipeTo }, map) => {
     const args = getArguments(at, map, { message: 'string', n: 'bool' })
     if (args.ok !== true) return args
