@@ -114,6 +114,12 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
     returnType: () => 'bool',
   }),
 
+  lines: _buildNativeLibraryFn({
+    methodFor: () => 'string',
+    args: () => [],
+    returnType: () => ({ type: 'list', itemsType: { type: 'string' } }),
+  }),
+
   charAt: _buildNativeLibraryFn({
     methodFor: () => 'string',
     args: () => [{ name: 'index', type: 'int' }],

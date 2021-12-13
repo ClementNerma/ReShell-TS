@@ -154,6 +154,10 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     success({ type: 'bool', value: self.value.includes(lookup.value) })
   ),
 
+  lines: withArguments({ self: 'string' }, ({ self }) =>
+    success({ type: 'list', items: self.value.split(/\r\n|\r|\n/).map((line) => ({ type: 'string', value: line })) })
+  ),
+
   charAt: withArguments({ self: 'string', index: 'int' }, ({ self, index }) =>
     success(
       index.value >= 0 && index.value < self.value.length
