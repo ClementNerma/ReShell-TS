@@ -116,7 +116,7 @@ export type NonNullableValueType =
   | { type: 'path' }
   | { type: 'list'; itemsType: Token<ValueType> }
   | { type: 'map'; itemsType: Token<ValueType> }
-  | { type: 'struct'; members: Token<[Token<string>, Token<ValueType>][]> }
+  | { type: 'struct'; members: Token<{ name: Token<string>; type: Token<ValueType> }[]> }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'unknown' }

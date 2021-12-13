@@ -63,7 +63,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
                 ),
                 { inter: maybe_s_nl }
               ),
-              ([name, _, type]): [Token<string>, Token<ValueType>] => [name, type]
+              ([name, _, type]) => ({ name, type })
             ),
             {
               inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
