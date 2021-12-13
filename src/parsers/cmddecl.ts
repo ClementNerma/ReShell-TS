@@ -26,15 +26,6 @@ const cmdDeclDescription: Parser<string> = map(
 )
 
 const cmdDeclSubCommandVariantSignature: Parser<CmdVariantSignature> = mappedCases<CmdVariantSignature>()('type', {
-  subCmd: map(
-    combine(
-      exact('=>'),
-      maybe_s_nl,
-      withLatelyDeclared(() => cmdDeclSubCommand)
-    ),
-    ([_, __, { parsed: content }]) => ({ content })
-  ),
-
   direct: map(
     combine(
       exact('('),
@@ -60,6 +51,11 @@ const cmdDeclSubCommandVariantSignature: Parser<CmdVariantSignature> = mappedCas
         parsed: [{ parsed: args }, rest],
       },
     ]) => ({ args, rest })
+  ),
+
+  subCmd: map(
+    withLatelyDeclared(() => cmdDeclSubCommand),
+    (content) => ({ content })
   ),
 })
 
