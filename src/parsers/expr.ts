@@ -210,9 +210,9 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
       s,
       or<ValueType | null>([
         map(combine(exact('isnt'), s, exact('null', 'expected `not null` type assertion')), (_) => null),
-        failure(
-          map(combine(exact('is'), s, valueType), ([_, __, { parsed: type }]) => type),
-          'expected a type after the "is" type assertion operator'
+        map(
+          combine(exact('is'), s, failure(valueType, 'expected a type after the "is" type assertion operator')),
+          ([_, __, { parsed: type }]) => type
         ),
       ])
     ),
