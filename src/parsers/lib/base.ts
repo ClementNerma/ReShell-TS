@@ -22,7 +22,6 @@ export type ParserErrStackEntry = { context: ParsingContext; content: Formatable
 
 export type ParsingContext = Readonly<{
   source: StrView
-  failureWillBePhantomSuccess?: boolean
   $custom: unknown
   self: () => ParsingContext
 }>

@@ -13,7 +13,7 @@ import { StrView } from './strview'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
-    const parsed = cond(start, input, { ...context, failureWillBePhantomSuccess: true })
+    const parsed = cond(start, input, context)
     if (!parsed.ok) return phantomSuccess(start, null)
 
     return then(start, input, context)
@@ -23,7 +23,7 @@ export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | nu
 // Doc: harder to use
 export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
-    const parsed = cond(start, input, { ...context, failureWillBePhantomSuccess: true })
+    const parsed = cond(start, input, context)
     return parsed.ok ? then(start, input, context) : els(start, input, context)
   }
 }
@@ -81,14 +81,14 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
 
 export function maybe<T>(parser: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
-    const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
+    const parsed = parser(start, input, context)
     return parsed.ok || parsed.precedence ? parsed : phantomSuccess(start, null)
   }
 }
 
 // export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
 //   return (start, input, context) => {
-//     const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
+//     const parsed = parser(start, input, context)
 //     return parsed.ok
 //       ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
 //       : parsed.precedence
