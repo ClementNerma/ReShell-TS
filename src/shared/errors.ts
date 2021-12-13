@@ -6,7 +6,7 @@ export type FormatableExtract = {
   loc: CodeLoc
   length?: number
   message: string
-  complements: [string, string][]
+  complements?: [string, string][]
 }
 
 export type FormatableExtractsInput =
@@ -64,7 +64,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
       const paddingGutter = format('gutter', linePad + ' |')
 
-      const complementsText = complements
+      const complementsText = (complements ?? [])
         .map(
           ([name, text]) =>
             `\n${paddingGutter} ${' '.repeat(col)}  ${format(
