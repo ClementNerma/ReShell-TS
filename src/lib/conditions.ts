@@ -38,16 +38,16 @@ export function failIf(
     cond(input, context, start) ? err(start, context, error) : success(start, start, void 0, '')
 }
 
-export function failIfMatches(failIf: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
+export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
   return (start, input, context) => {
-    const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
+    const parsed = parser(start, input, context)
     return parsed.ok ? err(start, context, error) : success(start, start, void 0, '')
   }
 }
 
-export function failIfMatchesElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T> {
+export function failIfMatchesElse<T>(parser: Parser<unknown>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
-    const parsed = failIf(start, input, context)
+    const parsed = parser(start, input, context)
     return parsed.ok ? err(start, context) : els(start, input, context)
   }
 }
