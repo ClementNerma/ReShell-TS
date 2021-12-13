@@ -261,11 +261,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     })),
 
     panic: map(
-      combine(
-        oneOf<PanicType>(['panic', 'unreachable', 'unimplemented']),
-        maybe(map(combine(s, expr), ([_, msg]) => msg))
-      ),
-      ([{ parsed: category }, { parsed: message }]) => ({ category, message })
+      combine(oneOf<PanicType>(['panic', 'unreachable', 'unimplemented']), s, expr),
+      ([{ parsed: category }, _, message]) => ({ category, message })
     ),
 
     assignment: map(

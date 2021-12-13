@@ -410,14 +410,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         },
 
         panic: ({ message }) => {
-          if (message !== null) {
-            const check = resolveExprType(message, {
-              ...ctx,
-              typeExpectation: { from: null, type: { type: 'string' } },
-            })
+          const check = resolveExprType(message, {
+            ...ctx,
+            typeExpectation: { from: null, type: { type: 'string' } },
+          })
 
-            if (!check.ok) return check
-          }
+          if (!check.ok) return check
 
           return success({ neverEnds: true })
         },

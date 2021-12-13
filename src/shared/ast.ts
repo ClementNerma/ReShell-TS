@@ -47,7 +47,7 @@ export type Statement =
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
-  | { type: 'panic'; category: PanicType; message: Token<Expr> | null }
+  | { type: 'panic'; category: PanicType; message: Token<Expr> }
   | ({ type: 'cmdCall' } & CmdCall)
   | { type: 'fileInclusion'; content: Program; imports: Token<string>[] | null }
 
