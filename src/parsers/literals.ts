@@ -23,10 +23,17 @@ export const literalPath: Parser<Token<string>[]> = takeWhileMN(
 )
 
 export const literalString: Parser<LiteralString> = or<LiteralString>([
-  map(combine(exact('r"'), match(/([^\\"\n]|\\[^\n])*/), exact('"')), ([_, content, __]) => ({
-    type: 'raw',
-    content,
-  })),
+  map(
+    combine(
+      exact('r"'),
+      match(/([^\\"\n]|\\[^\n])*/),
+      exact('"', 'Syntax error: opened string has not been closed with a quote (")')
+    ),
+    ([_, content, __]) => ({
+      type: 'raw',
+      content,
+    })
+  ),
   map(
     combine(
       exact('"'),
@@ -46,7 +53,7 @@ export const literalString: Parser<LiteralString> = or<LiteralString>([
           ),
         ])
       ),
-      exact('"')
+      exact('"', 'Syntax error: opened string has not been closed with a quote (")')
     ),
     ([_, segments, __]) => ({
       type: 'computed',
