@@ -1,4 +1,4 @@
-import { CmdArg, CmdFlag } from '../shared/ast'
+import { CmdArg, CmdFlag, Expr } from '../shared/ast'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -15,6 +15,19 @@ import { value } from './value'
 // For weirdly-shaped arguments provided to external commands, users just have to put them between double quotes to treat
 // them as strings just like they are originally in other shells
 
+const cmdWrappedValue: Parser<Expr> = map(
+  combine(
+    combine(exact('${'), maybe_s_nl),
+    failure(
+      withLatelyDeclared(() => expr),
+      'failed to parse the inner expression'
+    ),
+    maybe_s_nl,
+    exact('}', 'expected a closing brace (}) to close the inner expression')
+  ),
+  ([_, { parsed: expr }]) => expr
+)
+
 export const cmdFlag: Parser<CmdFlag> = map(
   combine(
     oneOfMap([
@@ -22,42 +35,16 @@ export const cmdFlag: Parser<CmdFlag> = map(
       ['-', true],
     ]),
     failure(identifier, 'expected a flag name'),
-    maybe(
-      map(
-        combine(
-          exact('='),
-          failure(
-            withLatelyDeclared(() => expr),
-            'expected an expression'
-          )
-        ),
-        ([_, expr]) => expr
-      )
-    )
+    maybe(map(combine(exact('='), failure(cmdWrappedValue, 'expected a value: ${...}')), ([_, expr]) => expr))
   ),
   ([short, name, { parsed: directValue }]) => ({ short, name, directValue })
 )
 
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   flag: cmdFlag,
-
   action: toOneProp('name', cmdAction),
-
-  expr: map(
-    combine(
-      combine(exact('${'), maybe_s_nl),
-      failure(
-        withLatelyDeclared(() => expr),
-        'failed to parse the inner expression'
-      ),
-      maybe_s_nl,
-      exact('}', 'expected a closing brace (}) to close the inner expression')
-    ),
-    ([_, expr]) => ({ expr })
-  ),
-
+  expr: toOneProp('expr', cmdWrappedValue),
   value: toOneProp('value', value),
-
   rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
     varname,
   })),
