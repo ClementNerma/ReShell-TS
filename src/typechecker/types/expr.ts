@@ -1,5 +1,5 @@
-import { matchUnion } from '../../parsers/utils'
 import { Expr, ExprElement, SingleLogicOp, Token, ValueType } from '../../shared/parsed'
+import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
 import { resolveValueType } from './value'
 

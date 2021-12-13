@@ -1,5 +1,5 @@
-import { matchUnion } from '../parsers/utils'
 import { StatementChain, Token, ValueType } from '../shared/parsed'
+import { matchUnion } from '../shared/utils'
 import { located, Scope, success, Typechecker, TypecheckerErr } from './base'
 import { scopeFirstPass } from './scope/first-pass'
 import { ensureScopeUnicity } from './scope/search'

@@ -1,5 +1,5 @@
-import { matchUnion } from '../../parsers/utils'
 import { LiteralValue, ValueType } from '../../shared/parsed'
+import { matchUnion } from '../../shared/utils'
 
 export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
   return (

@@ -1,5 +1,5 @@
-import { matchUnion } from '../../parsers/utils'
 import { ValueType } from '../../shared/parsed'
+import { matchUnion } from '../../shared/utils'
 import { success, Typechecker, TypecheckerResult } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
 

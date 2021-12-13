@@ -1,5 +1,5 @@
-import { matchUnion } from '../../parsers/utils'
 import { CodeLoc, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
+import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
 import { resolveExprType } from './expr'
