@@ -440,15 +440,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 }
 
 export const errIncompatibleValueType = ({
-  message,
-  path,
   typeExpectation,
   foundType,
   valueAt,
   ctx,
 }: {
-  message?: string
-  path?: string[]
   typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
   foundType: ValueType | ValueType['type']
   valueAt: CodeSection
@@ -461,13 +457,10 @@ export const errIncompatibleValueType = ({
   const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
 
   return err(valueAt, {
-    message:
-      (path && path.length > 0 ? path.join(' > ') + ' > ' : '') +
-      (message ??
-        `expected ${ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
-          typeExpectation.type,
-          true
-        )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, true)}\``),
+    message: `expected ${ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
+      typeExpectation.type,
+      true
+    )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, true)}\``,
     complements:
       expectedNoDepth !== expected || foundNoDepth !== found
         ? [
@@ -485,9 +478,3 @@ export const errIncompatibleValueType = ({
       : [],
   })
 }
-
-// export const isStringifyableType = ({ nullable, inner: { type: typeType } }: ValueType) =>
-//   !nullable && (typeType === 'number' || typeType === 'string')
-
-// export const isTypeConvertibleToPath = ({ nullable, inner: { type: typeType } }: ValueType) =>
-//   !nullable && (typeType === 'number' || typeType === 'string' || typeType === 'path')

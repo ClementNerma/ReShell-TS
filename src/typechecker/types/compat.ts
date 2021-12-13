@@ -1,8 +1,8 @@
 import { ValueType } from '../../shared/ast'
 import { CodeSection } from '../../shared/parsed'
-import { success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
-import { errIncompatibleValueType } from './value'
+import { rebuildType } from './rebuilder'
 
 export const isTypeCompatible: Typechecker<
   {
@@ -10,26 +10,74 @@ export const isTypeCompatible: Typechecker<
     at: CodeSection
     typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
     _path?: string[]
+    _originalCandidate?: ValueType
+    _originalReferent?: ValueType
   },
   void
-> = ({ candidate, at, typeExpectation, _path }, ctx) => {
-  const expectationErr = (message?: string, atOverride?: CodeSection) =>
-    errIncompatibleValueType({
-      message,
-      path,
-      typeExpectation: {
-        type: referent,
-        from,
-      },
-      foundType: candidate,
-      valueAt: atOverride ?? at,
-      ctx,
-    })
+> = ({ candidate, at, typeExpectation, _path, _originalCandidate, _originalReferent }, ctx) => {
+  const expectationErr = (message?: string, atOverride?: CodeSection) => {
+    const pathStr = path.length > 0 ? path.join(' > ') + ' > ' : ''
 
-  const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
-    isTypeCompatible({ candidate, at, typeExpectation: { from, type: referent }, _path: path.concat([addPath]) }, ctx)
+    const expectedNoDepth = rebuildType(typeExpectation.type, true)
+    const expected = rebuildType(originalReferent)
+
+    const foundNoDepth = rebuildType(candidate, true)
+    const found = rebuildType(originalCandidate)
+
+    const messageWithFallback =
+      message ??
+      `expected ${
+        ctx.typeExpectationNature ? ctx.typeExpectationNature + ' ' : ''
+      }\`${expectedNoDepth}\`, found \`${foundNoDepth}\``
+
+    return err(atOverride ?? at, {
+      message: pathStr + messageWithFallback,
+      complements:
+        expectedNoDepth !== expected || foundNoDepth !== found
+          ? [
+              ['Expected', expected],
+              ['Found   ', found],
+            ]
+          : [],
+      also: typeExpectation.from
+        ? [
+            {
+              at: typeExpectation.from,
+              message: 'type expectation originates here',
+            },
+          ]
+        : [],
+    })
+  }
+  // errIncompatibleValueType({
+  //   message,
+  //   path,
+  //   typeExpectation: {
+  //     type: referent,
+  //     from,
+  //   },
+  //   foundType: candidate,
+  //   valueAt: atOverride ?? at,
+  //   ctx,
+  // })
+
+  const subCheck = (addPath: string | null, candidate: ValueType, referent: ValueType, atOverride?: CodeSection) =>
+    isTypeCompatible(
+      {
+        candidate,
+        at: atOverride ?? at,
+        typeExpectation: { from, type: referent },
+        _path: addPath === null ? path : path.concat([addPath]),
+        _originalCandidate: originalCandidate,
+        _originalReferent: originalReferent,
+      },
+      ctx
+    )
 
   const { from } = typeExpectation
+
+  const originalCandidate = _originalCandidate ?? candidate
+  const originalReferent = _originalReferent ?? typeExpectation.type
 
   let referent = typeExpectation.type
 
@@ -153,15 +201,7 @@ export const isTypeCompatible: Typechecker<
           return expectationErr(`argument \`${cArg.name.parsed}\` is not marked as optional unlike in the parent type`)
         }
 
-        const compat = isTypeCompatible(
-          {
-            candidate: cArg.type,
-            at,
-            typeExpectation: { type: rArg.type, from: rArgAt },
-          },
-          ctx
-        )
-
+        const compat = subCheck(null, cArg.type, rArg.type, rArgAt)
         if (!compat.ok) return compat
       }
 
