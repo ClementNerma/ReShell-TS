@@ -84,7 +84,6 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
         if (!fnTypeChecker.ok) return fnTypeChecker
 
         firstPass.methods.push({
-          at: stmt.parsed.name.at,
           name: stmt.parsed.name,
           forTypeWithoutGenerics: resolveGenerics(stmt.parsed.infos.forType.parsed, 'unknown'),
           infos: stmt.parsed.infos,

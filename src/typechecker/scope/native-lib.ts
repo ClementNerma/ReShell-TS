@@ -30,7 +30,6 @@ export function nativeLibraryScope(): Scope {
     for (const fnType of variants) {
       if (fnType.parsed.method) {
         nativeLib.methods.push({
-          at: fnType.at,
           name: _forgeToken(name),
           fnType: fnType.parsed,
           infos: fnType.parsed.method,

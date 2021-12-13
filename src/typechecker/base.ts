@@ -67,9 +67,7 @@ export type ScopeEntity =
   | { type: 'fn'; at: CodeSection; content: FnType }
   | { type: 'var'; at: CodeSection; mutable: boolean; varType: ValueType }
 
-// TODO: remove "at" to use only "name.at"
 export type ScopeMethod = {
-  at: CodeSection
   name: Token<string>
   forTypeWithoutGenerics: ValueType
   infos: MethodInfos
