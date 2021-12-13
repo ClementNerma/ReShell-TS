@@ -110,7 +110,7 @@ export const closureTypeValidator: Typechecker<
   const scopes = ctx.scopes.concat([fnScopeCreator(expected)])
 
   return matchUnion(body.parsed, 'type', {
-    block: ({ body }) => validateFnBody({ fnType: expected, body }, { ...ctx, scopes }),
+    block: ({ body }) => validateFnBody({ fnType: expected, body }, ctx),
     expr: ({ body }) => {
       if (!expected.returnType) {
         return err(body.at, 'cannot use this syntax here as the function should not return any value')
@@ -118,7 +118,7 @@ export const closureTypeValidator: Typechecker<
 
       const check = resolveExprType(body, {
         ...ctx,
-        scopes,
+        scopes: ctx.scopes.concat([fnScopeCreator(expected)]),
         typeExpectation: {
           from: expected.returnType.at,
           type: expected.returnType.parsed,
