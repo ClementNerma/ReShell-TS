@@ -3,6 +3,7 @@ import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerResult } from '../base'
 import { cmdArgTypechecker } from '../cmdcall'
+import { getTypedEntityInScope } from '../scope/search'
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
@@ -11,6 +12,17 @@ import { typeValidator } from './validator'
 import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
+  for (const generic of fnType.generics) {
+    const orig = getTypedEntityInScope(generic, 'generic', ctx)
+
+    if (orig.ok) {
+      return err(generic.at, {
+        message: 'cannot use the same name for two generics in hierarchy',
+        also: [{ at: orig.data.at, message: 'original generic is defined here' }],
+      })
+    }
+  }
+
   ctx = {
     ...ctx,
     scopes: ctx.scopes.concat(
