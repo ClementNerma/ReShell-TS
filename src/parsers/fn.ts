@@ -15,7 +15,7 @@ import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { valueType } from './types'
 
-const fnArg: Parser<FnArg> = map(
+export const fnArg: Parser<FnArg> = map(
   combine(
     or<Pick<FnArg, 'flag' | 'name'>>([
       map(

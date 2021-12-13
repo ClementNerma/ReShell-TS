@@ -456,6 +456,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
       },
 
+      cmdDecl: ({ content }) => {
+        throw new Error(
+          'TODO: command declaration validation + generating type + ensuring command exists + validating future calls'
+        )
+      },
+
       // Nothing to do here, already handled in first pass
       fileInclusion: () => success({ neverEnds: false }),
     })
