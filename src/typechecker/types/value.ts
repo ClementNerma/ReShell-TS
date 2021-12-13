@@ -259,6 +259,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         outputTypes.push({ name: name.parsed, type: resolvedType.data })
       }
 
+      if (expectedMembers) {
+        for (const name of expectedMembers.keys()) {
+          if (!memberNames.has(name)) {
+            return err(value.at, `Member "${name}" is missing`)
+          }
+        }
+      }
+
       return success<ValueType>(expectedType ?? { nullable: false, inner: { type: 'struct', members: outputTypes } })
     },
 
