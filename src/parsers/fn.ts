@@ -6,7 +6,7 @@ import { combine } from './lib/combinations'
 import { extract, failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
 import { always, notFollowedBy } from './lib/consumeless'
 import { feedContext } from './lib/context'
-import { failure } from './lib/errors'
+import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact } from './lib/matchers'
@@ -107,7 +107,15 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
         maybe(fnGenerics),
         (context: CustomContext, generics) => addGenericsDefinition(context, generics ?? []),
         combine(
-          combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
+          combine(
+            maybe_s,
+            contextualFailure(
+              exact('('),
+              (ctx) => (ctx.$custom as CustomContext).genericsDefinitions.length > 0,
+              "expected an opening parenthesis '(' for the function's type"
+            ),
+            maybe_s_nl
+          ),
           useSeparatorIf(
             takeWhile(fnArg, {
               inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
