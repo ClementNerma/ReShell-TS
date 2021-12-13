@@ -1,4 +1,3 @@
-import { Stream } from 'stream'
 import { Block, ClosureBody, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
@@ -19,9 +18,6 @@ export type RunnerContext = {
   fnCalls: PrecompData['fnCalls']
   platformPathSeparator: string
   syncNoWorkSleep: (milliseconds: number) => void
-  stdin: Stream
-  stdout: Stream
-  stderr: Stream
 }
 
 export const createRunnerContext = (
@@ -34,9 +30,6 @@ export const createRunnerContext = (
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
   platformPathSeparator,
-  stdin: process.stdin,
-  stdout: process.stdout,
-  stderr: process.stderr,
   syncNoWorkSleep,
 })
 
