@@ -1,7 +1,9 @@
 import { CodeSection, Expr, ExprElement, ExprElementContent, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { success, Typechecker } from '../base'
+import { ensureCoverage, err, success, Typechecker } from '../base'
+import { isTypeCompatible } from './compat'
 import { resolveDoubleOpType } from './double-op'
+import { rebuildType } from './rebuilder'
 import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) => {
@@ -23,11 +25,90 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
 }
 
 export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) => {
-  if (element.parsed.propAccess.length > 0) {
-    throw new Error('// TODO: property access in expr element type resolution')
+  if (element.parsed.propAccess.length === 0) {
+    return resolveExprElementContentType(element.parsed.content, ctx)
   }
 
-  return resolveExprElementContentType(element.parsed.content, ctx)
+  const resolved = resolveExprElementContentType(element.parsed.content, { scopes: ctx.scopes, expectedType: null })
+  if (!resolved.ok) return resolved
+
+  let previousIterType = resolved.data
+  let upToPrevPropAccessSection: CodeSection = element.at
+
+  for (const propAccess of element.parsed.propAccess) {
+    switch (propAccess.parsed.access.type) {
+      case 'refIndex':
+        if (previousIterType.inner.type !== 'list') {
+          return err(upToPrevPropAccessSection, {
+            message: `expected list due to index access, found \`${rebuildType(previousIterType, true)}\``,
+            complements: [
+              ['Expected', 'list'],
+              ['Found   ', rebuildType(previousIterType)],
+            ],
+            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+          })
+        }
+
+        if (previousIterType.nullable && !propAccess.parsed.nullable) {
+          return err(upToPrevPropAccessSection, {
+            message: 'cannot access index of a nullable list',
+            complements: [['Tip', 'You can use nullable indexes with `?[index]`']],
+            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+          })
+        }
+
+        previousIterType = { ...previousIterType.inner.itemsType, nullable: propAccess.parsed.nullable }
+        break
+
+      case 'refStructMember':
+        if (previousIterType.inner.type !== 'struct') {
+          return err(upToPrevPropAccessSection, {
+            message: `expected struct due to member access, found \`${rebuildType(previousIterType, true)}\``,
+            complements: [
+              ['Expected', 'struct'],
+              ['Found   ', rebuildType(previousIterType)],
+            ],
+            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+          })
+        }
+
+        if (previousIterType.nullable && !propAccess.parsed.nullable) {
+          return err(upToPrevPropAccessSection, {
+            message: 'cannot access member of a nullable struct',
+            complements: [['Tip', 'You can use nullable indexes with `?.member`']],
+          })
+        }
+
+        const memberName = propAccess.parsed.access.member.parsed
+        const resolvedMember = previousIterType.inner.members.find(({ name }) => name === memberName)
+
+        if (!resolvedMember) {
+          return err(upToPrevPropAccessSection, {
+            message: `member \`${memberName}\` is missing`,
+            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+          })
+        }
+
+        previousIterType = { ...resolvedMember.type, nullable: propAccess.parsed.nullable }
+        break
+
+      default:
+        return ensureCoverage(propAccess.parsed.access)
+    }
+
+    upToPrevPropAccessSection = { start: upToPrevPropAccessSection.start, next: propAccess.at.next }
+  }
+
+  if (ctx.expectedType) {
+    const compat = isTypeCompatible(
+      { at: upToPrevPropAccessSection, candidate: previousIterType, referent: ctx.expectedType },
+      ctx
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  return success(previousIterType)
 }
 
 export const resolveExprElementContentType: Typechecker<Token<ExprElementContent>, ValueType> = (element, ctx) =>

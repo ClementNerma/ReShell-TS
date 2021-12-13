@@ -32,6 +32,9 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
 
     // Internal types
     void: () => success(void 0),
+    implicit: () => {
+      throw new Error('Internal error: tryied to validate internal type "implicit"')
+    },
   })
 
 export const multiTypeValidator: Typechecker<ValueType[], void> = (types, ctx) => {

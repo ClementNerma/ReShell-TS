@@ -127,7 +127,7 @@ export type NonNullableValueType =
 
 export type PrimitiveTypes = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
 
-export type InternalTypes = { type: 'void' }
+export type InternalTypes = { type: 'void' } | { type: 'implicit' }
 
 export type StructTypeMember = { name: string; type: ValueType }
 

@@ -88,6 +88,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
 
     // Internal types
     void: never(),
+    implicit: never(),
   },
 
   [
