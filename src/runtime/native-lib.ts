@@ -243,6 +243,14 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
       ? success({ type: 'number', value: self.items.length })
       : wrongMixedType(at)
   ),
+
+  empty: withArguments({ self: 'unknown' }, ({ self }, { at }) =>
+    self.type === 'string'
+      ? success({ type: 'bool', value: self.value.length === 0 })
+      : self.type === 'list'
+      ? success({ type: 'bool', value: self.items.length === 0 })
+      : wrongMixedType(at)
+  ),
 })
 
 const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: RunnerContext): string =>
