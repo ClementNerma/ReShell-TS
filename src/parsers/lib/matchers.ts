@@ -125,12 +125,12 @@ export function bol(error?: ErrInputData): Parser<void> {
   return (start, _, context) => (start.col === 0 ? phantomSuccess(start) : err(start, start, context, error))
 }
 
-export function eol(error?: ErrInputData): Parser<string> {
+export function eol(error?: ErrInputData): Parser<void> {
   return (start, input, context) =>
     input.empty()
-      ? success(start, start, '', '')
+      ? phantomSuccess(start)
       : input.startsWithChar('\n')
-      ? success(start, addLoc(start, { file: start.file, line: 1, col: 0 }), '\n', '\n')
+      ? success(start, addLoc(start, { file: start.file, line: 1, col: 0 }), void 0, '\n')
       : err(start, start, context, error)
 }
 
