@@ -4,8 +4,10 @@ import {
   neutralError,
   Parser,
   ParserErr,
+  ParserLoc,
   ParserResult,
   ParserSucess,
+  ParsingContext,
   sliceInput,
   withErr,
   WithErrData,
@@ -35,7 +37,13 @@ export function fail<T>(error?: ErrInputData): Parser<T> {
   return (start, _, context) => err(start, context, error)
 }
 
-export function never<T>(error?: string): Parser<T> {
+export function failWith<T>(
+  error: (input: string, context: ParsingContext, loc: ParserLoc) => ErrInputData
+): Parser<T> {
+  return (start, input, context) => err(start, context, error(input, context, start))
+}
+
+export function never<T>(error?: ErrInputData): Parser<T> {
   return (start, _, context) => err(start, context, error)
 }
 
