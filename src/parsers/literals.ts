@@ -1,13 +1,13 @@
-import { Parser } from '../lib/base'
+import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, ifThenElse } from '../lib/conditions'
 import { fail } from '../lib/consumeless'
 import { failure } from '../lib/errors'
-import { maybe_s_nl } from '../lib/littles'
-import { takeForever, takeWhile } from '../lib/loops'
+import { maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
+import { takeForever, takeWhile, takeWhile1N, takeWhileMN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
-import { map, toOneProp } from '../lib/transform'
+import { map, toOneProp, unify } from '../lib/transform'
 import { mapToken, withLatelyDeclared } from '../lib/utils'
 import { matchStatementClose, withStatementClose } from './context'
 import { ComputedStringSegment, LiteralString, LiteralValue, StatementChain } from './data'
@@ -15,6 +15,14 @@ import { expr } from './expr'
 import { statementChainFree } from './statements'
 import { identifier } from './tokens'
 import { fnType } from './types'
+
+export const literalPath: Parser<Token<string>[]> = takeWhileMN(
+  unify(takeWhile1N(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
+  {
+    inter: exact('/'),
+    minimum: 2,
+  }
+)
 
 export const literalString: Parser<LiteralString> = or<LiteralString>([
   map(combine(exact('r"'), match(/([^\\"\n]|\\[^\n])*/), exact('"')), ([_, content, __]) => ({
@@ -64,6 +72,8 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
   ),
 
   string: toOneProp(literalString, 'value'),
+
+  path: toOneProp(literalPath, 'segments'),
 
   list: map(
     combine(

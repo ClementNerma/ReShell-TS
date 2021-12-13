@@ -69,6 +69,7 @@ export type ValueType =
   | { type: 'bool' }
   | { type: 'number' }
   | { type: 'string' }
+  | { type: 'path' }
   | { type: 'list'; itemsType: Token<ValueType> }
   | { type: 'map'; itemsType: Token<ValueType> }
   | { type: 'struct'; members: Token<[Token<string>, Token<ValueType>][]> }
@@ -81,6 +82,7 @@ export type LiteralValue =
   | { type: 'bool'; value: Token<boolean> }
   | { type: 'number'; value: Token<number> }
   | { type: 'string'; value: Token<LiteralString> }
+  | { type: 'path'; segments: Token<Token<string>[]> }
   | { type: 'list'; items: Token<Token<Expr>[]> }
   | { type: 'map'; entries: Token<[Token<string>, Token<Expr>][]> }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }

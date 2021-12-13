@@ -18,25 +18,26 @@ export const valueType: Parser<ValueType> = selfRef((typeParser) =>
   mappedCases<ValueType>()(
     'type',
     {
-      ['bool']: map(word('bool'), (_) => ({})),
-      ['number']: map(word('number'), (_) => ({})),
-      ['string']: map(word('string'), (_) => ({})),
+      bool: map(word('bool'), (_) => ({})),
+      number: map(word('number'), (_) => ({})),
+      string: map(word('string'), (_) => ({})),
+      path: map(word('path'), (_) => ({})),
 
-      ['list']: map(
+      list: map(
         combine(exact('list'), exact('['), typeParser, exact(']'), { inter: maybe_s_nl }),
         ([_, __, itemsType, ___]) => ({
           itemsType,
         })
       ),
 
-      ['map']: map(
+      map: map(
         combine(exact('map'), exact('['), typeParser, exact(']'), { inter: maybe_s_nl }),
         ([_, __, itemsType, ___]) => ({
           itemsType,
         })
       ),
 
-      ['struct']: map(
+      struct: map(
         combine(
           exact('struct'),
           exact('{', "Expected a opening brace ({) to list the struct's members"),
@@ -64,12 +65,12 @@ export const valueType: Parser<ValueType> = selfRef((typeParser) =>
         ([_, __, members, ___]) => ({ members })
       ),
 
-      ['fn']: map(
+      fn: map(
         withLatelyDeclared(() => fnType),
         (fnType) => ({ fnType })
       ),
 
-      ['aliasRef']: map(
+      aliasRef: map(
         combine(exact('@'), failure(identifier, 'Syntax error: expected a type alias name')),
         ([_, typeAliasName]) => ({ typeAliasName })
       ),
