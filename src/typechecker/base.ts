@@ -1,6 +1,7 @@
 import { FnType, ValueType } from '../shared/ast'
 import { FormatableErrInput, FormatableError, formattableErr } from '../shared/errors'
 import { CodeSection } from '../shared/parsed'
+import { nativeLibraryScope } from './scope/native-lib'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
@@ -19,7 +20,7 @@ export type TypecheckerContext = {
 
 export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIfCommandExists']): TypecheckerContext {
   return {
-    scopes: [],
+    scopes: [nativeLibraryScope()],
     inLoop: false,
     typeExpectation: null,
     typeExpectationNature: null,
