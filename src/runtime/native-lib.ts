@@ -38,6 +38,8 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     value: { type: 'failable', success: false, value: args.get('error')! },
   }),
 
+  typed: (_, args) => ({ ok: null, breaking: 'return', value: args.get('value')! }),
+
   echo: ({ pipeTo }, args) => {
     const message = args.get('message')!
     pipeTo.stdout.write(message.type === 'string' ? message.value : '<echo: invalid string value>')
