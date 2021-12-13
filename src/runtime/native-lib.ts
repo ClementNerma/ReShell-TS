@@ -30,45 +30,45 @@ export type NativeFn = (
 ) => RunnerResult<ExecValue | null>
 
 export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
-  ok: ({ at }, map) =>
-    withArguments(at, map, { value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
+  ok: ({ at }, args) =>
+    withArguments(at, args, { value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
 
-  err: ({ at }, map) =>
-    withArguments(at, map, { error: 'unknown' }, ({ error }) =>
+  err: ({ at }, args) =>
+    withArguments(at, args, { error: 'unknown' }, ({ error }) =>
       success({ type: 'failable', success: false, value: error })
     ),
 
-  typed: ({ at }, map) => withArguments(at, map, { value: 'unknown' }, ({ value }) => success(value)),
+  typed: ({ at }, args) => withArguments(at, args, { value: 'unknown' }, ({ value }) => success(value)),
 
-  toFixed: ({ at }, map) =>
-    withArguments(at, map, { number: 'number', precision: 'number' }, ({ number, precision }) =>
+  toFixed: ({ at }, args) =>
+    withArguments(at, args, { number: 'number', precision: 'number' }, ({ number, precision }) =>
       success({
         type: 'string',
         value: number.value.toFixed(precision.value),
       })
     ),
 
-  listAt: ({ at }, map) =>
-    withArguments(at, map, { list: 'list', index: 'number' }, ({ list, index }) => {
+  listAt: ({ at }, args) =>
+    withArguments(at, args, { list: 'list', index: 'number' }, ({ list, index }) => {
       const item = list.items.at(index.value)
       return success(item ?? { type: 'null' })
     }),
 
-  repeat: ({ at }, map) =>
-    withArguments(at, map, { str: 'string', repeat: 'number' }, ({ str, repeat }) =>
+  repeat: ({ at }, args) =>
+    withArguments(at, args, { str: 'string', repeat: 'number' }, ({ str, repeat }) =>
       success({ type: 'string', value: str.value.repeat(repeat.value) })
     ),
 
-  split: ({ at }, map) =>
-    withArguments(at, map, { subject: 'string', delimiter: 'string' }, ({ subject, delimiter }) =>
+  split: ({ at }, args) =>
+    withArguments(at, args, { subject: 'string', delimiter: 'string' }, ({ subject, delimiter }) =>
       success({
         type: 'list',
         items: subject.value.split(delimiter.value).map((str) => ({ type: 'string', value: str })),
       })
     ),
 
-  join: ({ at }, map) =>
-    withArguments(at, map, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
+  join: ({ at }, args) =>
+    withArguments(at, args, { subject: 'list', glue: 'string' }, ({ subject, glue }) => {
       const pieces: string[] = []
 
       for (const value of subject.items) {
@@ -80,28 +80,28 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       return success({ type: 'string', value: pieces.join(glue.value) })
     }),
 
-  echo: ({ at, pipeTo }, map) =>
-    withArguments(at, map, { message: 'string', n: 'bool' }, ({ message, n }) => {
+  echo: ({ at, pipeTo }, args) =>
+    withArguments(at, args, { message: 'string', n: 'bool' }, ({ message, n }) => {
       pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
       return success(null)
     }),
 
-  dump: ({ at, ctx, pipeTo }, map) =>
-    withArguments(at, map, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) => {
+  dump: ({ at, ctx, pipeTo }, args) =>
+    withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) => {
       pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
       return success(null)
     }),
 
-  toStr: ({ at, ctx }, map) =>
-    withArguments(at, map, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) =>
+  toStr: ({ at, ctx }, args) =>
+    withArguments(at, args, { value: 'unknown', pretty: 'bool' }, ({ value, pretty }) =>
       success({
         type: 'string',
         value: valueToStr(value, pretty.value, false, ctx),
       })
     ),
 
-  trace: ({ pipeTo, at }, map) =>
-    withArguments(at, map, { message: { nullable: 'string' } }, ({ message }) => {
+  trace: ({ pipeTo, at }, args) =>
+    withArguments(at, args, { message: { nullable: 'string' } }, ({ message }) => {
       const file: string = matchUnion(at.start.file, 'type', {
         entrypoint: ({ path }) => path,
         file: ({ path }) => path,
@@ -119,8 +119,8 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       return success(null)
     }),
 
-  ls: ({ at, ctx }, map) =>
-    withArguments(at, map, { path: { nullable: 'path' } }, ({ path }) => {
+  ls: ({ at, ctx }, args) =>
+    withArguments(at, args, { path: { nullable: 'path' } }, ({ path }) => {
       const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
 
       return success({
