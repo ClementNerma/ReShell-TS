@@ -139,6 +139,13 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
         defaultValue: null,
         type: _forgeToken({ type: 'unknown' }),
       },
+      {
+        flag: _forgeToken('--'),
+        name: _forgeToken('pretty'),
+        optional: false,
+        defaultValue: null,
+        type: _forgeToken({ type: 'bool' }),
+      },
     ]),
     restArg: null,
     returnType: null,
@@ -154,20 +161,13 @@ export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>(
   ls: {
     generics: [],
     args: _forgeTokens([
-      /*{
+      {
         flag: null,
         name: _forgeToken('path'),
         optional: true,
         defaultValue: null,
-        type: { type: 'path' },
+        type: _forgeToken({ type: 'path' }),
       },
-      {
-        flag: _forgeToken('--'),
-        name: _forgeToken('hidden'),
-        optional: true,
-        defaultValue: null,
-        type: { type: 'bool' },
-      },*/
     ]),
     restArg: null,
     returnType: _forgeToken({

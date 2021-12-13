@@ -28,7 +28,7 @@ export type NativeFn = (
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
   ok: ({ at }, map) => {
-    const args = getArguments(at, map, { value: 'unknown' })
+    const args = getArguments(at, map, { value: 'unknown' }, [])
     if (args.ok !== true) return args
 
     const { value } = args.data
@@ -36,7 +36,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 
   err: ({ at }, map) => {
-    const args = getArguments(at, map, { error: 'unknown' })
+    const args = getArguments(at, map, { error: 'unknown' }, [])
     if (args.ok !== true) return args
 
     const { error } = args.data
@@ -44,7 +44,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 
   typed: ({ at }, map) => {
-    const args = getArguments(at, map, { value: 'unknown' })
+    const args = getArguments(at, map, { value: 'unknown' }, [])
     if (args.ok !== true) return args
 
     const { value } = args.data
@@ -62,32 +62,60 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 
   dump: ({ at, ctx, pipeTo }, map) => {
-    const valueToStr = (value: ExecValue): string =>
+    const valueToStr = (value: ExecValue, pretty: boolean): string =>
       matchUnion(value, 'type', {
         null: () => 'null',
         bool: ({ value }) => (value ? 'true' : 'false'),
         number: ({ value }) => value.toString(),
         string: ({ value }) => `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`,
         path: ({ segments }) => segments.join(ctx.platformPathSeparator),
-        list: ({ items }) => `[${items.map((item) => valueToStr(item)).join(', ')}]`,
+        list: ({ items }) =>
+          `[${pretty ? '\n' : ''}${items
+            .map((item) =>
+              pretty
+                ? valueToStr(item, pretty)
+                    .split('\n')
+                    .map((line) => '  ' + line)
+                    .join('\n')
+                : valueToStr(item, pretty)
+            )
+            .join(',' + (pretty ? '\n' : ' '))}${pretty ? '\n' : ''}]`,
         map: ({ entries }) =>
-          `map:( ${[...entries]
-            .map(([entry, value]) => `"${entry.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}": ${valueToStr(value)}`)
-            .join(', ')} )`,
+          `map:(${pretty ? '\n' : ''}${[...entries]
+            .map(([entry, value]) => {
+              const text = `"${entry.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}": ${valueToStr(value, pretty)}`
+              return pretty
+                ? text
+                    .split('\n')
+                    .map((line) => '  ' + line)
+                    .join('\n')
+                : text
+            })
+            .join(',' + (pretty ? '\n' : ' '))}${pretty ? '\n' : ''})`,
         struct: ({ members }) =>
-          `{ ${[...members.entries()].map(([member, value]) => `${member}: ${valueToStr(value)}`).join(', ')} }`,
-        enum: ({ variant }) => `enum::${variant}`,
+          `{${pretty ? '\n' : ''}${[...members.entries()]
+            .map(([member, value]) => {
+              const text = `${member}: ${valueToStr(value, pretty)}`
+              return pretty
+                ? text
+                    .split('\n')
+                    .map((line) => '  ' + line)
+                    .join('\n')
+                : text
+            })
+            .join(',' + (pretty ? '\n' : ' '))}${pretty ? '\n' : ''}}`,
+        enum: ({ variant }) => `enum::.${variant}`,
         fn: () => `<declared function>`,
         callback: () => `<callback>`,
-        failable: ({ success, value }) => `${success ? 'ok' : 'err'}(${valueToStr(value)})`,
+        failable: ({ success, value }) => `${success ? 'ok' : 'err'}(${valueToStr(value, pretty)})`,
         rest: () => `<rest>`,
       })
 
-    const args = getArguments(at, map, { value: 'unknown' })
+    const args = getArguments(at, map, { value: 'unknown', pretty: 'bool' })
     if (args.ok !== true) return args
 
-    const { value } = args.data
-    pipeTo.stdout.write(valueToStr(value) + '\n')
+    const { value, pretty } = args.data
+    pipeTo.stdout.write(valueToStr(value, pretty.value) + '\n')
 
     return { ok: null, breaking: 'return', value: null }
   },
@@ -104,16 +132,21 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     return { ok: null, breaking: 'return', value: null }
   },
 
-  ls: () => {
-    const cwd = process.cwd()
+  ls: ({ at, ctx }, map) => {
+    const args = getArguments(at, map, { path: 'path' }, ['path'])
+    if (args.ok !== true) return args
+
+    const { path } = args.data
+
+    const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
 
     return {
       ok: null,
       breaking: 'return',
       value: {
         type: 'list',
-        items: readdirSync(cwd).map((name): ExecValue => {
-          const item = lstatSync(join(cwd, name))
+        items: readdirSync(dir).map((name): ExecValue => {
+          const item = lstatSync(join(dir, name))
 
           return {
             type: 'struct',
@@ -144,18 +177,26 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
   },
 })
 
-function getArguments<A extends { [name: string]: ValueType['type'] }>(
+function getArguments<A extends { [name: string]: ValueType['type'] }, H extends keyof A | false = false>(
   at: CodeSection,
   map: Map<string, ExecValue>,
-  expecting: A
-): RunnerResult<{ [name in keyof A]: Extract<ExecValue, { type: A[name] }> }> {
+  expecting: A,
+  hidden?: Array<H>
+): RunnerResult<{
+  [name in keyof A]: Extract<
+    ExecValue,
+    H extends false ? { type: A[name] } : H extends name ? { type: A[name] } | { type: 'null' } : { type: A[name] }
+  >
+}> {
   const out: object = {}
 
   for (const [name, type] of Object.entries(expecting)) {
     const value = map.get(name)
+
     if (value === undefined)
       return err(at, `internal error in native library executor: argument "${name}" was not found`)
-    if (value.type !== type && type !== 'unknown') {
+
+    if (value.type !== type && type !== 'unknown' && !(value.type === 'null' && hidden?.includes(name as H) === true)) {
       return err(
         at,
         `internal error in native library executor: expected argument "${name}" to be of type "${type}", found ${value.type}`
