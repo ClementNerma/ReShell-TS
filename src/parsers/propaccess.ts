@@ -17,9 +17,9 @@ export const nonNullablePropertyAccess: Parser<NonNullablePropertyAccess> = mapp
         withLatelyDeclared(() => expr),
         exact(']')
       ),
-      ([_, index, __]) => ({ type: 'refIndex', index })
+      ([_, index, __]) => ({ index })
     ),
-    refStructMember: map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
+    refStructMember: map(combine(exact('.'), identifier), ([_, member]) => ({ member })),
   }
 )
 
@@ -33,9 +33,9 @@ export const propertyAccess: Parser<PropertyAccess> = or<PropertyAccess>([
           withLatelyDeclared(() => expr),
           exact(']')
         ),
-        ([_, index, __]) => ({ type: 'refIndex', index })
+        ([_, index, __]) => ({ index })
       ),
-      refStructMember: map(combine(exact('?.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
+      refStructMember: map(combine(exact('?.'), identifier), ([_, member]) => ({ member })),
     }),
     (access) => ({ nullable: true, access })
   ),
