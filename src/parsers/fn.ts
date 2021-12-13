@@ -32,10 +32,7 @@ export const fnArg: Parser<FnArg> = map(
         ),
         ([flag, __, name]) => ({ flag, name })
       ),
-      map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({
-        flag,
-        name,
-      })),
+      map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({ flag, name })),
       map(identifier, (_, name) => ({ flag: null, name })),
     ]),
     map(

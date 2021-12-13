@@ -6,7 +6,7 @@ import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar,
+  withStatementClosingChar
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
@@ -26,7 +26,7 @@ import { doubleOpForAssignment } from './operators'
 import { program } from './program'
 import { nonNullablePropertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
-import { identifier, keyword } from './tokens'
+import { identifier } from './tokens'
 import { valueType } from './types'
 
 export const statement: Parser<Statement> = mappedCases<Statement>()(
@@ -38,10 +38,9 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           combine(
             combine(exact('let'), s),
             maybe(combine(exact('mut'), s)),
-            failIfMatches(keyword, 'cannot use reserved keyword as a variable name'),
             failure(identifier, 'expected an identifier')
           ),
-          ([_, mutable, __, varname]) => ({ mutable, varname })
+          ([_, mutable, varname]) => ({ mutable, varname })
         ),
         maybe(
           map(
@@ -227,14 +226,13 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         exact('type'),
         s,
-        failIfMatches(keyword, 'cannot use reserved keyword as a type name'),
         failure(identifier, 'expected a name for the type alias'),
         maybe_s,
         failure(exact('='), 'expected an assignment (=) operator'),
         maybe_s_nl,
         failure(valueType, 'expected a type')
       ),
-      ([_, __, ___, typename, ____, _____, ______, content]) => ({ typename, content })
+      ([_, __, typename, ___, ____, _____, content]) => ({ typename, content })
     ),
 
     fnDecl: map(
