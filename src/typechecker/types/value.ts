@@ -375,7 +375,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (type.inner.type !== 'fn') {
           return err(
             name.at,
-            `the name \`${name}\` refers to a non-function variable (found \`${rebuildType(type, true)}\`)`
+            `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type, true)}\`)`
           )
         }
 
