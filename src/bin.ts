@@ -6,6 +6,7 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
+import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
 import { program } from './parsers/program'
@@ -44,9 +45,16 @@ const errorFormatters: ErrorParsingFormatters = {
   complement: chalk.cyanBright,
 }
 
-const started = Date.now()
-const parsed = parseSource(iterSrc, program, initContext())
-const elapsed = Date.now() - started
+const kb = (bytes: number) => (bytes / 1024).toFixed(2)
+
+const measurePerf = <T>(runner: () => T): [number, T] => {
+  const started = Date.now()
+  const out = runner()
+  const elapsed = Date.now() - started
+  return [elapsed, out]
+}
+
+const [parsedDuration, parsed] = measurePerf(() => parseSource(iterSrc, program, initContext()))
 
 if (!parsed.ok) {
   console.error(
@@ -57,9 +65,21 @@ if (!parsed.ok) {
   process.exit(1)
 }
 
+const jsonStr = JSON.stringify(parsed.data)
+
+const [compressDuration, compressed] = measurePerf(() => deflateSync(jsonStr, { level: 9 }))
+const [decompressDuration, decompressed] = measurePerf(() => inflateSync(compressed))
+
+if (decompressed.toString('utf-8') !== jsonStr) {
+  fail('Decompressed data is not the same as the source!')
+}
+
 const infos = [
-  `AST JSON weighs ${(JSON.stringify(parsed.data).length / 1024).toFixed(2)} kB`,
-  `Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`,
+  `Parsed (in ${iter} repeats) ${kb(source.length * iter)} kB in ${parsedDuration} ms`,
+  `Full AST JSON weights ${kb(JSON.stringify(parsed.data, null, 4).length)} kB`,
+  `Minimified AST JSON to ${kb(JSON.stringify(parsed.data).length)} kB`,
+  `Compressed (max) to ${kb(compressed.byteLength)} kB in ${compressDuration} ms`,
+  `Decompressed (max) in ${decompressDuration} ms`,
 ]
 
 if (argv[1] === '--ast' || argv[2] === '--ast') {
@@ -68,16 +88,14 @@ if (argv[1] === '--ast' || argv[2] === '--ast') {
   process.exit(0)
 }
 
-const startedTypechecker = Date.now()
-const exec = typecheckProgram(parsed.data)
-const elapsedTypechecker = Date.now() - startedTypechecker
+const [typecheckerDuration, typechecked] = measurePerf(() => typecheckProgram(parsed.data))
 
-if (!exec.ok) {
-  console.error(formatErr(exec, iterSrc, errorFormatters))
+if (!typechecked.ok) {
+  console.error(formatErr(typechecked, iterSrc, errorFormatters))
   process.exit(1)
 }
 
-console.dir(exec.data, { depth: null })
+console.dir(typechecked.data, { depth: null })
 
 infos.forEach((info) => console.log(info))
-console.log(`Typechecked in ${elapsedTypechecker} ms`)
+console.log(`Typechecked in ${typecheckerDuration} ms`)
