@@ -97,6 +97,7 @@ export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
 export type LiteralValue =
+  | { type: 'null' }
   | { type: 'bool'; value: Token<boolean> }
   | { type: 'number'; value: Token<number> }
   | { type: 'string'; value: Token<LiteralString> }

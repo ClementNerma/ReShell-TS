@@ -59,6 +59,8 @@ export const literalString: Parser<LiteralString> = mappedCases<LiteralString>()
 })
 
 export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('type', {
+  null: map(exact('null'), () => ({})),
+
   bool: map(
     oneOfMap([
       ['true', true],
