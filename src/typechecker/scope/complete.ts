@@ -2,9 +2,10 @@
 // 2. Discover scope sequentially using the items above
 
 import { FnType, StatementChain, ValueType } from '../../parsers/data'
-import { err, located, Located, success, TypecheckerArr } from '../base'
+import { located, Located, success, TypecheckerArr } from '../base'
 import { resolveExprType } from '../expr-type'
 import { ScopeFirstPass } from './first-pass'
+import { ensureScopeUnicity } from './search'
 import { typeValidator } from './type-validator'
 
 export type Scope = {
@@ -13,8 +14,12 @@ export type Scope = {
   variables: Map<string, Located<{ mutable: boolean; type: ValueType }>>
 }
 
-export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope> = (chain, scopeFirstPass) => {
-  const scope: Scope = { ...scopeFirstPass, variables: new Map() }
+export const completeScope: TypecheckerArr<StatementChain, { parents: Scope[]; firstPass: ScopeFirstPass }, Scope> = (
+  chain,
+  { parents, firstPass }
+) => {
+  const scope: Scope = { ...firstPass, variables: new Map() }
+  const scopes = parents.concat(scope)
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -24,27 +29,8 @@ export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope
         case 'variableDecl':
           const varname = sub.parsed.varname.parsed
 
-          const existing = scope.variables.get(varname)
-
-          if (existing) {
-            return err(
-              {
-                error: {
-                  message: 'A variable with this name was already declared in this scope',
-                  length: varname.length,
-                },
-                also: [
-                  {
-                    loc: existing.loc,
-                    length: varname.length,
-                    message: 'Original declaration occurs here',
-                    complements: [],
-                  },
-                ],
-              },
-              sub.parsed.varname.start
-            )
-          }
+          const unicity = ensureScopeUnicity([varname, sub.parsed.varname.start], { scopes })
+          if (!unicity.ok) return unicity
 
           let vartype: ValueType
 

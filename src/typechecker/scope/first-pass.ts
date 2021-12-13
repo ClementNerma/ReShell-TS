@@ -2,15 +2,17 @@
 // 2. Discover scope sequentially using the items above
 
 import { FnType, StatementChain, ValueType } from '../../parsers/data'
-import { err, located, Located, success, TypecheckerArr } from '../base'
+import { located, Located, success, TypecheckerArr } from '../base'
+import { Scope } from './complete'
+import { ensureScopeUnicity } from './search'
 
 export type ScopeFirstPass = {
   typeAliases: Map<string, Located<ValueType>>
   functions: Map<string, Located<FnType>>
 }
 
-export const scopeFirstPass: TypecheckerArr<StatementChain, void, ScopeFirstPass> = (chain) => {
-  const scope: ScopeFirstPass = { typeAliases: new Map(), functions: new Map() }
+export const scopeFirstPass: TypecheckerArr<StatementChain, Scope[], ScopeFirstPass> = (chain, parents) => {
+  const firstPass: ScopeFirstPass = { typeAliases: new Map(), functions: new Map() }
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -20,25 +22,23 @@ export const scopeFirstPass: TypecheckerArr<StatementChain, void, ScopeFirstPass
         case 'typeAlias':
           const typename = sub.parsed.typename.parsed
 
-          if (scope.typeAliases.has(typename)) {
-            return err('A type with this name was already declared in this scope', sub.parsed.typename.start)
-          }
+          const typeUnicity = ensureScopeUnicity([typename, sub.parsed.typename.start], { scopes: parents, firstPass })
+          if (!typeUnicity.ok) return typeUnicity
 
-          scope.typeAliases.set(typename, located(sub.start, sub.parsed.content.parsed))
+          firstPass.typeAliases.set(typename, located(sub.start, sub.parsed.content.parsed))
           break
 
         case 'fnDecl':
           const fnName = sub.parsed.name.parsed
 
-          if (scope.functions.has(fnName)) {
-            return err('A function with this name was already declared in this scope', sub.parsed.name.start)
-          }
+          const fnUnicity = ensureScopeUnicity([fnName, sub.parsed.name.start], { scopes: parents, firstPass })
+          if (!fnUnicity.ok) return fnUnicity
 
-          scope.functions.set(fnName, located(sub.start, sub.parsed.fnType))
+          firstPass.functions.set(fnName, located(sub.start, sub.parsed.fnType))
           break
       }
     }
   }
 
-  return success(scope)
+  return success(firstPass)
 }
