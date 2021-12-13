@@ -88,7 +88,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'string',
   }),
 
-  trace: _buildNativeLibraryFn({ args: () => [] }),
+  trace: _buildNativeLibraryFn({ args: () => [{ name: 'message', type: 'string', optional: true }] }),
 
   ls: _buildNativeLibraryFn({
     args: () => [{ name: 'path', type: 'path' }],

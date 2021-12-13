@@ -80,14 +80,20 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     ),
 
   trace: ({ pipeTo, at }, map) =>
-    withArguments(at, map, {}, () => {
+    withArguments(at, map, { message: { nullable: 'string' } }, ({ message }) => {
       const file: string = matchUnion(at.start.file, 'type', {
         entrypoint: ({ path }) => path,
         file: ({ path }) => path,
         internal: ({ path }) => `<internal:${path}>`,
       })
 
-      pipeTo.stdout.write(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}\n`)
+      let display = `[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`
+
+      if (message.type !== 'null') {
+        display += ' | ' + message.value
+      }
+
+      pipeTo.stdout.write(`${display}\n`)
 
       return success(null)
     }),
