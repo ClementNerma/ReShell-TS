@@ -13,19 +13,27 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     throw new Error('// TODO: type alias development')
   }
 
+  // typeExpectation =>
+  //   !== type => ERROR
+  //   === unknown -> OK void
+  //   else -> input
+  // else => input
+
   const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> =>
     typeExpectation && typeExpectation.type.inner.type !== type
-      ? errIncompatibleValueType({
-          typeExpectation,
-          foundType: type,
-          valueAt: value.at,
-        })
+      ? typeExpectation.type.inner.type !== 'unknown'
+        ? errIncompatibleValueType({
+            typeExpectation,
+            foundType: type,
+            valueAt: value.at,
+          })
+        : success(typeExpectation.type)
       : success({ nullable: false, inner: { type } })
 
   const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['inner']['type'], PrimitiveTypes['type']>>(
     type: T
   ): TypecheckerResult<Extract<ValueType['inner'], { type: T }> | void> =>
-    typeExpectation
+    typeExpectation && typeExpectation.type.inner.type !== 'unknown'
       ? typeExpectation.type.inner.type !== type
         ? errIncompatibleValueType({
             typeExpectation,
