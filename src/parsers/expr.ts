@@ -319,9 +319,10 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAct
   ),
 ])
 
-export const expr: Parser<Expr> = selfRef((expr) =>
-  map(combine(exprElement, takeWhile(exprSequenceAction)), ([from, { parsed: sequence }]) => ({
+export const expr: Parser<Expr> = map(
+  combine(exprElement, takeWhile(exprSequenceAction)),
+  ([from, { parsed: sequence }]) => ({
     from,
     sequence,
-  }))
+  })
 )
