@@ -88,18 +88,22 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     (segments) => ({ segments })
   ),
 
-  list: map(
-    combine(
-      exact('['),
-      takeWhile(
-        withLatelyDeclared(() => expr),
-        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+  list: or([
+    map(combine(exact('['), maybe_s_nl, exact(']')), (_) => ({ items: [] })),
+
+    map(
+      combine(
+        exact('['),
+        takeWhile(
+          withLatelyDeclared(() => expr),
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+        ),
+        exact(']', "Expected a closing bracket (]) to end the list's content"),
+        { inter: maybe_s_nl }
       ),
-      exact(']', "Expected a closing bracket (]) to end the list's content"),
-      { inter: maybe_s_nl }
+      ([_, { parsed: items }, __]) => ({ items })
     ),
-    ([_, { parsed: items }, __]) => ({ items })
-  ),
+  ]),
 
   map: map(
     combine(
