@@ -2,10 +2,12 @@ import { FnArg, FnType, Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, maybe } from './lib/conditions'
+import { notFollowedBy } from './lib/consumeless'
 import { contextualFailure, failure } from './lib/errors'
-import { maybe_s, maybe_s_nl, s } from './lib/littles'
+import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
+import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, getErrorInput, withLatelyDeclared } from './lib/utils'
 import { literalValue } from './literals'
@@ -21,8 +23,30 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         takeWhile(
           map(
             combine(
-              // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
-              contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
+              or<Pick<FnArg, 'flag' | 'name'>>([
+                map(
+                  combine(
+                    exact('-'),
+                    notFollowedBy(exact('-')),
+                    failure(unicodeSingleLetter, 'Expected a flag name'),
+                    notFollowedBy(unicodeSingleLetter, {
+                      error: {
+                        message: 'Expected a single-letter flag name',
+                        complements: [['Tip', 'To specify a multi-letters flag name, use a double dash "--"']],
+                      },
+                    })
+                  ),
+                  ([flag, __, name]) => ({ flag, name })
+                ),
+                map(combine(exact('--'), failure(identifier, 'Expected a flag name')), ([flag, name]) => ({
+                  flag,
+                  name,
+                })),
+                map(
+                  contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
+                  (_, name) => ({ flag: null, name })
+                ),
+              ]),
               map(
                 combine(
                   maybe_s,
@@ -59,8 +83,16 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                 )
               )
             ),
-            ([name, { parsed: optional }, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
+            ([
+              {
+                parsed: { name, flag },
+              },
+              { parsed: optional },
+              { parsed: type },
+              { parsed: defaultValue },
+            ]): FnArg => ({
               name,
+              flag,
               optional,
               type,
               defaultValue,
