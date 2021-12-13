@@ -292,6 +292,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()('type', {
 
   cmdCall: cmdCall(endOfCmdCallStatement),
 })
+  'Failed to parse statement'
 
 export const statementChainFree: Parser<StatementChain> = map(
   combine(
@@ -343,10 +344,10 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
 
 export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
   or([
+    map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
     failIfMatchesElse(
       matchStatementClose,
       withLatelyDeclared(() => statementChainFree)
     ),
-    map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
   ])
 )
