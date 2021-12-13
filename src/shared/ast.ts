@@ -32,14 +32,14 @@ export type Statement =
     }
   | {
       type: 'ifBlock'
-      cond: Token<ExprOrTypeAssertion>
+      cond: Token<CondOrTypeAssertion>
       then: Block
       elif: ElIfBlock[]
       els: Block | null
     }
   | { type: 'forLoop'; loopVar: Token<string>; subject: Token<ForLoopSubject>; body: Block }
   | { type: 'forLoopDuo'; keyVar: Token<string>; valueVar: Token<string>; subject: Token<Expr>; body: Block }
-  | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Block }
+  | { type: 'whileLoop'; cond: Token<CondOrTypeAssertion>; body: Block }
   | { type: 'continue' }
   | { type: 'break' }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
@@ -56,7 +56,7 @@ export type Statement =
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
 
-export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Block }
+export type ElIfBlock = { cond: Token<CondOrTypeAssertion>; body: Block }
 
 export type ForLoopSubject = { type: 'expr'; expr: Token<Expr> } | { type: 'range'; from: Token<Expr>; to: Token<Expr> }
 
@@ -90,7 +90,7 @@ export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] 
 
 export type ExprOrNever = { type: 'expr'; content: Token<Expr> } | Extract<Statement, { type: 'return' | 'panic' }>
 
-export type ExprOrTypeAssertion =
+export type CondOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; inverted: boolean; minimum: Token<TypeAssertionAgainst> }
 
@@ -107,7 +107,7 @@ export type ExprElementContent =
   | { type: 'paren'; inner: Token<Expr> }
   | {
       type: 'ternary'
-      cond: Token<ExprOrTypeAssertion>
+      cond: Token<CondOrTypeAssertion>
       then: Token<ExprOrNever>
       elif: ElIfExpr[]
       els: Token<ExprOrNever>
@@ -116,7 +116,7 @@ export type ExprElementContent =
   // Internal type
   | { type: 'synth'; inner: Token<Expr> }
 
-export type ElIfExpr = { cond: Token<ExprOrTypeAssertion>; expr: Token<ExprOrNever> }
+export type ElIfExpr = { cond: Token<CondOrTypeAssertion>; expr: Token<ExprOrNever> }
 
 export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
 

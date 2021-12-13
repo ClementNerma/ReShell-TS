@@ -9,7 +9,7 @@ import {
   withContinuationKeyword,
   withStatementClosingChar,
 } from './context'
-import { expr, exprOrTypeAssertion } from './expr'
+import { condOrTypeAssertion, expr } from './expr'
 import { fnDecl } from './fn'
 import { err, parseFile, Parser, success } from './lib/base'
 import { combine } from './lib/combinations'
@@ -66,7 +66,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ifBlock: map(
       combine(
         combine(exact('if'), s),
-        failure(exprOrTypeAssertion, 'expected a condition'),
+        failure(condOrTypeAssertion, 'expected a condition'),
         failure(s, 'expected a whitespace after the condition'),
         withContinuationKeyword(
           ['elif', 'else'],
@@ -77,7 +77,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             map(
               combine(
                 combine(maybe_s_nl, exact('elif'), s),
-                failure(exprOrTypeAssertion, 'expected a condition'),
+                failure(condOrTypeAssertion, 'expected a condition'),
                 failure(s, 'expected a whitespace after the condition'),
                 withContinuationKeyword(
                   ['else', 'elif'],
@@ -149,7 +149,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     whileLoop: map(
       combine(
         combine(exact('while'), s),
-        failure(exprOrTypeAssertion, 'expected a loop condition'),
+        failure(condOrTypeAssertion, 'expected a loop condition'),
         maybe_s_nl,
         withLatelyDeclared(() => blockBody)
       ),

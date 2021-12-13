@@ -1,10 +1,10 @@
 import {
+  CondOrTypeAssertion,
   ElIfExpr,
   Expr,
   ExprElement,
   ExprElementContent,
   ExprOrNever,
-  ExprOrTypeAssertion,
   TypeAssertionAgainst,
 } from '../shared/ast'
 import { Parser } from './lib/base'
@@ -61,7 +61,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
         combine(
           combine(exact('if'), s),
           failure(
-            withLatelyDeclared(() => exprOrTypeAssertion),
+            withLatelyDeclared(() => condOrTypeAssertion),
             'expected a condition'
           ),
           combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
@@ -76,7 +76,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
                 combine(
                   combine(exact('elif'), s),
                   failure(
-                    withLatelyDeclared(() => exprOrTypeAssertion),
+                    withLatelyDeclared(() => condOrTypeAssertion),
                     'expecting a condition'
                   ),
                   combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
@@ -149,7 +149,7 @@ export const typeAssertionAgainst: Parser<TypeAssertionAgainst> = mappedCases<Ty
   custom: map(valueType, (_, type) => ({ type })),
 })
 
-export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<ExprOrTypeAssertion>()('type', {
+export const condOrTypeAssertion: Parser<CondOrTypeAssertion> = mappedCases<CondOrTypeAssertion>()('type', {
   assertion: map(
     combine(
       identifier,

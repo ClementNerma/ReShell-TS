@@ -1,4 +1,4 @@
-import { Expr, ExprElement, ExprElementContent, ExprOrNever, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
+import { CondOrTypeAssertion, Expr, ExprElement, ExprElementContent, ExprOrNever, ValueType } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerResult } from '../base'
@@ -60,14 +60,18 @@ export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> 
     },
   })
 
-export const resolveExprOrTypeAssertionType: Typechecker<
-  Token<ExprOrTypeAssertion>,
+export const resolveCondOrTypeAssertionType: Typechecker<
+  Token<CondOrTypeAssertion>,
   | { type: 'expr'; resolved: ValueType }
   | { type: 'assertion'; normalAssertionScope: Scope; oppositeAssertionScope: Scope; inverted: boolean }
 > = (expr, ctx) => {
   switch (expr.parsed.type) {
     case 'expr': {
-      const resolved = resolveExprType(expr.parsed.inner, ctx)
+      const resolved = resolveExprType(expr.parsed.inner, {
+        ...ctx,
+        typeExpectation: { type: { type: 'bool' }, from: null },
+      })
+
       return resolved.ok ? success({ type: 'expr', resolved: resolved.data }) : resolved
     }
 
@@ -212,11 +216,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       }),
 
     ternary: ({ cond, then, elif, els }) => {
-      const condType = resolveExprOrTypeAssertionType(cond, {
-        ...ctx,
-        typeExpectation: { type: { type: 'bool' }, from: null },
-      })
-
+      const condType = resolveCondOrTypeAssertionType(cond, ctx)
       if (!condType.ok) return condType
 
       const thenType = resolveExprOrNeverType(
@@ -229,11 +229,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       if (!thenType.ok) return thenType
 
       for (const { cond, expr } of elif) {
-        const condType = resolveExprOrTypeAssertionType(cond, {
-          ...ctx,
-          typeExpectation: { type: { type: 'bool' }, from: then.at },
-        })
-
+        const condType = resolveCondOrTypeAssertionType(cond, ctx)
         if (!condType.ok) return condType
 
         const elifType = resolveExprOrNeverType(expr, {

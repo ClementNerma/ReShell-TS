@@ -9,7 +9,7 @@ import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { enumMatchingTypechecker } from './matching'
 import { getTypedEntityInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
-import { resolveExprOrTypeAssertionType, resolveExprType } from './types/expr'
+import { resolveCondOrTypeAssertionType, resolveExprType } from './types/expr'
 import { validateFnBody } from './types/fn'
 import { resolvePropAccessType } from './types/propaccess'
 import { rebuildType } from './types/rebuilder'
@@ -132,7 +132,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     ifBlock: ({ cond, then: body, elif, els }) => {
-      const condCheck = resolveExprOrTypeAssertionType(cond, {
+      const condCheck = resolveCondOrTypeAssertionType(cond, {
         ...ctx,
         typeExpectation: { type: { type: 'bool' }, from: null },
       })
@@ -151,7 +151,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       const blocksMetadata: StatementChainMetadata[] = []
 
       for (const { cond, body } of elif) {
-        const condCheck = resolveExprOrTypeAssertionType(cond, {
+        const condCheck = resolveCondOrTypeAssertionType(cond, {
           ...ctx,
           typeExpectation: { type: { type: 'bool' }, from: null },
         })
@@ -289,7 +289,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
     },
 
     whileLoop: ({ cond, body }) => {
-      const condCheck = resolveExprOrTypeAssertionType(cond, {
+      const condCheck = resolveCondOrTypeAssertionType(cond, {
         ...ctx,
         typeExpectation: { type: { type: 'bool' }, from: null },
       })
