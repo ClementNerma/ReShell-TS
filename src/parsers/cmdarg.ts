@@ -21,14 +21,14 @@ export const cmdFlag: Parser<CmdFlag> = map(
       ['--', false],
       ['-', true],
     ]),
-    failure(identifier, 'Syntax error: expected identifier after double dash'),
+    failure(identifier, 'Expected identifier after double dash'),
     maybe(
       map(
         combine(
           exact('='),
           failure(
             withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression'
+            'Expected an expression'
           )
         ),
         ([_, expr]) => expr

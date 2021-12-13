@@ -52,9 +52,9 @@ const engine = new Engine<Program, void, void, ProgramError>(program, programExe
       wrapper: chalk.reset,
       header: chalk.yellowBright,
       locationPointer: chalk.redBright,
-      errorMessage: chalk.redBright,
+      errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
       failedLine: chalk.cyanBright,
-      tip: chalk.cyanBright,
+      tip: chalk.yellowBright,
     },
   },
 })

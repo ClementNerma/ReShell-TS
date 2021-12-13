@@ -31,7 +31,7 @@ export const propertyAccess: Parser<PropertyAccess> = map(
     contextualFailure(
       nonNullablePropertyAccess,
       (ctx) => !ctx.combinationData!.lastWasNeutralError,
-      'Syntax error: expected a property index, key or member name after optional chaining operator (?.)'
+      'Expected a property index, key or member name after optional chaining operator (?.)'
     )
   ),
   ([{ parsed: nullable }, { parsed: access }]) => ({ nullable: nullable !== null, access })

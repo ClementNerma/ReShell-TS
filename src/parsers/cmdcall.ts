@@ -29,7 +29,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
                 callEndDetector,
                 failure(
                   withLatelyDeclared(() => cmdArg),
-                  'Syntax error: invalid argument provided'
+                  'Invalid argument provided'
                 )
               ),
               { inter: s }
@@ -46,7 +46,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
             maybe_s,
             failure(
               withLatelyDeclared(() => literalPath),
-              'Syntax error: expected a valid path after redirection operator'
+              'Expected a valid path after redirection operator'
             )
           ),
           ([op, _, path]): CmdRedir => ({ op, path })

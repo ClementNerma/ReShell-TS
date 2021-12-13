@@ -30,7 +30,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     variableDecl: map(
       combine(
         map(
-          combine(exact('let'), maybe(exact('mut')), failure(identifier, 'Syntax error: expected an identifier'), {
+          combine(exact('let'), maybe(exact('mut')), failure(identifier, 'Expected an identifier'), {
             inter: s,
           }),
           ([_, mutable, varname]) => ({ mutable, varname })
@@ -41,8 +41,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             ([_, type]) => type
           )
         ),
-        exact('=', 'Syntax error: expected an assignment'),
-        failure(expr, 'Syntax error: expected an expression'),
+        exact('=', 'Expected an assignment'),
+        failure(expr, 'Expected an expression'),
         { inter: maybe_s }
       ),
 
@@ -58,8 +58,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         identifier,
         takeWhile(propertyAccess),
-        combine(maybe(doubleArithOp), exact('=', 'Syntax error: expected an assignment')),
-        failure(expr, 'Syntax error: expected an expression'),
+        combine(maybe(doubleArithOp), exact('=', 'Expected an assignment')),
+        failure(expr, 'Expected an expression'),
         { inter: maybe_s }
       ),
       ([
@@ -77,43 +77,38 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
-    ifBlock: map(
-      combine(exact('if'), failure(expr, 'Syntax error: expected a condition'), { inter: s }),
-      ([_, cond]) => ({
-        cond,
-      })
-    ),
+    ifBlock: map(combine(exact('if'), failure(expr, 'Expected a condition'), { inter: s }), ([_, cond]) => ({
+      cond,
+    })),
 
     forLoop: map(
       combine(
         exact('for'),
-        failure(identifier, 'Syntax error: expected an identifier'),
-        exact('in', 'Syntax error: expected "in" keyword'),
-        failure(expr, 'Syntax error: expected an expression to iterate on'),
+        failure(identifier, 'Expected an identifier'),
+        exact('in', 'Expected "in" keyword'),
+        failure(expr, 'Expected an expression to iterate on'),
         { inter: s }
       ),
       ([_, loopvar, __, subject]) => ({ loopvar, subject })
     ),
 
-    whileLoop: map(
-      combine(exact('while'), failure(expr, 'Syntax error: expected a loop condition'), { inter: s }),
-      ([_, cond]) => ({ cond })
-    ),
+    whileLoop: map(combine(exact('while'), failure(expr, 'Expected a loop condition'), { inter: s }), ([_, cond]) => ({
+      cond,
+    })),
 
-    elifBlock: map(
-      combine(exact('elif'), failure(expr, 'Syntax error: expected a condition'), { inter: s }),
-      ([_, cond]) => ({ cond })
-    ),
+    elifBlock: map(combine(exact('elif'), failure(expr, 'Expected a condition'), { inter: s }), ([_, cond]) => ({
+      cond,
+    })),
 
     typeAlias: map(
       combine(
         exact('type'),
         s,
-        failure(identifier, 'Syntax error: expected a name for the type alias'),
+        failure(identifier, 'Expected a name for the type alias'),
         maybe_s,
-        failure(exact('='), 'Syntax error: expected an assignment (=) operator'),
+        failure(exact('='), 'Expected an assignment (=) operator'),
         maybe_s_nl,
-        failure(valueType, 'Syntax error: expected a type')
+        failure(valueType, 'Expected a type')
       ),
       ([_, __, typename, ___, ____, _____, content]) => ({ typename, content })
     ),
@@ -122,7 +117,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     cmdCall: cmdCall(endOfCmdCallStatement),
   },
-  'Syntax error: expected statement'
+  'Expected statement'
 )
 
 export const statementChainFree: Parser<StatementChain> = map(
@@ -133,9 +128,9 @@ export const statementChainFree: Parser<StatementChain> = map(
         endOfStatementChain,
         map(
           combine(
-            failure(statementChainOp, 'Syntax error: expected end of statement'),
+            failure(statementChainOp, 'Expected end of statement'),
             maybe_s_nl,
-            failure(statement, 'Syntax error: expected another statement')
+            failure(statement, 'Expected another statement')
           ),
           ([op, _, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
         )

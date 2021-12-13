@@ -55,14 +55,10 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           map(
             combine(
               failIf(lookahead(unicodeAlphanumericUnderscore), {
-                message: "Syntax error: expected either an identifier or the end of the map's content",
+                message: "Expected either an identifier or the end of the map's content",
                 tip: 'Key names in map values must be written between quotes',
               }),
-              contextualFailure(
-                literalString,
-                (ctx) => ctx.loopData?.iter !== 0,
-                'Syntax error: expected a map key name'
-              ),
+              contextualFailure(literalString, (ctx) => ctx.loopData?.iter !== 0, 'Expected a map key name'),
               exact(':'),
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
@@ -74,7 +70,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
+      exact(')', "Expected a closing parenthesis ')' to close the map's content"),
       {
         inter: maybe_s_nl,
       }
@@ -94,7 +90,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               contextualFailure(
                 identifier,
                 (ctx) => ctx.loopData?.iter !== 0,
-                'Syntax error: expected either a member name, or a closing brace (}) to close the structure'
+                'Expected either a member name, or a closing brace (}) to close the structure'
               ),
               exact(':'),
               withLatelyDeclared(() => expr),
@@ -107,7 +103,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           }
         )
       ),
-      exact('}', 'Syntax error: expected a closing brace (}) to close the structure'),
+      exact('}', 'Expected a closing brace (}) to close the structure'),
       {
         inter: maybe_s_nl,
       }
@@ -134,7 +130,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                   'expr'
                 ),
               }),
-              'Syntax error: invalid argument provided'
+              'Invalid argument provided'
             )
           ),
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
@@ -155,7 +151,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       ]),
       failure(
         withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
-        'Syntax error: expected inline command call'
+        'Expected inline command call'
       ),
       takeWhile<InlineChainedCmdCall>(
         map(
@@ -164,7 +160,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             statementChainOp,
             failure(
               withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
-              'Syntax error: expected inline command call after chaining operator'
+              'Expected inline command call after chaining operator'
             ),
             { inter: maybe_s_nl }
           ),
@@ -172,7 +168,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ),
         { inter: maybe_s }
       ),
-      exact(')', "Syntax error: expected closing paren ')' after inline command call"),
+      exact(')', "Expected closing paren ')' after inline command call"),
       { inter: maybe_s_nl }
     ),
     ([capture, start, { parsed: sequence }]) => ({ start, sequence, capture })
@@ -193,7 +189,7 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
       ['%', DoubleArithOp.Rem],
       ['??', DoubleArithOp.Null],
     ]),
-    failure(not(_opSym), 'Syntax error: unknown operator')
+    failure(not(_opSym), 'Unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -211,7 +207,7 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
       ['>', DoubleLogicOp.GreaterThan],
       ['<', DoubleLogicOp.LessThan],
     ]),
-    failure(not(_opSym), 'Syntax error: unknown operator')
+    failure(not(_opSym), 'Unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -222,7 +218,7 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
-  combine(oneOfMap([['!', SingleLogicOp.Not]]), failure(not(_opSym), 'Syntax error: unknown operator')),
+  combine(oneOfMap([['!', SingleLogicOp.Not]]), failure(not(_opSym), 'Unknown operator')),
   ([{ parsed: sym }]) => sym
 )
 
@@ -240,7 +236,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           singleOp,
           failure(
             withLatelyDeclared(() => simpleExpr),
-            'Syntax error: expected an expression after the operator'
+            'Expected an expression after the operator'
           ),
           { inter: maybe_s }
         ),
@@ -253,7 +249,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           exact('('),
           failure(
             withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression after an opening parenthesis'
+            'Expected an expression after an opening parenthesis'
           ),
           exact(')'),
           {
@@ -271,21 +267,21 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           exact('if'),
           failure(
             withLatelyDeclared(() => expr),
-            'Syntax error: expected a condition'
+            'Expected a condition'
           ),
-          exact('{', 'Syntax error: expected an opening brace ({) after the condition'),
+          exact('{', 'Expected an opening brace ({) after the condition'),
           failure(
             withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression in the "if" body'
+            'Expected an expression in the "if" body'
           ),
-          exact('}', 'Syntax error: expected a closing brace (}) to close the "if" body'),
-          exact('else', 'Syntax error: expected an "else" counterpart'),
-          exact('{', 'Syntax error: expected an opening brace ({) for the "else" counterpart'),
+          exact('}', 'Expected a closing brace (}) to close the "if" body'),
+          exact('else', 'Expected an "else" counterpart'),
+          exact('{', 'Expected an opening brace ({) for the "else" counterpart'),
           failure(
             withLatelyDeclared(() => expr),
-            'Syntax error: expected an expression in the "else" body'
+            'Expected an expression in the "else" body'
           ),
-          exact('}', 'Syntax error: expected a closing brace (}) to close the "else" body'),
+          exact('}', 'Expected a closing brace (}) to close the "else" body'),
           { inter: maybe_s_nl }
         ),
         ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
@@ -294,7 +290,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
       // value
       value: map(value, (_, content) => ({ content })),
     },
-    'Syntax error: failed to parse expression'
+    'Failed to parse expression'
   )
 )
 
@@ -302,7 +298,7 @@ export const exprSequenceAction: Parser<ExprSequenceAction> = or<ExprSequenceAct
   propertyAccess,
 
   map(
-    combine(maybe_s, doubleOp, failure(exprElement, 'Syntax error: expected an expression after operator'), {
+    combine(maybe_s, doubleOp, failure(exprElement, 'Expected an expression after operator'), {
       inter: maybe_s,
     }),
     ([_, op, right]) => ({

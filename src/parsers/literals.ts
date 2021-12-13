@@ -27,7 +27,7 @@ export const literalString: Parser<LiteralString> = mappedCases<LiteralString>()
     combine(
       exact('r"'),
       match(/([^\\"\n]|\\[^\n])*/),
-      exact('"', 'Syntax error: opened string has not been closed with a quote (")')
+      exact('"', 'Opened string has not been closed with a quote (")')
     ),
     ([_, content, __]) => ({ content })
   ),
@@ -45,14 +45,14 @@ export const literalString: Parser<LiteralString> = mappedCases<LiteralString>()
                 withLatelyDeclared(() => expr),
                 'Failed to parse the inner expression'
               ),
-              exact('}', 'Syntax error: expected a closing brace (}) to close the inner expression'),
+              exact('}', 'Expected a closing brace (}) to close the inner expression'),
               { inter: maybe_s_nl }
             ),
             ([_, expr, __]) => ({ type: 'expr', expr })
           ),
         ])
       ),
-      exact('"', 'Syntax error: opened string has not been closed with a quote (")')
+      exact('"', 'Opened string has not been closed with a quote (")')
     ),
     ([_, { parsed: segments }, __]) => ({ segments })
   ),
@@ -90,7 +90,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
   closure: map(
     combine(
       fnType,
-      exact('{', "Syntax error: expected an opening brace ({) for the closure's content"),
+      exact('{', "Expected an opening brace ({) for the closure's content"),
       withStatementClose(
         '}',
         takeForever(
@@ -100,7 +100,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
           )
         )
       ),
-      exact('}', "Syntax error: expected a closing brace (}) after the closure's content"),
+      exact('}', "Expected a closing brace (}) after the closure's content"),
       { inter: maybe_s_nl }
     ),
     ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })

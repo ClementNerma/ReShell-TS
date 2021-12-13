@@ -55,11 +55,11 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
           takeWhile1N(
             map(
               combine(
-                failure(identifier, 'Syntax error: expected a member name'),
-                exact(':', 'Syntax error: expected a semicolon (:) type separator'),
+                failure(identifier, 'Expected a member name'),
+                exact(':', 'Expected a semicolon (:) type separator'),
                 failure(
                   withLatelyDeclared(() => valueType),
-                  'Syntax error: expected a type annotation for this member'
+                  'Expected a type annotation for this member'
                 ),
                 { inter: maybe_s_nl }
               ),
@@ -72,7 +72,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
             }
           )
         ),
-        exact('}', "Syntax error: expected a closing brace (}) after the list of the struct's members"),
+        exact('}', "Expected a closing brace (}) after the list of the struct's members"),
         { inter: maybe_s_nl }
       ),
       ([_, members, __]) => ({ members })
@@ -83,10 +83,9 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
       (fnType) => ({ fnType })
     ),
 
-    aliasRef: map(
-      combine(exact('@'), failure(identifier, 'Syntax error: expected a type alias name')),
-      ([_, typeAliasName]) => ({ typeAliasName })
-    ),
+    aliasRef: map(combine(exact('@'), failure(identifier, 'Expected a type alias name')), ([_, typeAliasName]) => ({
+      typeAliasName,
+    })),
 
     unknown: map(exact('unknown'), () => ({})),
   },
@@ -94,7 +93,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
   [
     OrErrorStrategy.FallbackFn,
     (input, _, __, ___) =>
-      addTipIf('Syntax error: invalid type', startsWithLetter(input), 'Type aliases must be prefixed by a "@" symbol'),
+      addTipIf('Invalid type', startsWithLetter(input), 'Type aliases must be prefixed by a "@" symbol'),
   ]
 )
 
@@ -113,18 +112,18 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }),
         ([_, { parsed: name }]) => name
       ),
-      exact('(', "Syntax error: expected an open paren '('"),
+      exact('(', "Expected an open paren '('"),
       takeWhile(
         map(
           combine(
             // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
-            contextualFailure(identifier, (ctx) => ctx.loopData?.iter !== 0, 'Syntax error: expected an argument name'),
+            contextualFailure(identifier, (ctx) => ctx.loopData?.iter !== 0, 'Expected an argument name'),
             maybe(exact('?')),
-            exact(':', "Syntax error: expected a semicolon (:) separator for the argument's type"),
-            failure(valueType, 'Syntax error: expected a type for the argument'),
+            exact(':', "Expected a semicolon (:) separator for the argument's type"),
+            failure(valueType, 'Expected a type for the argument'),
             maybeFlatten(
               map(
-                combine(exact('='), failure(literalValue, 'Syntax error: expected a default value'), {
+                combine(exact('='), failure(literalValue, 'Expected a default value'), {
                   inter: maybe_s_nl,
                 }),
                 ([_, defaultValue]) => defaultValue
@@ -145,10 +144,10 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
           interMatchingMakesExpectation: true,
         }
       ),
-      exact(')', "Syntax error: expected a closing paren ')'"),
+      exact(')', "Expected a closing paren ')'"),
       maybeFlatten(
         map(
-          combine(exact('->'), failure(valueType, 'Syntax error: expected a return type'), { inter: maybe_s_nl }),
+          combine(exact('->'), failure(valueType, 'Expected a return type'), { inter: maybe_s_nl }),
           ([_, returnType]) => returnType
         )
       ),
