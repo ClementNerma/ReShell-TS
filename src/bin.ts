@@ -45,7 +45,8 @@ const errorFormatters: ErrorParsingFormatters = {
   complement: chalk.cyanBright,
 }
 
-const kb = (bytes: number) => (bytes / 1024).toFixed(2)
+const kb = (bytes: number) => (bytes / 1024).toFixed(2).padStart(8, ' ') + ' kB'
+const ms = (ms: number) => ms.toString().padStart(5, ' ') + ' ms'
 
 const measurePerf = <T>(runner: () => T): [number, T] => {
   const started = Date.now()
@@ -75,11 +76,11 @@ if (decompressed.toString('utf-8') !== jsonStr) {
 }
 
 const infos = [
-  `Parsed (in ${iter} repeats) ${kb(source.length * iter)} kB in ${parsedDuration} ms`,
-  `Full AST JSON weights ${kb(JSON.stringify(parsed.data, null, 4).length)} kB`,
-  `Minimified AST JSON to ${kb(JSON.stringify(parsed.data).length)} kB`,
-  `Compressed (max) to ${kb(compressed.byteLength)} kB in ${compressDuration} ms`,
-  `Decompressed (max) in ${decompressDuration} ms`,
+  `Parsed              | ${ms(parsedDuration)} | ${kb(source.length * iter)}`,
+  `Full       AST JSON |          | ${kb(JSON.stringify(parsed.data, null, 4).length)}`,
+  `Minimified AST JSON |          | ${kb(JSON.stringify(parsed.data).length)}`,
+  `Compressed (max)    | ${ms(compressDuration)} | ${kb(compressed.byteLength)}`,
+  `Decompressed (max)  | ${ms(decompressDuration)} |`,
 ]
 
 if (argv[1] === '--ast' || argv[2] === '--ast') {
@@ -98,4 +99,4 @@ if (!typechecked.ok) {
 console.dir(typechecked.data, { depth: null })
 
 infos.forEach((info) => console.log(info))
-console.log(`Typechecked in ${typecheckerDuration} ms`)
+console.log(`Typechecked         | ${ms(typecheckerDuration)} |`)
