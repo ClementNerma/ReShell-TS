@@ -32,24 +32,6 @@ import { valueType } from './types'
 export const statement: Parser<Statement> = mappedCases<Statement>()(
   'type',
   {
-    return: map(
-      combine(
-        exact('return'),
-        maybe(
-          map(
-            combine(
-              failIfMatches(lookahead(matchStatementClose)),
-              map(combine(s, expr), ([_, expr]) => expr)
-            ),
-            ([_, { parsed: expr }]) => expr
-          )
-        )
-      ),
-      ([_, { parsed: expr }]) => ({
-        expr,
-      })
-    ),
-
     variableDecl: map(
       combine(
         map(
@@ -262,6 +244,24 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         body,
         __,
       ]) => ({ name, fnType, body })
+    ),
+
+    return: map(
+      combine(
+        exact('return'),
+        maybe(
+          map(
+            combine(
+              failIfMatches(lookahead(matchStatementClose)),
+              map(combine(s, expr), ([_, expr]) => expr)
+            ),
+            ([_, { parsed: expr }]) => expr
+          )
+        )
+      ),
+      ([_, { parsed: expr }]) => ({
+        expr,
+      })
     ),
 
     throw: map(combine(exact('throw'), s, failure(expr, 'expected a value to throw')), ([_, __, expr]) => ({
