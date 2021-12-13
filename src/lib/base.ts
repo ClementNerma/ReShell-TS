@@ -5,7 +5,7 @@ export type ParserSucess<T> = {
   data: Token<T>
 }
 
-export type Token<T> = { parsed: T; matched: string; neutralError?: boolean; start: ParserLoc; next: ParserLoc }
+export type Token<T> = { parsed: T; matched: string; neutralError: boolean; start: ParserLoc; next: ParserLoc }
 
 export type ParserErr = {
   ok: false
@@ -53,7 +53,7 @@ export function success<T>(
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
-    data: { matched, parsed, neutralError, start, next },
+    data: { matched, parsed, neutralError: neutralError ?? false, start, next },
   }
 }
 
