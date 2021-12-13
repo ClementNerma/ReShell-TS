@@ -2,6 +2,7 @@ import { PropertyAccess, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
+import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
 export const resolvePropAccessType: Typechecker<
@@ -39,6 +40,13 @@ export const resolvePropAccessType: Typechecker<
     switch (propAccess.parsed.access.type) {
       case 'refIndex':
         if (previousIterType.type === 'list') {
+          const check = resolveExprType(propAccess.parsed.access.index, {
+            ...ctx,
+            typeExpectation: { from: null, type: { type: 'number' } },
+          })
+
+          if (!check.ok) return check
+
           previousIterType = previousIterType.itemsType
         } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'list') {
           if (!propAccess.parsed.nullable) {
@@ -48,6 +56,39 @@ export const resolvePropAccessType: Typechecker<
               also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
             })
           }
+
+          const check = resolveExprType(propAccess.parsed.access.index, {
+            ...ctx,
+            typeExpectation: { from: null, type: { type: 'number' } },
+          })
+
+          if (!check.ok) return check
+
+          previousIterType = { type: 'nullable', inner: previousIterType.inner.itemsType }
+        } else if (previousIterType.type === 'map') {
+          const check = resolveExprType(propAccess.parsed.access.index, {
+            ...ctx,
+            typeExpectation: { from: null, type: { type: 'string' } },
+          })
+
+          if (!check.ok) return check
+
+          previousIterType = previousIterType.itemsType
+        } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'map') {
+          if (!propAccess.parsed.nullable) {
+            return err(upToPrevPropAccessSection, {
+              message: 'cannot access index of a nullable map',
+              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
+              also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
+            })
+          }
+
+          const check = resolveExprType(propAccess.parsed.access.index, {
+            ...ctx,
+            typeExpectation: { from: null, type: { type: 'string' } },
+          })
+
+          if (!check.ok) return check
 
           previousIterType = { type: 'nullable', inner: previousIterType.inner.itemsType }
         } else {
