@@ -75,8 +75,8 @@ export function getContextuallyResolvedGeneric(
   name: string,
   orig: CodeSection
 ): { mapped: ValueType | null } | undefined {
-  for (const gScope of resolvedGenerics.reverse()) {
-    const got = getResolvedGenericInSingleScope(gScope, name, orig)
+  for (let s = resolvedGenerics.length - 1; s >= 0; s--) {
+    const got = getResolvedGenericInSingleScope(resolvedGenerics[s], name, orig)
     if (got) return got
   }
 

@@ -118,8 +118,8 @@ export const isTypeCompatible: Typechecker<
   referent = developedReferent.data
 
   if (referent.type === 'generic') {
-    for (const gScope of ctx.resolvedGenerics.reverse()) {
-      const generic = getResolvedGenericInSingleScope(gScope, referent.name.parsed, referent.orig)
+    for (let s = ctx.resolvedGenerics.length - 1; s >= 0; s--) {
+      const generic = getResolvedGenericInSingleScope(ctx.resolvedGenerics[s], referent.name.parsed, referent.orig)
 
       if (generic !== undefined) {
         if (generic.mapped === null) {

@@ -1,8 +1,8 @@
 import { ValueType } from '../shared/ast'
-import { isLocEq } from '../shared/loc-cmp'
 import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
+import { getGenericInScope } from './scope'
 
 export function checkTypeCompatibilityAndClone(
   at: CodeSection,
@@ -92,15 +92,11 @@ export function checkTypeCompatibilityAndClone(
     void: () => err(at, 'internal error: found "void" type in type assertion'),
 
     generic: ({ name, orig }) => {
-      for (const scope of ctx.scopes.reverse()) {
-        const generic = scope.generics.find((g) => g.name === name.parsed && isLocEq(g.orig.start, orig.start))
+      const generic = getGenericInScope({ name, orig }, ctx)
 
-        if (generic !== undefined) {
-          return checkTypeCompatibilityAndClone(at, value, generic.resolved, ctx)
-        }
-      }
-
-      return err(name.at, 'internal error: generic was not found')
+      return generic.ok === true
+        ? checkTypeCompatibilityAndClone(at, value, generic.data, ctx)
+        : err(name.at, 'internal error: generic was not found')
     },
   })
 }

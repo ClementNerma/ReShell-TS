@@ -23,11 +23,11 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
     assignment: ({ varname, propAccesses, prefixOp, listPush, expr }) => {
       let found: { scope: Scope; target: ExecValue } | null = null
 
-      for (const scope of ctx.scopes.reverse()) {
-        const entityValue = scope.entities.get(varname.parsed)
+      for (let s = ctx.scopes.length - 1; s >= 0; s--) {
+        const entityValue = ctx.scopes[s].entities.get(varname.parsed)
 
         if (entityValue) {
-          found = { scope, target: entityValue }
+          found = { scope: ctx.scopes[s], target: entityValue }
           break
         }
       }
@@ -116,13 +116,14 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
 
       const check = expectValueType(cond.at, result.data.result, 'bool')
       if (check.ok !== true) return check
-      if (check.data.value)
+      if (check.data.value) {
         return runBlock(
           then,
           result.data.type === 'assertion'
             ? { ...ctx, scopes: ctx.scopes.concat([result.data.normalAssertionScope]) }
             : ctx
         )
+      }
 
       for (const { cond, body } of elif) {
         const result = runCondOrTypeAssertion(cond.parsed, ctx)

@@ -43,8 +43,8 @@ export const completeGenericsDefinition = (
   name: Token<string>,
   context: CustomContext
 ): FailableMapped<{ name: Token<string>; orig: CodeSection }> => {
-  for (const defs of context.genericsDefinitions.reverse()) {
-    const orig = defs.get(name.parsed)
+  for (let i = context.genericsDefinitions.length - 1; i >= 0; i--) {
+    const orig = context.genericsDefinitions[i].get(name.parsed)
     if (orig) return { ok: true, data: { name, orig } }
   }
 

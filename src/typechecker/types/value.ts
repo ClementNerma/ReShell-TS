@@ -15,9 +15,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let { typeExpectation } = ctx
 
   if (typeExpectation?.type.type === 'generic') {
-    for (const gScope of ctx.resolvedGenerics.reverse()) {
+    for (let s = ctx.resolvedGenerics.length - 1; s >= 0; s--) {
       const generic = getResolvedGenericInSingleScope(
-        gScope,
+        ctx.resolvedGenerics[s],
         typeExpectation.type.name.parsed,
         typeExpectation.type.orig
       )

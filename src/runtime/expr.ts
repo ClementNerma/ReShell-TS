@@ -12,6 +12,7 @@ import { getOpPrecedence } from '../shared/constants'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
+import { getEntityInScope } from './scope'
 import { checkTypeCompatibilityAndClone } from './utils'
 import { expectValueType, runValue } from './value'
 
@@ -457,58 +458,43 @@ export const runCondOrTypeAssertion: Runner<
 > = (cond, ctx) =>
   matchUnion(cond, 'type', {
     assertion: ({ varname, minimum, inverted }) => {
-      let target: ExecValue | null = null
-
-      for (const scope of ctx.scopes.reverse()) {
-        const entity = scope.entities.get(varname.parsed)
-
-        if (entity) {
-          target = entity
-          break
-        }
-      }
-
-      if (target === null) {
-        return err(varname.at, 'internal error: variable not found in scope')
-      }
-
-      // FIX: required due to a bug in TypeScript's typechecker
-      const defTarget = target
+      const target = getEntityInScope(varname, ctx)
+      if (target.ok !== true) return target
 
       const normalScope: Scope['entities'] = new Map()
       const oppositeScope: Scope['entities'] = new Map()
 
       const result: RunnerResult<boolean> = matchUnion(minimum.parsed, 'against', {
-        null: () => success(defTarget.type === 'null'),
+        null: () => success(target.data.type === 'null'),
 
         ok: () => {
-          if (defTarget.type !== 'failable') {
+          if (target.data.type !== 'failable') {
             return err(
               varname.at,
-              `internal error: expected a failable value for this type assertion, found internal type "${defTarget.type}"`
+              `internal error: expected a failable value for this type assertion, found internal type "${target.data.type}"`
             )
           }
 
-          const targetScope = defTarget.success ? normalScope : oppositeScope
-          targetScope.set(varname.parsed, defTarget.value)
-          return success(defTarget.success)
+          const targetScope = target.data.success ? normalScope : oppositeScope
+          targetScope.set(varname.parsed, target.data.value)
+          return success(target.data.success)
         },
 
         err: () => {
-          if (defTarget.type !== 'failable') {
+          if (target.data.type !== 'failable') {
             return err(
               varname.at,
-              `internal error: expected a failable value for this type assertion, found internal type "${defTarget.type}"`
+              `internal error: expected a failable value for this type assertion, found internal type "${target.data.type}"`
             )
           }
 
-          const targetScope = defTarget.success ? oppositeScope : normalScope
-          targetScope.set(varname.parsed, defTarget.value)
-          return success(!defTarget.success)
+          const targetScope = target.data.success ? oppositeScope : normalScope
+          targetScope.set(varname.parsed, target.data.value)
+          return success(!target.data.success)
         },
 
         custom: ({ type }) => {
-          const cloned = checkTypeCompatibilityAndClone(minimum.at, defTarget, type.parsed, ctx)
+          const cloned = checkTypeCompatibilityAndClone(minimum.at, target.data, type.parsed, ctx)
           if (cloned.ok !== true) return cloned
           if (cloned.data === false) return success(false)
 

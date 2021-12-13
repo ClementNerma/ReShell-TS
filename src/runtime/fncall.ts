@@ -19,8 +19,8 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
     | { type: 'native'; exec: NativeFn }
     | null = null
 
-  for (const scope of ctx.scopes.reverse()) {
-    const entity = scope.entities.get(name.parsed)
+  for (let s = ctx.scopes.length - 1; s >= 0; s--) {
+    const entity = ctx.scopes[s].entities.get(name.parsed)
 
     if (entity) {
       if (entity.type === 'fn') {

@@ -7,6 +7,7 @@ import { runInlineCmdCall } from './cmdcall'
 import { runExpr } from './expr'
 import { executeFnCall } from './fncall'
 import { nativeLibraryVariables } from './native-lib'
+import { getEntityInScope } from './scope'
 
 export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
   matchUnion(value.parsed, 'type', {
@@ -203,13 +204,8 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
     inlineCmdCall: ({ content }) => runInlineCmdCall(content, ctx),
 
     reference: ({ varname }) => {
-      for (const scope of ctx.scopes.reverse()) {
-        const value = scope.entities.get(varname.parsed)
-
-        if (value && value.type !== 'rest') {
-          return success(value)
-        }
-      }
+      const value = getEntityInScope(varname, ctx)
+      if (value.ok === true) return success(value.data)
 
       const nativeVar = nativeLibraryVariables.get(varname.parsed)
       return nativeVar ? success(nativeVar(ctx)) : err(varname.at, 'internal error: reference not found in scope')

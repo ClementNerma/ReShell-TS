@@ -3,6 +3,7 @@ import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerContext, RunnerResult, success } from './base'
 import { runExpr } from './expr'
+import { getEntityInScope } from './scope'
 import { runValue } from './value'
 
 export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
@@ -38,15 +39,8 @@ export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
     },
 
     rest: ({ varname }) => {
-      for (const scope of ctx.scopes.reverse()) {
-        const entity = scope.entities.get(varname.parsed)
-
-        if (entity) {
-          return stringifyExecValue(varname.at, entity, ctx)
-        }
-      }
-
-      return err(varname.at, 'internal error: variable not found')
+      const value = getEntityInScope(varname, ctx)
+      return value.ok === true ? stringifyExecValue(varname.at, value.data, ctx) : value
     },
   })
 
