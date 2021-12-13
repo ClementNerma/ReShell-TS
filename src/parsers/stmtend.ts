@@ -24,10 +24,8 @@ export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
   ['<', CmdRedirOp.Input],
 ])
 
-export const endOfInner: Parser<void> = lookahead(
-  combine(maybe_s_nl, or<unknown>([statementChainOp, matchStatementClose]))
+export const endOfInlineCmdCall: Parser<void> = lookahead(
+  combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, matchStatementClose]))
 )
 
-export const endOfCmdCall: Parser<void> = lookahead(
-  or<unknown>([combine(maybe_s, or<unknown>([cmdRedirOp, eol()])), endOfInner])
-)
+export const endOfCmdCall: Parser<void> = lookahead(or<unknown>([combine(maybe_s, eol()), endOfInlineCmdCall]))

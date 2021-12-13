@@ -1,6 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { ifThenElse } from '../lib/conditions'
+import { ifThenElse, maybe } from '../lib/conditions'
 import { fail, lookahead, not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
@@ -8,10 +8,11 @@ import { takeWhile } from '../lib/loops'
 import { exact, oneOf } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, mapFull, silence, toOneProp } from '../lib/transform'
-import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { flattenMaybeToken, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdArg } from './cmdarg'
 import {
   CmdArg,
+  CmdRedir,
   DoubleArithOp,
   DoubleLogicOp,
   DoubleOp,
@@ -24,42 +25,56 @@ import {
   SingleOp,
   Value,
 } from './data'
-import { literalValue } from './literals'
-import { endOfInner, statementChainOp } from './stmtend'
+import { literalPath, literalValue } from './literals'
+import { cmdRedirOp, endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 
-export const inlineCmdCall: Parser<InlineCmdCall> = or<InlineCmdCall>(
-  [
-    map(combine(identifier, lookahead(endOfInner)), ([name, _]) => ({
-      name,
-      args: [],
-    })),
-    map(
-      combine(
-        identifier,
-        takeWhile(
-          ifThenElse<CmdArg>(
-            lookahead(endOfInner),
-            fail(),
-            failure(
-              withLatelyDeclared(() => cmdArg),
-              'Syntax error: invalid argument provided'
-            )
+export const inlineCmdCall: Parser<InlineCmdCall> = map(
+  combine(
+    or([
+      map(combine(identifier, lookahead(endOfInlineCmdCall)), ([name, _]) => ({
+        name,
+        args: [],
+      })),
+      map(
+        combine(
+          identifier,
+          takeWhile(
+            ifThenElse<CmdArg>(
+              lookahead(endOfInlineCmdCall),
+              fail(),
+              failure(
+                withLatelyDeclared(() => cmdArg),
+                'Syntax error: invalid argument provided'
+              )
+            ),
+            {
+              inter: s,
+            }
           ),
           {
             inter: s,
           }
         ),
-        {
-          inter: s,
-        }
+        ([name, args]) => ({
+          name,
+          args: args.parsed ?? [],
+        })
       ),
-      ([name, args]) => ({
-        name,
-        args: args.parsed ?? [],
-      })
+    ]),
+    maybe(
+      map(
+        combine(
+          cmdRedirOp,
+          maybe_s,
+          failure(literalPath, 'Syntax error: expected a valid path after redirection operator')
+        ),
+        ([op, _, path]): CmdRedir => ({ op, path })
+      )
     ),
-  ],
+    { inter: maybe_s }
+  ),
+  ([nameAndArgs, redir]) => ({ ...nameAndArgs.parsed, redir: flattenMaybeToken(redir) }),
   'Syntax error: expected inline command call'
 )
 

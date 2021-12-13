@@ -105,7 +105,7 @@ export type LiteralString =
 
 export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
 
-export type InlineCmdCall = { name: Token<string>; args: Token<CmdArg>[] }
+export type InlineCmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
 export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
 
