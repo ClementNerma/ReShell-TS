@@ -151,31 +151,6 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     continue: exact('continue'),
     break: exact('break'),
 
-    tryBlock: map(
-      combine(
-        exact('try'),
-        maybe_s_nl,
-        withContinuationKeyword(
-          ['catch'],
-          withLatelyDeclared(() => blockBody)
-        ),
-        map(
-          combine(
-            combine(maybe_s_nl, exact('catch', 'expected a "catch" clause'), s),
-            failure(identifier, 'expected an identifier for the "catch" clause'),
-            maybe_s_nl
-          ),
-          ([_, catchVarname]) => catchVarname
-        ),
-        withLatelyDeclared(() => blockBody)
-      ),
-      ([_, __, { parsed: body }, { parsed: catchVarname }, { parsed: catchBody }]) => ({
-        body,
-        catchVarname,
-        catchBody,
-      })
-    ),
-
     typeAlias: map(
       combine(
         exact('type'),
@@ -239,10 +214,6 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         expr,
       })
     ),
-
-    throw: map(combine(exact('throw'), s, failure(expr, 'expected a value to throw')), ([_, __, expr]) => ({
-      expr,
-    })),
 
     panic: map(combine(exact('panic'), s, expr), ([{ parsed: category }, _, message]) => ({ category, message })),
 

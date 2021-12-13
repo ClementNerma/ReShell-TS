@@ -7,7 +7,6 @@ import {
   ExprOrTypeAssertion,
   ValueType,
 } from '../shared/ast'
-import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches } from './lib/conditions'
@@ -108,46 +107,6 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
         ([_, cond, __, then, ___, { parsed: elif }, ____, els]) => ({ cond, then, elif, els })
       ),
 
-      try: map(
-        combine(
-          combine(exact('try'), maybe_s_nl),
-          map(
-            combine(
-              combine(exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-              withStatementClosingChar(
-                '}',
-                withLatelyDeclared(() => expr)
-              ),
-              combine(maybe_s_nl, exact('}', "expected a closing brace (}) to close the block's content"))
-            ),
-            ([_, expr, __]) => expr
-          ),
-          map(
-            combine(
-              combine(maybe_s_nl, exact('catch', 'expected a "catch" clause'), s),
-              failure(identifier, 'expected an identifier for the "catch" clause')
-            ),
-            ([_, catchVarname]) => catchVarname
-          ),
-          map(
-            combine(
-              combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
-              withStatementClosingChar(
-                '}',
-                withLatelyDeclared(() => exprOrNever)
-              ),
-              combine(maybe_s_nl, exact('}', "expected a closing brace (}) to close the block's content"))
-            ),
-            ([_, expr]) => expr
-          )
-        ),
-        ([_, { parsed: trying }, { parsed: catchVarname }, { parsed: catchExpr }]) => ({
-          trying,
-          catchVarname,
-          catchExpr,
-        })
-      ),
-
       // value
       value: map(value, (_, content) => ({ content })),
 
@@ -223,7 +182,6 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
 })
 
 export const exprOrNever: Parser<ExprOrNever> = mappedCases<ExprOrNever>()('type', {
-  throw: map(combine(exact('throw'), s, expr), ([_, __, expr]) => ({ expr })),
   return: map(combine(exact('return'), s, expr), ([_, __, expr]) => ({ expr })),
   panic: map(combine(exact('panic'), s, expr), ([_, __, message]) => ({ message })),
   expr: toOneProp('content', expr),

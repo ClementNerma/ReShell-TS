@@ -14,10 +14,8 @@ export type TypecheckerContext = {
   typeExpectationNature: null | string
   fnExpectation: null | {
     returnType: { type: ValueType; from: CodeSection } | null
-    failureType: { type: ValueType; from: CodeSection } | null
   }
   restArgs: string[]
-  expectedFailureWriter: null | { ref: null | { at: CodeSection; content: ValueType } }
   commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
@@ -36,7 +34,6 @@ export function createTypecheckerContext(
     typeExpectationNature: null,
     fnExpectation: null,
     restArgs: [],
-    expectedFailureWriter: null,
     commandDeclarations: new Map(),
     checkIfCommandExists: cmdChecker,
     emitDiagnostic: diagnosticHandler,

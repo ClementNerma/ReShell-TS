@@ -15,7 +15,7 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
         : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
     enum: ({ variants }) =>
       noDepth === true ? 'enum' : `enum { ${variants.map((variant) => variant.parsed).join(', ')} }`,
-    fn: ({ fnType: { args, returnType, failureType } }) =>
+    fn: ({ fnType: { args, returnType } }) =>
       noDepth === true
         ? 'fn'
         : `fn(${args
@@ -25,13 +25,7 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
                   defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
                 }`
             )
-            .join(', ')})${
-            returnType || failureType
-              ? ` -> ${returnType ? rebuildType(returnType.parsed) : 'void'}${
-                  failureType ? ' throws ' + rebuildType(failureType.parsed) : ''
-                }`
-              : ''
-          }`,
+            .join(', ')})${returnType ? ` -> ${rebuildType(returnType.parsed)}` : ''}`,
     aliasRef: ({ typeAliasName }) => typeAliasName.parsed,
     nullable: ({ inner }) => '?' + rebuildType(inner, noDepth),
     failable: ({ successType, failureType }) =>

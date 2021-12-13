@@ -45,12 +45,6 @@ export type Statement =
   | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
   | { type: 'continue' }
   | { type: 'break' }
-  | {
-      type: 'tryBlock'
-      body: Token<StatementChain>[]
-      catchVarname: Token<string>
-      catchBody: Token<StatementChain>[]
-    }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'enumDecl'; typename: Token<string>; variants: Token<string>[] }
   | {
@@ -60,7 +54,6 @@ export type Statement =
     }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'return'; expr: Token<Expr> | null }
-  | { type: 'throw'; expr: Token<Expr> }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'cmdCall'; content: CmdCall }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
@@ -98,9 +91,7 @@ export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
 export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
 
-export type ExprOrNever =
-  | { type: 'expr'; content: Token<Expr> }
-  | Extract<Statement, { type: 'throw' | 'return' | 'panic' }>
+export type ExprOrNever = { type: 'expr'; content: Token<Expr> } | Extract<Statement, { type: 'return' | 'panic' }>
 
 export type ExprOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
@@ -119,7 +110,6 @@ export type ExprElementContent =
       elif: ElIfExpr[]
       els: Token<ExprOrNever>
     }
-  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<ExprOrNever> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
   // Internal type
   | { type: 'synth'; inner: Token<Expr> }
@@ -210,7 +200,6 @@ export type FnType = {
   args: Token<FnArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null
-  failureType: Token<ValueType> | null
 }
 
 export type FnArg = {

@@ -2,7 +2,7 @@ import { StatementChain, ValueType } from '../shared/ast'
 import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { enumMatchingTypechecker } from './matching'
@@ -357,34 +357,6 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         return success({ neverEnds: true })
       },
 
-      tryBlock: ({ body, catchVarname, catchBody }) => {
-        const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
-
-        const bodyChecker = statementChainChecker(body, { ...ctx, expectedFailureWriter: wrapper })
-        if (!bodyChecker.ok) return bodyChecker
-
-        if (wrapper.ref === null) {
-          return err(catchVarname.at, {
-            message: "failed to determine the catch clause's variable type",
-            complements: [
-              [
-                'tip',
-                "you must use a failable instruction like a function call or a throw instruction inside the try's body",
-              ],
-            ],
-          })
-        }
-
-        return statementChainChecker(catchBody, {
-          ...ctx,
-          scopes: ctx.scopes.concat([
-            new Map([
-              [catchVarname.parsed, { type: 'var', at: catchVarname.at, mutable: false, varType: wrapper.ref.content }],
-            ]),
-          ]),
-        })
-      },
-
       // Nothing to do here, already handled in first pass
       typeAlias: () => success({ neverEnds: false }),
       // Same here
@@ -435,45 +407,6 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         }
 
         const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
-        return resolved.ok ? success({ neverEnds: true }) : resolved
-      },
-
-      throw: ({ expr }) => {
-        if (ctx.expectedFailureWriter) {
-          if (ctx.expectedFailureWriter.ref !== null) {
-            const resolved = resolveExprType(expr, {
-              ...ctx,
-              typeExpectation: {
-                type: ctx.expectedFailureWriter.ref.content,
-                from: ctx.expectedFailureWriter.ref.at,
-              },
-              typeExpectationNature: 'failure type',
-            })
-
-            return resolved.ok ? success({ neverEnds: true }) : resolved
-          } else {
-            const resolved = resolveExprType(expr, { ...ctx, typeExpectation: null })
-            if (!resolved.ok) return resolved
-
-            ctx.expectedFailureWriter.ref = { at: expr.at, content: resolved.data }
-            return success({ neverEnds: true })
-          }
-        }
-
-        if (!ctx.fnExpectation) {
-          return err(stmt.at, '`throw` statements are only allowed inside functions')
-        }
-
-        if (!ctx.fnExpectation.failureType) {
-          return err(stmt.at, 'current function does not have a failure type')
-        }
-
-        const resolved = resolveExprType(expr, {
-          ...ctx,
-          typeExpectation: ctx.fnExpectation.failureType,
-          typeExpectationNature: 'failure type',
-        })
-
         return resolved.ok ? success({ neverEnds: true }) : resolved
       },
 

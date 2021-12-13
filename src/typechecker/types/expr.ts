@@ -1,7 +1,7 @@
 import { Expr, ExprElement, ExprElementContent, ExprOrNever, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerContext } from '../base'
+import { ensureCoverage, err, Scope, success, Typechecker } from '../base'
 import { getTypedEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
@@ -56,23 +56,6 @@ export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> 
       }
 
       const check = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
-      return check.ok ? success(ctx.typeExpectation.type) : check
-    },
-
-    throw: ({ expr }) => {
-      if (!ctx.fnExpectation) {
-        return err(exprOrNever.at, 'cannot throw a value outside of a function')
-      }
-
-      if (!ctx.typeExpectation) {
-        return err(exprOrNever.at, 'cannot determine the type of this expression')
-      }
-
-      if (!ctx.fnExpectation.failureType) {
-        return err(expr.at, 'this value does not have a failure type')
-      }
-
-      const check = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.failureType })
       return check.ok ? success(ctx.typeExpectation.type) : check
     },
   })
@@ -225,33 +208,6 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       if (!elseType.ok) return elseType
 
       return success(ctx.typeExpectation?.type ?? thenType.data)
-    },
-
-    try: ({ trying, catchVarname, catchExpr }) => {
-      const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
-
-      const tryingType = resolveExprType(trying, { ...ctx, expectedFailureWriter: wrapper })
-      if (!tryingType.ok) return tryingType
-
-      if (wrapper.ref === null) {
-        return err(catchVarname.at, {
-          message: "failed to determine the catch clause's variable type",
-          complements: [['tip', "you must use a failable function call inside the try's body"]],
-        })
-      }
-
-      return resolveExprOrNeverType(catchExpr, {
-        ...ctx,
-        scopes: ctx.scopes.concat([
-          new Map([
-            [catchVarname.parsed, { type: 'var', at: catchVarname.at, mutable: false, varType: wrapper.ref.content }],
-          ]),
-        ]),
-        typeExpectation: {
-          from: trying.at,
-          type: tryingType.data,
-        },
-      })
     },
 
     value: ({ content }) => resolveValueType(content, ctx),

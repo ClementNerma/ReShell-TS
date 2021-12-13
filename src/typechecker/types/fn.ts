@@ -14,7 +14,6 @@ import {
 import { cmdArgTypechecker } from '../cmdcall'
 import { getTypedEntityInScope } from '../scope/search'
 import { statementChainChecker } from '../statement'
-import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
@@ -57,11 +56,6 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
 
   if (fnType.returnType) {
     const check = typeValidator(fnType.returnType.parsed, ctx)
-    if (!check.ok) return check
-  }
-
-  if (fnType.failureType) {
-    const check = typeValidator(fnType.failureType.parsed, ctx)
     if (!check.ok) return check
   }
 
@@ -214,7 +208,6 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<Sta
     ...ctx,
     scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
     fnExpectation: {
-      failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
       returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
     },
     restArgs: fnType.restArg ? ctx.restArgs.concat([fnType.restArg.parsed]) : ctx.restArgs,
@@ -397,33 +390,6 @@ export const validateFnCall: Typechecker<
     }
   }
 
-  if (fnType.failureType !== null) {
-    if (!ctx.expectedFailureWriter) {
-      return err(at, 'cannot call a failable function without try/catch')
-    }
-
-    if (ctx.expectedFailureWriter.ref === null) {
-      ctx.expectedFailureWriter.ref = {
-        at,
-        content: resolveGenerics(fnType.failureType.parsed, ctx.resolvedGenerics.concat(gScope)),
-      }
-    } else {
-      const compat = isTypeCompatible(
-        {
-          at,
-          candidate: fnType.failureType.parsed,
-          typeExpectation: {
-            type: ctx.expectedFailureWriter.ref.content,
-            from: ctx.expectedFailureWriter.ref.at,
-          },
-        },
-        { ...ctx, typeExpectationNature: 'failure type' }
-      )
-
-      if (!compat.ok) return compat
-    }
-  }
-
   return success(
     fnType.returnType
       ? resolveGenerics(fnType.returnType.parsed, ctx.resolvedGenerics.concat(gScope))
@@ -485,9 +451,6 @@ function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): Va
           restArg: type.fnType.restArg,
           returnType: type.fnType.returnType
             ? { ...type.fnType.returnType, parsed: resolveGenerics(type.fnType.returnType.parsed, gScopes) }
-            : null,
-          failureType: type.fnType.failureType
-            ? { ...type.fnType.failureType, parsed: resolveGenerics(type.fnType.failureType.parsed, gScopes) }
             : null,
         },
       }

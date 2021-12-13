@@ -272,25 +272,6 @@ export const isTypeCompatible: Typechecker<
         return expectationErr(`function was expected to have a return type`)
       }
 
-      if (c.fnType.failureType) {
-        if (!r.fnType.failureType) {
-          return expectationErr(`function was not expected to have a failure type`, c.fnType.failureType.at)
-        }
-
-        const retTypeCompat = isTypeCompatible(
-          {
-            candidate: c.fnType.failureType.parsed,
-            at: c.fnType.failureType.at,
-            typeExpectation: { type: r.fnType.failureType.parsed, from: r.fnType.failureType.at },
-          },
-          ctx
-        )
-
-        if (!retTypeCompat.ok) return retTypeCompat
-      } else if (r.fnType.failureType) {
-        return expectationErr(`function was expected to have a failure type`)
-      }
-
       if (c.fnType.restArg && !r.fnType.restArg) {
         return expectationErr('function was not expected to have a rest argument', c.fnType.restArg.at)
       } else if (!c.fnType.restArg && r.fnType.restArg) {

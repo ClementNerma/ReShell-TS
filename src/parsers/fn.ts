@@ -136,20 +136,6 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (n
           ),
           ([_, __, ___, returnType]) => returnType
         )
-      ),
-      maybe(
-        map(
-          combine(
-            maybe_s,
-            exact('throws'),
-            s,
-            failure(
-              withLatelyDeclared(() => valueType),
-              'expected a failure type'
-            )
-          ),
-          ([_, __, ___, failureType]) => failureType
-        )
       )
     ),
     ([
@@ -162,14 +148,12 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (n
       },
       ___,
       { parsed: returnType },
-      { parsed: failureType },
     ]) => ({
       name,
       args,
       generics: generics ?? [],
       restArg: restArg !== null ? restArg.parsed : null,
       returnType,
-      failureType,
     })
   )
 
