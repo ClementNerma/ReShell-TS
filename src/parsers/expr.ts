@@ -119,6 +119,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       failure(not(keyword), 'Cannot use reserved keyword alone'),
       identifier,
       exact('('),
+      maybe_s_nl,
       withStatementClose(
         ')',
         takeWhile(
@@ -138,10 +139,11 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
-      exact(')'),
+      maybe_s_nl,
+      exact(')', 'Expected a closing parenthesis to end the list of arguments'),
       { inter: maybe_s }
     ),
-    ([_, name, __, { parsed: args }, ___]) => ({ name, args })
+    ([_, name, __, ___, { parsed: args }]) => ({ name, args })
   ),
 
   inlineCmdCallSequence: map(
