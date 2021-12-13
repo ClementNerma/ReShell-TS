@@ -27,7 +27,7 @@ import { lookahead, not } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { exact, match, oneOfMap } from './lib/matchers'
+import { exact, match, oneOf, oneOfMap } from './lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
@@ -271,7 +271,19 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             endOfInlineCmdCall,
             failure(
               mappedCases<FnCallArg>()('type', {
-                flag: withLatelyDeclared(() => cmdFlag),
+                flag: map(
+                  combine(
+                    oneOf(['--', '-']),
+                    identifier,
+                    exact('='),
+                    maybe_s_nl,
+                    failure(
+                      withLatelyDeclared(() => expr),
+                      'expected an expression after the flag separator (:) symbol'
+                    )
+                  ),
+                  ([prefixSym, name, _, __, directValue]) => ({ prefixSym, name, directValue })
+                ),
                 expr: toOneProp(
                   'expr',
                   withLatelyDeclared(() => expr)
