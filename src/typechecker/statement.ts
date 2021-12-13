@@ -13,7 +13,7 @@ import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
 
 export type StatementChainMetadata = {
-  neverReturns: boolean
+  neverEnds: boolean
 }
 
 export const statementChainChecker: Typechecker<Token<StatementChain>[], StatementChainMetadata> = (chain, ctx) => {
@@ -33,7 +33,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
-    if (previousStmt?.metadata.neverReturns) {
+    if (previousStmt?.metadata.neverEnds) {
       return err(stmt.at, {
         message: 'previous statement always return (or break loop), so this is dead code',
         also: [
@@ -76,7 +76,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             located(varname.at, { mutable: mutable.parsed, type: expectedType ?? validation.data })
           )
 
-          return success({ neverReturns: false })
+          return success({ neverEnds: false })
         },
 
         assignment: ({ varname, propAccesses, prefixOp, expr }) => {
@@ -136,7 +136,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return success({ neverReturns: false })
+          return success({ neverEnds: false })
         },
 
         ifBlock: ({ cond, then: body, elif, els }) => {
@@ -193,11 +193,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             blocksMetadata.push(elseCheck.data)
           }
 
-          const neverReturns = blocksMetadata.every((metadata) => metadata.neverReturns)
+          const neverEnds = blocksMetadata.every((metadata) => metadata.neverEnds)
 
           if (
             condCheck.data.type === 'assertion' &&
-            ((condCheck.data.inverted && thenCheck.data.neverReturns) || (!condCheck.data.inverted && neverReturns))
+            ((condCheck.data.inverted && thenCheck.data.neverEnds) || (!condCheck.data.inverted && neverEnds))
           ) {
             for (const [varname, vartype] of condCheck.data.assertionScope.variables.entries()) {
               currentScope.variables.set(varname, vartype)
@@ -206,7 +206,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           return success({
             // a simple 'if' with no 'else' variant cannot never-end (e.g. `if <cond> { <throw> }` is not never-ending)
-            neverReturns: neverReturns && els !== null && thenCheck.data.neverReturns,
+            neverEnds: neverEnds && els !== null && thenCheck.data.neverEnds,
           })
         },
 
@@ -238,9 +238,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return check.data.neverReturns
-            ? err(stmt.at, 'This loop always return or break')
-            : success({ neverReturns: false })
+          return check.data.neverEnds ? err(stmt.at, 'This loop always return or break') : success({ neverEnds: false })
         },
 
         whileLoop: ({ cond, body }) => {
@@ -260,9 +258,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return check.data.neverReturns
-            ? err(stmt.at, 'This loop always return or break')
-            : success({ neverReturns: false })
+          return check.data.neverEnds ? err(stmt.at, 'This loop always return or break') : success({ neverEnds: false })
         },
 
         break: () => {
@@ -270,7 +266,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             return err(stmt.at, 'the "break" instruction is only allowed inside loops')
           }
 
-          return success({ neverReturns: true })
+          return success({ neverEnds: true })
         },
 
         tryBlock: ({ body, catchVarname, catchBody }) => {
@@ -309,7 +305,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         },
 
         // Nothing to do here, already handled in first pass
-        typeAlias: () => success({ neverReturns: false }),
+        typeAlias: () => success({ neverEnds: false }),
 
         fnDecl: ({ fnType, body }) => {
           const check = statementChainChecker(body, {
@@ -321,7 +317,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             },
           })
 
-          return check.ok ? success({ neverReturns: false }) : check
+          return check.ok ? success({ neverEnds: false }) : check
         },
 
         return: ({ expr }) => {
@@ -332,7 +328,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           if (!ctx.fnExpectation.returnType) {
             return expr
               ? err(expr.at, 'current function does not have a return type so the `return` statement should be empty')
-              : success({ neverReturns: true })
+              : success({ neverEnds: true })
           }
 
           if (!expr) {
@@ -348,7 +344,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           }
 
           const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
-          return resolved.ok ? success({ neverReturns: true }) : resolved
+          return resolved.ok ? success({ neverEnds: true }) : resolved
         },
 
         throw: ({ expr }) => {
@@ -363,13 +359,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
                 typeExpectationNature: 'failure type',
               })
 
-              return resolved.ok ? success({ neverReturns: true }) : resolved
+              return resolved.ok ? success({ neverEnds: true }) : resolved
             } else {
               const resolved = resolveExprType(expr, { ...ctx, typeExpectation: null })
               if (!resolved.ok) return resolved
 
               ctx.expectedFailureWriter.ref = { at: expr.at, content: resolved.data }
-              return success({ neverReturns: true })
+              return success({ neverEnds: true })
             }
           }
 
@@ -378,9 +374,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           }
 
           if (!ctx.fnExpectation.failureType) {
-            return expr
-              ? err(stmt.at, 'current function does not have a failure type')
-              : success({ neverReturns: true })
+            return expr ? err(stmt.at, 'current function does not have a failure type') : success({ neverEnds: true })
           }
 
           if (!expr) {
@@ -401,12 +395,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             typeExpectationNature: 'failure type',
           })
 
-          return resolved.ok ? success({ neverReturns: true }) : resolved
+          return resolved.ok ? success({ neverEnds: true }) : resolved
         },
 
         cmdCall: (call) => {
           const cmdCallCheck = cmdCallTypechecker(call, ctx)
-          return cmdCallCheck.ok ? success({ neverReturns: false }) : cmdCallCheck
+          return cmdCallCheck.ok ? success({ neverEnds: false }) : cmdCallCheck
         },
       })
 
@@ -416,5 +410,5 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
     }
   }
 
-  return success(previousStmt?.metadata ?? { neverReturns: false })
+  return success(previousStmt?.metadata ?? { neverEnds: false })
 }
