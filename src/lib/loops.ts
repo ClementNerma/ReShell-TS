@@ -82,6 +82,15 @@ export function takeWhile1N<T>(
   )
 }
 
+export function takeWhileMN<T>(
+  parser: Parser<T>,
+  options: TakeWhileOptions & { noMatchError?: string; minimum: number }
+): Parser<Token<T>[]> {
+  return then(takeWhile(parser, options), (parsed, context) =>
+    parsed.data.parsed.length < options.minimum ? err(parsed.data.start, context, options?.noMatchError) : parsed
+  )
+}
+
 export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
   return (start, input, context) => {
     const parsed: Token<T>[] = []
