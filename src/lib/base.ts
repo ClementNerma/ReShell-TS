@@ -72,10 +72,10 @@ export function neutralError<T>(start: ParserLoc, neutralValue?: T): Extract<Par
   }
 }
 
-export type ErrFnData = string | ParserErrStackEntryMessage | ParserErr['stack']
+export type ErrFnData = null | string | ParserErrStackEntryMessage | ParserErr['stack']
 
 export function err(loc: ParserLoc, context: ParsingContext, errData?: ErrFnData, precedence?: boolean): ParserErr {
-  return errData === undefined
+  return errData === undefined || errData === null
     ? { ok: false, stack: [], precedence: !!precedence, loc, context }
     : // Fallback message provided
     typeof errData === 'string'
