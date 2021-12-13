@@ -19,4 +19,5 @@ export const keyword: Parser<string> = oneOfWords([
   'on',
   'throw',
   'async',
+  'let',
 ])
