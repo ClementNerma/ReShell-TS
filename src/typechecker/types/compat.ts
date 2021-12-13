@@ -10,7 +10,8 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 ) => {
   const expectationErr = (message?: string, atOverride?: CodeSection) =>
     errIncompatibleValueType({
-      message: path.length > 0 ? path.join(' > ') + ' > ' + message : message,
+      message,
+      path,
       typeExpectation: {
         type: referent,
         from,
