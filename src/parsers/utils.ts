@@ -13,5 +13,5 @@ export const matchUnion = <U extends { [key in D]: string }, D extends keyof U>(
       | ({ [variant in U[D]]?: (value: Extract<U, { [key in D]: variant }>) => T } & {
           _: (value: U[D]) => T
         })
-  ) => (callbacks[subject[prop]] ?? (callbacks as { _: any })._)(subject as any)
+  ): T => (callbacks[subject[prop]] ?? (callbacks as { _: any })._)(subject as any)
 }
