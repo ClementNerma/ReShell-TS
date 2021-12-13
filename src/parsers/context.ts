@@ -43,10 +43,6 @@ export const completeGenericsDefinition = (
   name: Token<string>,
   context: CustomContext
 ): FailableMapped<{ name: Token<string>; orig: CodeSection }> => {
-  if (context.inTypeAliasDefinition) {
-    return { ok: false, err: 'usage of generics is not allowed inside type aliases' }
-  }
-
   for (const defs of context.genericsDefinitions.reverse()) {
     const orig = defs.get(name.parsed)
     if (orig) return { ok: true, data: { name, orig } }
