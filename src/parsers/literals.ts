@@ -1,18 +1,17 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { extract, failIfElse } from '../lib/conditions'
+import { failIfElse } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeForever, takeWhile, takeWhile1N, takeWhileMN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
-import { mapToken, withLatelyDeclared } from '../lib/utils'
+import { withLatelyDeclared } from '../lib/utils'
 import { matchStatementClose, withStatementClose } from './context'
 import { ComputedStringSegment, LiteralString, LiteralValue } from './data'
 import { expr } from './expr'
 import { statementChainFree } from './statements'
-import { identifier } from './tokens'
 import { fnType } from './types'
 
 export const literalPath: Parser<Token<string>[]> = takeWhileMN(
@@ -73,47 +72,6 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
   string: toOneProp(literalString, 'value'),
 
   path: toOneProp(literalPath, 'segments'),
-
-  list: map(
-    combine(
-      exact('['),
-      takeWhile(
-        withLatelyDeclared(() => expr),
-        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
-      ),
-      exact(']'),
-      {
-        inter: maybe_s_nl,
-      }
-    ),
-    ([_, items, __]) => ({ items })
-  ),
-
-  map: map(
-    combine(
-      exact('{'),
-      extract(
-        takeWhile(
-          combine(
-            identifier,
-            exact(':'),
-            withLatelyDeclared(() => expr),
-            { inter: maybe_s_nl }
-          ),
-          {
-            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          }
-        )
-      ),
-      exact('}'),
-      {
-        inter: maybe_s_nl,
-      }
-    ),
-    ([_, entries, __]) => ({
-      entries: mapToken(entries, (_, { parsed }) => parsed.map((entry) => [entry[0], entry[2]])),
-    })
-  ),
 
   closure: map(
     combine(

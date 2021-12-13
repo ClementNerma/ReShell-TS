@@ -1,5 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
+import { extract } from '../lib/conditions'
 import { not } from '../lib/consumeless'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl } from '../lib/littles'
@@ -27,6 +28,48 @@ import { identifier } from './tokens'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   reference: toOneProp(identifier, 'varname'),
+
+  list: map(
+    combine(
+      exact('['),
+      takeWhile(
+        withLatelyDeclared(() => expr),
+        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+      ),
+      exact(']'),
+      {
+        inter: maybe_s_nl,
+      }
+    ),
+    ([_, items, __]) => ({ items })
+  ),
+
+  map: map(
+    combine(
+      exact('{'),
+      extract(
+        takeWhile(
+          combine(
+            identifier,
+            exact(':'),
+            withLatelyDeclared(() => expr),
+            { inter: maybe_s_nl }
+          ),
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+          }
+        )
+      ),
+      exact('}'),
+      {
+        inter: maybe_s_nl,
+      }
+    ),
+    ([_, entries, __]) => ({
+      entries: mapToken(entries, (_, { parsed }) => parsed.map((entry) => [entry[0], entry[2]])),
+    })
+  ),
+
   inlineCmdCallSequence: map(
     combine(
       exact('$('),

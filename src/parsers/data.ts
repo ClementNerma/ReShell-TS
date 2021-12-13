@@ -98,8 +98,6 @@ export type LiteralValue =
   | { type: 'number'; value: Token<number> }
   | { type: 'string'; value: Token<LiteralString> }
   | { type: 'path'; segments: Token<Token<string>[]> }
-  | { type: 'list'; items: Token<Token<Expr>[]> }
-  | { type: 'map'; entries: Token<[Token<string>, Token<Expr>][]> }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
 
 export type LiteralString =
@@ -114,6 +112,8 @@ export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall
 
 export type Value =
   | LiteralValue
+  | { type: 'list'; items: Token<Token<Expr>[]> }
+  | { type: 'map'; entries: Token<[Token<string>, Token<Expr>][]> }
   | { type: 'inlineCmdCallSequence'; start: Token<InlineCmdCall>; sequence: Token<InlineChainedCmdCall>[] }
   | { type: 'reference'; varname: Token<string> }
 
