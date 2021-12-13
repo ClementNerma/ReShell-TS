@@ -166,7 +166,7 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
           const toInt = Math.floor(toValue.data.value)
 
           return success(
-            fromInt < toInt
+            fromInt > toInt
               ? []
               : new Array(toInt - fromInt).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i }))
           )
