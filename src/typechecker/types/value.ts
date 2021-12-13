@@ -15,7 +15,7 @@ import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { closureTypeValidator, validateFnCall } from './fn'
+import { closureCallValidator, validateFnCall } from './fn'
 import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
@@ -506,7 +506,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       const expected = assert.data.fnType
 
-      const check = closureTypeValidator({ at: value.at, args, restArg, body, expected }, ctx)
+      const check = closureCallValidator({ at: value.at, args, restArg, body, expected }, ctx)
       return check.ok ? success({ type: 'fn', fnType: expected }) : check
     },
 

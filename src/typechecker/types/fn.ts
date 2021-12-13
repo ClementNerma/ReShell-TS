@@ -128,7 +128,7 @@ export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: 
   return success(args)
 }
 
-export const closureTypeValidator: Typechecker<
+export const closureCallValidator: Typechecker<
   {
     at: CodeSection
     args: Token<ClosureArg>[]
