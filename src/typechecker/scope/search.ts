@@ -15,14 +15,14 @@ export const ensureScopeUnicity: Typechecker<{ name: Token<string>; firstPass?: 
   if (firstPass) {
     for (const [category, map] of Object.entries(firstPass)) {
       const orig = map.get(name.parsed)
-      if (orig) return generateDuplicateDeclError(name.parsed, categoryMapping[category as keyof Scope], name, orig)
+      if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
     }
   }
 
   if (scopes.length > 0) {
     for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
       const orig = map.get(name.parsed)
-      if (orig) return generateDuplicateDeclError(name.parsed, categoryMapping[category as keyof Scope], name, orig)
+      if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
     }
   }
 
@@ -57,10 +57,9 @@ export const getVariableInScope: Typechecker<Token<string>, ScopeVar> = (name, {
 }
 
 export const generateDuplicateDeclError = (
-  name: string,
+  original: Located<unknown>,
   category: string,
-  duplicate: Token<string>,
-  original: Located<unknown>
+  duplicate: Token<string>
 ): TypecheckerErr =>
   err(
     {

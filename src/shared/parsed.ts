@@ -84,7 +84,7 @@ export type FnType = {
 
 export type FnArg = {
   // mutable: boolean
-  name: string
+  name: Token<string>
   optional: boolean
   type: ValueType
   defaultValue: LiteralValue | null

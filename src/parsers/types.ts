@@ -116,10 +116,7 @@ export const valueType: Parser<ValueType> = map(
 const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>
   map(
     combine(
-      map(
-        combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }),
-        ([_, { parsed: name }]) => name
-      ),
+      map(combine(exact('fn'), requireName ? identifier : maybe(identifier), { inter: s }), ([_, name]) => name),
       exact('(', "Expected an open paren '('"),
       extract(
         takeWhile(
@@ -155,7 +152,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
               ),
               { inter: maybe_s_nl }
             ),
-            ([{ parsed: name }, { parsed: optional }, _, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
+            ([name, { parsed: optional }, _, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
               name,
               optional: !!optional,
               type,
@@ -183,7 +180,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
       ),
       { inter: maybe_s_nl }
     ),
-    ([named, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
+    ([{ parsed: named }, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
       named: flattenMaybeToken(named),
       args,
       returnType,

@@ -242,7 +242,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         exact('}', "Expected a closing brace (}) to end the function's body"),
         { inter: maybe_s_nl }
       ),
-      ([{ parsed: nameFnType }, _, { parsed: body }, __]) => ({ ...nameFnType, body })
+      ([
+        {
+          parsed: { name, fnType },
+        },
+        _,
+        { parsed: body },
+        __,
+      ]) => ({ name, fnType, body })
     ),
 
     throw: map(combine(exact('throw'), failure(expr, 'Expected a value to throw'), { inter: s }), ([_, expr]) => ({
