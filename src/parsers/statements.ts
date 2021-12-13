@@ -6,7 +6,7 @@ import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar
+  withStatementClosingChar,
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
@@ -16,7 +16,7 @@ import { extract, failIfMatches, failIfMatchesElse, maybe, then } from './lib/co
 import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
-import { takeWhile } from './lib/loops'
+import { takeWhile, takeWhile1 } from './lib/loops'
 import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map, suppressErrorPrecedence, toOneProp } from './lib/transform'
@@ -233,6 +233,22 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         failure(valueType, 'expected a type')
       ),
       ([_, __, typename, ___, ____, _____, content]) => ({ typename, content })
+    ),
+
+    enumDecl: map(
+      combine(
+        exact('enum'),
+        s,
+        failure(identifier, 'expected an identifier'),
+        combine(maybe_s_nl, exact('{', 'expected an opening brace'), maybe_s_nl),
+        takeWhile1(identifier, {
+          inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+          interExpect: 'expected another variant name',
+        }),
+        maybe_s_nl,
+        exact('}', 'expected a closing brace (})')
+      ),
+      ([_, __, typename, ___, { parsed: variants }]) => ({ typename, variants })
     ),
 
     fnDecl: map(

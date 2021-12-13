@@ -52,6 +52,7 @@ export type Statement =
       catchBody: Token<StatementChain>[]
     }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
+  | { type: 'enumDecl'; typename: Token<string>; variants: Token<string>[] }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }

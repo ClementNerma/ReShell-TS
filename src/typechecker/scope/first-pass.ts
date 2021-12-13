@@ -18,6 +18,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
   for (const stmt of flattenStatementChains(chain)) {
     switch (stmt.parsed.type) {
       case 'typeAlias':
+      case 'enumDecl':
         const typename = stmt.parsed.typename
 
         if (ctx.scopes.length > 2 /* native library has its own scope */) {
@@ -35,7 +36,10 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
 
         ctx.typeAliases.set(typename.parsed, {
           at: typename.at,
-          content: stmt.parsed.content.parsed,
+          content:
+            stmt.parsed.type === 'typeAlias'
+              ? stmt.parsed.content.parsed
+              : { type: 'enum', variants: stmt.parsed.variants },
         })
 
         break

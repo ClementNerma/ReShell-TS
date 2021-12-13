@@ -383,6 +383,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
       // Nothing to do here, already handled in first pass
       typeAlias: () => success({ neverEnds: false }),
+      // Same here
+      enumDecl: () => success({ neverEnds: false }),
 
       fnDecl: ({ fnType, body }) => {
         const check = validateFnBody({ fnType, body }, ctx)
