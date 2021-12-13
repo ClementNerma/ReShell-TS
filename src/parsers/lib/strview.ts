@@ -12,6 +12,7 @@ export abstract class StrView {
 
   static create(input: string, offset = 0, segmentSize = 128): StrView {
     if (input.length === 0) return new EmptyStrView()
+    if (input.length <= 8192) return new SingleStrView(input)
 
     if (offset && offset >= input.length) {
       throw new Error('String view cannot start past input length')
@@ -32,25 +33,19 @@ export abstract class StrView {
 }
 
 class SegmentedStrView extends StrView {
-  private readonly isLastSegment: boolean
   private readonly firstSegment: number
   private readonly firstSegmentOffset: number
-  private readonly firstSegmentRem: number
 
   constructor(
     private readonly segments: string[],
-    private readonly total: number,
+    private readonly remaining: number,
     private readonly offsetInside: number,
     private readonly segmentSize: number
   ) {
     super()
 
     this.firstSegment = Math.floor(offsetInside / this.segmentSize)
-    this.isLastSegment = this.firstSegment === this.segments.length - 1
     this.firstSegmentOffset = offsetInside % this.segmentSize
-    this.firstSegmentRem = this.isLastSegment
-      ? this.segments[this.firstSegment].length - this.firstSegmentOffset
-      : this.segmentSize - this.firstSegmentOffset
   }
 
   public firstChar(): string {
@@ -61,23 +56,22 @@ class SegmentedStrView extends StrView {
     return this.segments[this.firstSegment].substr(this.firstSegmentOffset)
   }
 
-  // TODO: rename
   public littleView(): string {
-    return this.isLastSegment
-      ? this.segments[this.firstSegment].substr(this.firstSegmentOffset)
-      : this.segments[this.firstSegment].substr(this.firstSegmentOffset) + this.segments[this.firstSegment + 1]
+    return this.segments[this.firstSegment].substr(this.firstSegmentOffset) + this.segments[this.firstSegment + 1]
   }
 
   public empty(): boolean {
-    return this.isLastSegment && this.firstSegmentOffset === this.segments[this.firstSegment].length
+    return false
   }
 
   public startsWith(pattern: string): boolean {
-    if (pattern.length <= this.firstSegmentRem) {
+    const firstSegmentRem = this.segmentSize - this.firstSegmentOffset
+
+    if (pattern.length <= firstSegmentRem) {
       return this.start().startsWith(pattern)
     }
 
-    const additionalSegments = Math.round(pattern.length - this.firstSegmentRem)
+    const additionalSegments = Math.round(pattern.length - firstSegmentRem)
     const subject =
       this.start() + this.segments.slice(this.firstSegment + 1, this.firstSegment + 1 + additionalSegments).join('')
 
@@ -94,10 +88,6 @@ class SegmentedStrView extends StrView {
   }
 
   public matchShort(regex: RegExp): RegExpMatchArray | null {
-    if (this.isLastSegment) {
-      return this.start().match(regex)
-    }
-
     const beg = this.start() + this.segments[this.firstSegment + 1]
 
     const match = beg.match(regex)
@@ -106,7 +96,7 @@ class SegmentedStrView extends StrView {
 
     let lastMatch: RegExpMatchArray = match
     let matchOn = beg
-    let segment = this.firstSegmentRem + 1
+    let segment = this.segmentSize - this.firstSegmentOffset + 1
 
     while (++segment < this.segments.length) {
       matchOn += this.segments[++segment]
@@ -122,13 +112,32 @@ class SegmentedStrView extends StrView {
   }
 
   public offset(addOffset: number): StrView {
-    return this.offsetInside + addOffset === this.total - 1
-      ? new EmptyStrView()
-      : new SegmentedStrView(this.segments, this.total, this.offsetInside + addOffset, this.segmentSize)
+    const rem = this.remaining - addOffset
+
+    if (rem > this.segmentSize) {
+      return new SegmentedStrView(
+        this.segments,
+        this.remaining - addOffset,
+        this.offsetInside + addOffset,
+        this.segmentSize
+      )
+    } else if (rem === 0) {
+      return new EmptyStrView()
+    }
+
+    const offsetInside = this.offsetInside + addOffset
+    const firstSegment = Math.floor(offsetInside / this.segmentSize)
+    const firstSegmentOffset = offsetInside % this.segmentSize
+
+    const start = this.segments[firstSegment].substr(firstSegmentOffset)
+
+    return firstSegment === this.segments.length - 1
+      ? new SingleStrView(start)
+      : new SingleStrView(start + this.segments.slice(firstSegment + 1).join(''))
   }
 
   public toFullStringSlow(): string {
-    return this.isLastSegment ? this.start() : this.start() + this.segments.slice(this.firstSegment + 1).join('')
+    return this.start() + this.segments.slice(this.firstSegment + 1).join('')
   }
 
   public withSlowMapper(mapper: (input: string) => string) {
@@ -136,6 +145,54 @@ class SegmentedStrView extends StrView {
   }
 
   // TODO: function to match longer regexps at once
+}
+
+class SingleStrView extends StrView {
+  constructor(private readonly source: string) {
+    super()
+    if (source.length > 8192) throw new Error('Cannot make a single string view that large')
+  }
+
+  public firstChar(): string {
+    return this.source.charAt(0)
+  }
+
+  // TODO: rename
+  public littleView(): string {
+    return this.source
+  }
+
+  public empty(): boolean {
+    return false
+  }
+
+  public startsWith(pattern: string): boolean {
+    return this.source.startsWith(pattern)
+  }
+
+  public startsWithChar(char: string): boolean {
+    return this.source.charAt(0) === char
+  }
+
+  public matchFirstChar(regex: RegExp): RegExpMatchArray | null {
+    return this.source.charAt(0).match(regex)
+  }
+
+  public matchShort(regex: RegExp): RegExpMatchArray | null {
+    return this.source.match(regex)
+  }
+
+  public offset(addOffset: number): StrView {
+    return addOffset < this.source.length ? new SingleStrView(this.source.substr(addOffset)) : new EmptyStrView()
+  }
+
+  public toFullStringSlow(): string {
+    return this.source
+  }
+
+  public withSlowMapper(mapper: (input: string) => string): StrView {
+    return StrView.create(mapper(this.source))
+  }
 }
 
 class EmptyStrView extends StrView {
