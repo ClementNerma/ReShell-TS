@@ -34,10 +34,12 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
               out.push(execExpr.data.value)
             } else if (execExpr.data.type === 'number') {
               out.push(execExpr.data.value.toString())
+            } else if (execExpr.data.type === 'path') {
+              out.push(execExpr.data.segments.join(ctx.platformPathSeparator))
             } else {
               return err(
                 segment.at,
-                `internal error: expected segment to be either "string" or "number", found internal type "${execExpr.data.type}"`
+                `internal error: expected segment to be either "string", "number" or "path", found internal type "${execExpr.data.type}"`
               )
             }
             break
