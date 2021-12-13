@@ -8,8 +8,16 @@ export function map<T, U>(
 ): Parser<U> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
+
     return parsed.ok
-      ? { ...parsed, data: { ...parsed.data, parsed: mapper(parsed.data.parsed, parsed.data, context) } }
+      ? {
+          ok: parsed.ok,
+          data: {
+            at: parsed.data.at,
+            matched: parsed.data.matched,
+            parsed: mapper(parsed.data.parsed, parsed.data, context),
+          },
+        }
       : withErr(parsed, error)
   }
 }
