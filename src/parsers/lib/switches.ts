@@ -3,7 +3,7 @@ import { StrView } from '../../shared/strview'
 import { err, ErrInputData, Parser, ParserErr, ParsingContext, withErr, WithErrData } from './base'
 import { map } from './transform'
 
-export type OrErrorFn<R> = (input: StrView, errors: Array<ParserErr>, context: ParsingContext, start: CodeLoc) => R
+export type OrErrorFn<R> = (input: StrView, context: ParsingContext, start: CodeLoc) => R
 
 export enum OrErrorStrategy {
   DoNothing,
@@ -23,17 +23,17 @@ export type OrErrorStrategyData =
 
 export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser<T> {
   return (start, input, context) => {
-    const errors: Array<ParserErr> = []
+    let mostRelevant: ParserErr | undefined = undefined
 
     for (const parser of parsers) {
       const parsed = parser(start, input, context)
       if (parsed.ok) return parsed
 
-      errors.push(parsed)
-      if (parsed.precedence) break
+      if (parsed.precedence) {
+        mostRelevant = parsed
+        break
+      }
     }
-
-    const mostRelevant = errors[errors.length - 1]?.precedence ? errors[errors.length - 1] : undefined
 
     if (typeof error === 'string') {
       return withErr(mostRelevant ?? err(start, start, context), error)
@@ -51,13 +51,13 @@ export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser
         return mostRelevant ?? err(start, start, context, error[1])
 
       case OrErrorStrategy.Fn:
-        return mostRelevant ?? err(start, start, context, error[1](input, errors, context, start))
+        return mostRelevant ?? err(start, start, context, error[1](input, context, start))
 
       case OrErrorStrategy.FallbackConst:
         return withErr(mostRelevant ?? err(start, start, context), error[1])
 
       case OrErrorStrategy.FallbackFn:
-        return withErr(mostRelevant ?? err(start, start, context), error[1](input, errors, context, start))
+        return withErr(mostRelevant ?? err(start, start, context), error[1](input, context, start))
     }
   }
 }
