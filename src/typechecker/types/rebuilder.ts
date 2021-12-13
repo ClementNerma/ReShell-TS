@@ -13,7 +13,9 @@ export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
       list: ({ itemsType }) => (noDepth ? 'list' : `list[${rebuildType(itemsType)}]`),
       map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
       struct: ({ members }) =>
-        noDepth ? 'struct' : `struct { ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`)} }`,
+        noDepth
+          ? 'struct'
+          : `struct { ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
       fn: ({ fnType: { named, args, returnType, failureType } }) =>
         noDepth
           ? 'fn'
