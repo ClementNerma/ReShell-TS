@@ -1,4 +1,4 @@
-import { FnType, ValueType } from './ast'
+import { FnDeclArg, FnType, PrimitiveValueType, ValueType } from './ast'
 import { CodeSection, Token } from './parsed'
 
 let nativeLibAtCounter = 0
@@ -65,221 +65,77 @@ export function buildWithNativeLibraryFunctionNames<T>(obj: { [name in NativeLib
 }
 
 export const nativeLibraryFnTypes = buildWithNativeLibraryFunctionNames<FnType>({
-  ok: {
-    generics: [_forgeToken('T', 'ok:T'), _forgeToken('E', 'ok:E')],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('value'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'generic', name: _forgeToken('T'), orig: nativeLibAt('ok:T') }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({
-      type: 'failable',
-      successType: _forgeToken({ type: 'generic', name: _forgeToken('T'), orig: nativeLibAt('ok:T') }),
-      failureType: _forgeToken({ type: 'generic', name: _forgeToken('E'), orig: nativeLibAt('ok:E') }),
-    }),
-  },
+  ok: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
 
-  err: {
-    generics: [_forgeToken('T', 'err:T'), _forgeToken('E', 'err:E')],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('error'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'generic', name: _forgeToken('E'), orig: nativeLibAt('err:E') }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({
-      type: 'failable',
-      successType: _forgeToken({ type: 'generic', name: _forgeToken('T'), orig: nativeLibAt('err:T') }),
-      failureType: _forgeToken({ type: 'generic', name: _forgeToken('E'), orig: nativeLibAt('err:E') }),
-    }),
-  },
+  err: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ E }) => [{ name: 'error', type: E }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
 
-  typed: {
-    generics: [_forgeToken('T', 'typed:T')],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('value'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'generic', name: _forgeToken('T'), orig: nativeLibAt('typed:T') }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({ type: 'generic', name: _forgeToken('T'), orig: nativeLibAt('typed:T') }),
-  },
+  typed: _buildNativeLibraryFn({
+    generics: ['T'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T }) => T,
+  }),
 
-  toFixed: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('number'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'number' }),
-      },
-      {
-        flag: null,
-        name: _forgeToken('precision'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'number' }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({ type: 'string' }),
-  },
+  toFixed: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'number', type: 'number' },
+      { name: 'precision', type: 'number' },
+    ],
+    returnType: () => 'string',
+  }),
 
-  listAt: {
-    generics: [_forgeToken('T', 'listAt:T')],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('list'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({
-          type: 'list',
-          itemsType: { type: 'generic', name: _forgeToken('T', 'listAt:T'), orig: nativeLibAt('listAt:T') },
-        }),
-      },
-      {
-        flag: null,
-        name: _forgeToken('index'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'number' }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({
-      type: 'nullable',
-      inner: { type: 'generic', name: _forgeToken('T', 'listAt:T'), orig: nativeLibAt('listAt:T') },
-    }),
-  },
+  listAt: _buildNativeLibraryFn({
+    generics: ['T'],
+    args: ({ T }) => [
+      { name: 'list', type: { type: 'list', itemsType: T } },
+      { name: 'index', type: 'number' },
+    ],
+    returnType: ({ T }) => ({ type: 'nullable', inner: T }),
+  }),
 
-  repeat: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('str'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'string' }),
-      },
-      {
-        flag: null,
-        name: _forgeToken('repeat'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'number' }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({ type: 'string' }),
-  },
+  repeat: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'str', type: 'string' },
+      { name: 'repeat', type: 'number' },
+    ],
+    returnType: () => 'string',
+  }),
 
-  echo: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('message'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'string' }),
-      },
-      {
-        flag: _forgeToken('-'),
-        name: _forgeToken('n'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'bool' }),
-      },
-    ]),
-    restArg: null,
-    returnType: null,
-  },
+  echo: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'message', type: 'string' },
+      { flag: '-', name: 'n', type: 'bool' },
+    ],
+  }),
 
-  dump: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('value'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'unknown' }),
-      },
-      {
-        flag: _forgeToken('--'),
-        name: _forgeToken('pretty'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'bool' }),
-      },
-    ]),
-    restArg: null,
-    returnType: null,
-  },
+  dump: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'value', type: 'unknown' },
+      { flag: '--', name: 'pretty', type: 'bool' },
+    ],
+  }),
 
-  toStr: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('value'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'unknown' }),
-      },
-      {
-        flag: _forgeToken('--'),
-        name: _forgeToken('pretty'),
-        optional: false,
-        defaultValue: null,
-        type: _forgeToken({ type: 'bool' }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({ type: 'string' }),
-  },
+  toStr: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'value', type: 'unknown' },
+      { flag: '--', name: 'pretty', type: 'bool' },
+    ],
+    returnType: () => 'string',
+  }),
 
-  trace: {
-    generics: [],
-    args: [],
-    restArg: null,
-    returnType: null,
-  },
+  trace: _buildNativeLibraryFn({ args: () => [] }),
 
-  ls: {
-    generics: [],
-    args: _forgeTokens([
-      {
-        flag: null,
-        name: _forgeToken('path'),
-        optional: true,
-        defaultValue: null,
-        type: _forgeToken({ type: 'path' }),
-      },
-    ]),
-    restArg: null,
-    returnType: _forgeToken({
-      type: 'list',
-      itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') },
-    }),
-  },
+  ls: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'path' }],
+    returnType: () => ({ type: 'aliasRef', typeAliasName: _forgeToken('LsItem') }),
+  }),
 })
 
 export type NativeLibraryVarNames = 'argv' | 'PATH'
@@ -299,4 +155,52 @@ function _forgeToken<T>(data: T, named?: string): Token<T> {
 
 function _forgeTokens<T>(data: T[]): Token<T>[] {
   return data.map((item) => _forgeToken(item))
+}
+
+type _Generic = Extract<ValueType, { type: 'generic' }>
+
+function _buildNativeLibraryFn<G extends string>({
+  generics,
+  args,
+  restArg,
+  returnType,
+}: {
+  generics?: G[]
+  args: (forgedGenerics: { [name in G]: _Generic }) => {
+    flag?: '-' | '--'
+    name: string
+    optional?: true
+    type: ValueType | PrimitiveValueType['type'] | 'unknown'
+  }[]
+  restArg?: string
+  returnType?: (forgedGenerics: { [name in G]: _Generic }) => ValueType | PrimitiveValueType['type'] | 'unknown'
+}): FnType {
+  const fromEntries = <K extends string, P>(entries: [K, P][]): { [key in K]: P } =>
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any
+    Object.fromEntries(entries) as any
+
+  const forgedGenerics = fromEntries(
+    (generics ?? []).map<[G, _Generic]>((name) => [
+      name,
+      { type: 'generic', name: _forgeToken(name), orig: nativeLibAt() },
+    ])
+  )
+
+  const ret = returnType?.(forgedGenerics)
+
+  return {
+    generics: Object.values<_Generic>(forgedGenerics).map((g) => g.name),
+    args: args(forgedGenerics).map(
+      ({ flag, name, type, optional }): Token<FnDeclArg> =>
+        _forgeToken({
+          flag: flag ? _forgeToken(flag) : null,
+          name: _forgeToken(name),
+          defaultValue: null,
+          optional: optional ?? false,
+          type: _forgeToken(typeof type === 'string' ? { type } : type),
+        })
+    ),
+    restArg: restArg !== undefined ? _forgeToken(restArg) : null,
+    returnType: ret !== undefined ? _forgeToken(typeof ret === 'string' ? { type: ret } : ret) : null,
+  }
 }
