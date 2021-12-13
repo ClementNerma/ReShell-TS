@@ -1,7 +1,6 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { extract, ifThenElse } from '../lib/conditions'
-import { fail } from '../lib/consumeless'
+import { extract, failIfElse } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeForever, takeWhile, takeWhile1N, takeWhileMN } from '../lib/loops'
@@ -10,7 +9,7 @@ import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
 import { mapToken, withLatelyDeclared } from '../lib/utils'
 import { matchStatementClose, withStatementClose } from './context'
-import { ComputedStringSegment, LiteralString, LiteralValue, StatementChain } from './data'
+import { ComputedStringSegment, LiteralString, LiteralValue } from './data'
 import { expr } from './expr'
 import { statementChainFree } from './statements'
 import { identifier } from './tokens'
@@ -122,10 +121,9 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
       exact('{', "Syntax error: expected an opening brace ({) for the closure's content"),
       withStatementClose(
         '}',
-        takeForever<StatementChain>(
-          ifThenElse(
+        takeForever(
+          failIfElse(
             matchStatementClose,
-            fail(),
             withLatelyDeclared(() => statementChainFree)
           )
         )

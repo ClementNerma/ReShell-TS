@@ -1,4 +1,4 @@
-import { Parser, ParserErr, ParserResult, ParserSucess, ParsingContext, success, Token } from './base'
+import { err, Parser, ParserErr, ParserResult, ParserSucess, ParsingContext, success, Token } from './base'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {
@@ -9,10 +9,18 @@ export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | nu
   }
 }
 
+// Doc: harder to use
 export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
     const parsed = cond(start, input, { ...context, failureWillBeNeutral: true })
     return parsed.ok ? then(start, input, context) : els(start, input, context)
+  }
+}
+
+export function failIfElse<T>(failIf: Parser<unknown>, els: Parser<T>): Parser<T> {
+  return (start, input, context) => {
+    const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
+    return parsed.ok ? err(start, context) : els(start, input, context)
   }
 }
 

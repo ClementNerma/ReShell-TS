@@ -1,7 +1,6 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { ifThenElse, maybe } from '../lib/conditions'
-import { fail } from '../lib/consumeless'
+import { failIfElse, maybe } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s, s } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
@@ -9,7 +8,7 @@ import { or } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from '../lib/utils'
 import { cmdArg } from './cmdarg'
-import { CmdArg, CmdCall, CmdRedir } from './data'
+import { CmdCall, CmdRedir } from './data'
 import { literalPath } from './literals'
 import { cmdRedirOp } from './stmtend'
 import { identifier } from './tokens'
@@ -26,9 +25,8 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
           combine(
             identifier,
             takeWhile(
-              ifThenElse<CmdArg>(
+              failIfElse(
                 callEndDetector,
-                fail(),
                 failure(
                   withLatelyDeclared(() => cmdArg),
                   'Syntax error: invalid argument provided'
