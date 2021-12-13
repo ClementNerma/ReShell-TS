@@ -21,6 +21,8 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
         case 'typeAlias':
           const typename = sub.parsed.typename
 
+          // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Notes on scoped type aliases leaking ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          //
           // The following check was originally implemented:
           //
           // ```
@@ -34,9 +36,32 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
           // Given the informations we have in the AST, this would lead the types to be resolved as the same one,
           // which would result in the types always being shown as compatible even if they weren't.
           //
-          // Eventually, we don't need this check as there is no way to leak a scoped type alias to the parent scope
-          // Generics are not supported, values of the universal `unknown` type are typed as such and not as their
-          // underlying type, so we don't need to perform an additional check here.
+          // Eventually, we don't need this check as there is no way to leak a value which uses a scoped type alias
+          // to the parent scope: generics are not supported, values of the universal `unknown` type are typed as such
+          // and not as their underlying type, so we don't need to perform an additional check here.
+          //
+          // There is a specific case though which is best illustrated with the following code:
+          //
+          // ```
+          // let data: list[ { member: string } ] = []
+          //
+          // if rand() {
+          //     type A = { member: string }
+          //     let value: A = { member: "Hello" }
+          //
+          //     data[] = value
+          // } else {
+          //     type B = { member: string }
+          //     let value: B = { member: "Hello" }
+          //
+          //     data[] = value
+          // }
+          // ```
+          //
+          // This is a specific leak case, but it is solved by the way types are resolved:
+          // In this code example, when the value is pushed to the list, an expected type (`{ member: string }`)
+          // is provided to the type resolver, which will use it to type the underlying value.
+          // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
           const typeUnicity = ensureScopeUnicity({ name: typename, firstPass }, ctx)
           if (!typeUnicity.ok) return typeUnicity
