@@ -1,8 +1,8 @@
 // 1. Find all declared functions and type alias
 // 2. Discover scope sequentially using the items above
 
-import { FnType, StatementChain, ValueType } from '../parsers/data'
-import { err, located, Located, success, TypecheckerArr } from './types'
+import { FnType, StatementChain, ValueType } from '../../parsers/data'
+import { err, located, Located, success, TypecheckerArr } from '../base'
 
 export type ScopeFirstPass = {
   typeAliases: Map<string, Located<ValueType>>

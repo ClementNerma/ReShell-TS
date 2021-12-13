@@ -1,6 +1,7 @@
 import { Program } from '../parsers/data'
-import { scopeFirstPass } from './scope'
-import { success, Typechecker } from './types'
+import { success, Typechecker } from './base'
+import { completeScope } from './scope/complete'
+import { scopeFirstPass } from './scope/first-pass'
 
 // Global architecture: each file corresponds to a section of the AST and has its own:
 // * Typechecker
@@ -10,5 +11,10 @@ import { success, Typechecker } from './types'
 
 export const programChecker: Typechecker<Program, void, void, string> = (input) => {
   const fp = scopeFirstPass(input.parsed)
-  return fp.ok ? success(void 0) : fp
+  if (!fp.ok) return fp
+
+  const cp = completeScope(input.parsed, fp.data)
+  if (!cp.ok) return cp
+
+  return success(void 0)
 }

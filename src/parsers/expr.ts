@@ -8,7 +8,7 @@ import { takeWhile, takeWhile1N } from '../lib/loops'
 import { exact, match, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
-import { logUsage, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
+import { mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClose } from './context'
@@ -62,7 +62,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
   ),
 
   computedPath: map(
-    logUsage(failIfBool)(
+    failIfBool(
       takeWhile1N(
         or<ComputedPathSegment>([
           map(exact('/'), () => ({ type: 'separator' })),
