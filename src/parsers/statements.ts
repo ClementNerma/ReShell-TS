@@ -1,4 +1,4 @@
-import { ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
+import { ChainedStatement, ElIfBlock, EntityImport, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
@@ -315,10 +315,31 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
                 exact('{', 'expected an opening brace ({)'),
                 maybe_s_nl
               ),
-              takeWhile(identifier, {
-                inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-                interExpect: 'expected an identifier to import',
-              }),
+              extract(
+                takeWhile<EntityImport>(
+                  map(
+                    combine(
+                      identifier,
+                      maybe(
+                        map(
+                          combine(
+                            s,
+                            exact('as'),
+                            failure(s, 'expected space after "as" keyword'),
+                            failure(identifier, 'expected an alias identifier')
+                          ),
+                          ([_, __, ___, alias]) => alias
+                        )
+                      )
+                    ),
+                    ([entity, { parsed: alias }]) => ({ entity, alias })
+                  ),
+                  {
+                    inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+                    interExpect: 'expected an identifier to import',
+                  }
+                )
+              ),
               maybe_s_nl,
               exact('}', 'expected a closing brace (})')
             ),

@@ -46,27 +46,27 @@ const scopeFirstPassFileInclusions: Typechecker<Token<StatementChain>[], Scope> 
 
           const scope = check.data.topLevelScope
 
-          for (const entity of sub.parsed.imports) {
+          for (const { entity, alias } of sub.parsed.imports) {
             const typeAlias = getTypeAliasInScope(entity, { ...ctx, scopes: [scope] })
 
             if (typeAlias.ok) {
-              const unicity = ensureScopeUnicity(entity, ctx)
+              const unicity = ensureScopeUnicity(alias ?? entity, ctx)
               if (!unicity.ok) return unicity
 
-              currentScope.typeAliases.set(entity.parsed, located(entity.at, typeAlias.data.content))
+              currentScope.typeAliases.set(alias?.parsed ?? entity.parsed, located(entity.at, typeAlias.data.content))
             } else {
               const fn = getFunctionInScope(entity, { ...ctx, scopes: [scope] })
 
               if (fn.ok) {
-                const unicity = ensureScopeUnicity(entity, ctx)
+                const unicity = ensureScopeUnicity(alias ?? entity, ctx)
                 if (!unicity.ok) return unicity
 
-                currentScope.functions.set(entity.parsed, located(entity.at, fn.data.content))
+                currentScope.functions.set(alias?.parsed ?? entity.parsed, located(entity.at, fn.data.content))
               } else {
                 const variable = getVariableInScope(entity, { ...ctx, scopes: [scope] })
 
                 if (variable.ok) {
-                  currentScope.variables.set(entity.parsed, located(entity.at, variable.data.content))
+                  currentScope.variables.set(alias?.parsed ?? entity.parsed, located(entity.at, variable.data.content))
                 } else {
                   return err(entity.at, `entity \`${entity.parsed}\` was not found in this file`)
                 }
