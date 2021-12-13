@@ -14,7 +14,8 @@
     "build": "tsc -p tsconfig.json --outDir dist/",
     "start": "npm-run-all build \"start-built {@}\" --",
     "start-built": "node dist/bin.js",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "lint": "eslint \"src/**/*.ts\" --fix"
   },
   "main": "dist/bin.js",
   "bin": "dist/bin.js",
@@ -24,7 +25,13 @@
   "devDependencies": {
     "@types/node": "^16.10.2",
     "@types/source-map-support": "^0.5.4",
+    "@typescript-eslint/eslint-plugin": "^5.3.1",
+    "@typescript-eslint/parser": "^5.3.1",
+    "eslint": "^8.2.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^4.0.0",
     "npm-run-all": "^4.1.5",
+    "prettier": "^2.4.1",
     "rimraf": "^3.0.2",
     "source-map-support": "^0.5.20",
     "typescript": "^4.4.3"
