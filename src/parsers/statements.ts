@@ -4,7 +4,7 @@ import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { not } from '../lib/consumeless'
 import { contextualFailIf, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
-import { takeForever, takeWhile } from '../lib/loops'
+import { takeWhile } from '../lib/loops'
 import { bol, eol, exact } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
@@ -334,7 +334,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   flatten(map(combine(bol(), statementChainFree), ([, chain]) => chain)),
 ])
 
-export const blockBody: Parser<Token<StatementChain>[]> = takeForever(
+export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
   or([
     failIfElse(
       matchStatementClose,

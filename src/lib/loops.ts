@@ -41,7 +41,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
           matched.pop()
         }
 
-        return success(start, loc, parsed, matched.join(''))
+        break
       }
 
       const { data } = result
@@ -53,6 +53,10 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
       parsed.push(data)
       matched.push(data.matched)
+
+      if (input.length === 0) {
+        break
+      }
 
       if (options?.inter) {
         const interResult = options.inter(loc, input, iterContext)
@@ -78,6 +82,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         }
       }
     }
+
+    return success(start, loc, parsed, matched.join(''))
   }
 }
 
@@ -97,47 +103,4 @@ export function takeWhileN<T>(
   return then(takeWhile(parser, options), (parsed, context) =>
     parsed.data.parsed.length < options.minimum ? err(parsed.data.start, context, options?.noMatchError) : parsed
   )
-}
-
-export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
-  return (start, input, context) => {
-    const parsed: Token<T>[] = []
-    const matched: string[] = []
-    let lastWasNeutralError = false
-
-    let loc = { ...start }
-    let iter = 0
-
-    while (input.length > 0) {
-      const result = parser(loc, input, {
-        ...context,
-        loopData: {
-          firstIter: iter === 0,
-          iter: iter++,
-          lastWasNeutralError,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
-        },
-      })
-
-      if (!result.ok) {
-        if (result.precedence) {
-          return result
-        } else {
-          break
-        }
-      }
-
-      const { data } = result
-
-      lastWasNeutralError = data.neutralError
-
-      input = sliceInput(input, loc, data.next)
-      loc = data.next
-
-      parsed.push(data)
-      matched.push(data.matched)
-    }
-
-    return success(start, loc, parsed, matched.join(''))
-  }
 }
