@@ -13,7 +13,7 @@ export type Scope = {
   variables: Map<string, Located<{ mutable: boolean; type: ValueType }>>
 }
 
-export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope, string> = (chain, scopeFirstPass) => {
+export const completeScope: TypecheckerArr<StatementChain, ScopeFirstPass, Scope> = (chain, scopeFirstPass) => {
   const scope: Scope = { ...scopeFirstPass, variables: new Map() }
 
   for (const stmt of chain) {

@@ -9,7 +9,7 @@ import { scopeFirstPass } from './scope/first-pass'
 // * Output type
 // * Error type
 
-export const programChecker: Typechecker<Program, void, void, string> = (input) => {
+export const programChecker: Typechecker<Program, void, void> = (input) => {
   const fp = scopeFirstPass(input.parsed)
   if (!fp.ok) return fp
 

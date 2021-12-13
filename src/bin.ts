@@ -36,12 +36,11 @@ const iter = argv[1] && argv[1] !== '--ast' ? parseInt(argv[1]) : 1
 const iterSrc = source.repeat(iter)
 
 const errorFormatters: ErrorParsingFormatters = {
-  wrapper: chalk.reset,
   header: chalk.yellowBright,
   locationPointer: chalk.redBright,
-  errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
+  errorMessage: (message) => chalk.whiteBright('Syntax error: ' + message),
   failedLine: chalk.cyanBright,
-  tip: chalk.yellowBright,
+  complementName: chalk.whiteBright,
 }
 
 const started = Date.now()
@@ -69,9 +68,7 @@ const exec = programChecker(parsed.data, void 0)
 const elapsedTypechecker = Date.now() - startedTypechecker
 
 if (!exec.ok) {
-  console.error(
-    chalk.redBright(formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.err), errorFormatters))
-  )
+  console.error(formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.err), errorFormatters))
   process.exit(1)
 }
 

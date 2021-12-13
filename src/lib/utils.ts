@@ -56,7 +56,8 @@ export type ErrorParsingFormatters = {
   locationPointer?: (char: string) => string
   failedLine?: (line: string) => string
   errorMessage?: (message: string) => string
-  tip?: (tip: string) => string
+  complementName?: (name: string) => string
+  complement?: (fullText: string) => string
 }
 
 export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
@@ -81,7 +82,12 @@ export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
     `${linePad} | ${' '.repeat(col)}${f?.locationPointer?.('^') ?? '^'} ${
       f?.errorMessage?.(farest.message) ?? farest.message
     }` +
-    (farest.tip ? `\n${linePad} | ${' '.repeat(col)}  ${f?.tip?.(`Tip: ${farest.tip}`) ?? `Tip: ${farest.tip}`}` : '')
+    (farest.complements
+      ?.map(([name, text]) => {
+        name = f?.complementName?.(name) ?? name
+        return `\n${linePad} | ${' '.repeat(col)}  ${f?.complement?.(`${name}: ${text}`) ?? `${name}: ${text}`}`
+      })
+      ?.join('') ?? '')
 
   return f?.wrapper?.(text) ?? text
 }

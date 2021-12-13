@@ -17,7 +17,7 @@ export type ParserErr = {
 
 export type ParserErrStackEntry = ParserErrStackEntryMessage & { loc: ParserLoc; context: ParsingContext }
 
-export type ParserErrStackEntryMessage = { message: string; tip?: string }
+export type ParserErrStackEntryMessage = { message: string; complements?: [string, string][] }
 
 export type ParserLoc = {
   line: number

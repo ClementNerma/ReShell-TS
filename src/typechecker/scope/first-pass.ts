@@ -9,7 +9,7 @@ export type ScopeFirstPass = {
   functions: Map<string, Located<FnType>>
 }
 
-export const scopeFirstPass: TypecheckerArr<StatementChain, void, ScopeFirstPass, string> = (chain) => {
+export const scopeFirstPass: TypecheckerArr<StatementChain, void, ScopeFirstPass> = (chain) => {
   const scope: ScopeFirstPass = { typeAliases: new Map(), functions: new Map() }
 
   for (const stmt of chain) {

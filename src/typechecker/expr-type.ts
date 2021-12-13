@@ -2,7 +2,9 @@ import { Expr, ExprElement, SingleLogicOp, Value, ValueType } from '../parsers/d
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from './base'
 import { Scope } from './scope/complete'
 
-export const resolveExprType: Typechecker<Expr, Scope, ValueType, string> = (expr, scope) => {
+export type ScopedExprType = ValueType
+
+export const resolveExprType: Typechecker<Expr, Scope, ScopedExprType> = (expr, scope) => {
   const from = resolveExprElementType(expr.parsed.from, scope)
   if (!from.ok) return from
 
@@ -13,7 +15,7 @@ export const resolveExprType: Typechecker<Expr, Scope, ValueType, string> = (exp
   return from
 }
 
-export const resolveExprElementType: Typechecker<ExprElement, Scope, ValueType, string> = (element, scope) => {
+export const resolveExprElementType: Typechecker<ExprElement, Scope, ScopedExprType> = (element, scope) => {
   switch (element.parsed.type) {
     case 'assertion':
       throw new Error('// TODO: type assertions')
@@ -55,10 +57,10 @@ export const resolveExprElementType: Typechecker<ExprElement, Scope, ValueType, 
   }
 }
 
-export const valueType: Typechecker<Value, Scope, ValueType, string> = (
+export const valueType: Typechecker<Value, Scope, ScopedExprType> = (
   value,
   scope
-): TypecheckerResult<ValueType, string> => {
+): TypecheckerResult<ScopedExprType> => {
   switch (value.parsed.type) {
     case 'null':
       return success({ nullable: true, inner: { type: 'void' } })

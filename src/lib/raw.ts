@@ -9,6 +9,10 @@ export function matcher<C>(parser: Parser<unknown>, $custom: C): (input: string)
   return (input) => matches(input, parser, $custom)
 }
 
-export function addTipIf(message: string, cond: boolean, tip: string): string | ParserErrStackEntryMessage {
-  return cond ? { message, tip } : message
+export function addComplementsIf(
+  message: string,
+  cond: boolean,
+  complements: [string, string][]
+): string | ParserErrStackEntryMessage {
+  return cond ? { message, complements } : message
 }

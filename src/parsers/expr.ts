@@ -111,7 +111,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             combine(
               failIf(lookahead(unicodeAlphanumericUnderscore), {
                 message: "Expected either an identifier or the end of the map's content",
-                tip: 'Key names in map values must be written between quotes',
+                complements: [['Tip', 'Key names in map values must be written between quotes']],
               }),
               contextualFailure(rawString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
               exact(':'),

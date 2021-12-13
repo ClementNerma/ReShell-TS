@@ -1,15 +1,17 @@
 import { ParserLoc, Token } from '../lib/base'
 
-export type Typechecker<T, C, O, E> = (input: Token<T>, context: C) => TypecheckerResult<O, E>
+export type Typechecker<T, C, O> = (input: Token<T>, context: C) => TypecheckerResult<O>
 
-export type TypecheckerRaw<T, C, O, E> = (input: T, context: C) => TypecheckerResult<O, E>
+export type TypecheckerRaw<T, C, O> = (input: T, context: C) => TypecheckerResult<O>
 
-export type TypecheckerArr<T, C, O, E> = (input: Token<T>[], context: C) => TypecheckerResult<O, E>
+export type TypecheckerArr<T, C, O> = (input: Token<T>[], context: C) => TypecheckerResult<O>
 
-export type TypecheckerResult<O, E> = { ok: true; data: O } | { ok: false; err: E; loc: ParserLoc }
+export type TypecheckerErr = string | { message: string; complements: [string, string][] }
 
-export const success = <O, E>(data: O): TypecheckerResult<O, E> => ({ ok: true, data })
-export const err = <O, E>(err: E, loc: ParserLoc): TypecheckerResult<O, E> => ({ ok: false, err, loc })
+export type TypecheckerResult<O> = { ok: true; data: O } | { ok: false; err: TypecheckerErr; loc: ParserLoc }
+
+export const success = <O>(data: O): TypecheckerResult<O> => ({ ok: true, data })
+export const err = <O>(err: TypecheckerErr, loc: ParserLoc): TypecheckerResult<O> => ({ ok: false, err, loc })
 
 export type Located<T> = { loc: ParserLoc; data: T }
 

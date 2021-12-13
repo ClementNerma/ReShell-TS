@@ -1,11 +1,12 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, maybe, maybeFlatten } from '../lib/conditions'
+import { never } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile, takeWhile1 } from '../lib/loops'
 import { exact, word } from '../lib/matchers'
-import { addTipIf } from '../lib/raw'
+import { addComplementsIf } from '../lib/raw'
 import { mappedCases, OrErrorStrategy } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
@@ -95,7 +96,9 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
   [
     OrErrorStrategy.FallbackFn,
     (input, _, __, ___) =>
-      addTipIf('Invalid type', startsWithLetter(input), 'Type aliases must be prefixed by a "@" symbol'),
+      addComplementsIf('Invalid type', startsWithLetter(input), [
+        ['Tip', 'Type aliases must be prefixed by a "@" symbol'],
+      ]),
   ]
 )
 
@@ -131,7 +134,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                     withLatelyDeclared(() => literalValue),
                     {
                       message: 'Expected a literal default value',
-                      tip: 'Lists, maps and structures are not literal values',
+                      complements: [['Tip', 'Lists, maps and structures are not literal values']],
                     }
                   ),
                   {
