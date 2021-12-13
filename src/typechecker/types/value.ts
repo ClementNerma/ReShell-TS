@@ -601,18 +601,14 @@ export const errIncompatibleValueType = ({
   message =
     (messagePrefix ?? '') +
     (message ??
-      `expected ${ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
-        typeExpectation.type,
-        { noDepth: true }
-      )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })}\``)
+      `expected ${
+        ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''
+      }\`${expectedNoDepth}\`, found \`${foundNoDepth}\``)
 
   const complements: DiagnosticComplementsInput = []
 
   if (expectedNoDepth !== expected || foundNoDepth !== found) {
-    complements.push(
-      ['expected', rebuildType(typeExpectation.type)],
-      ['found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)]
-    )
+    complements.push(['expected', expected], ['found   ', found])
   }
 
   also ??= []
