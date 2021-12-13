@@ -1,4 +1,12 @@
-import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../shared/ast'
+import {
+  ElIfExpr,
+  Expr,
+  ExprElement,
+  ExprElementContent,
+  ExprOrNever,
+  ExprOrTypeAssertion,
+  ValueType,
+} from '../shared/ast'
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -59,7 +67,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
           ),
           combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
           failure(
-            withLatelyDeclared(() => expr),
+            withLatelyDeclared(() => exprOrNever),
             'expected an expression'
           ),
           combine(maybe_s_nl, exact('}', 'expected a closing brace (}) to close the "if" body'), maybe_s_nl),
@@ -74,7 +82,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
                   ),
                   combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
                   failure(
-                    withLatelyDeclared(() => expr),
+                    withLatelyDeclared(() => exprOrNever),
                     'expected an expression'
                   ),
                   combine(maybe_s_nl, exact('}', 'expected an opening brace (}) to close the "elif" body'))
@@ -92,7 +100,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
             maybe_s_nl
           ),
           failure(
-            withLatelyDeclared(() => expr),
+            withLatelyDeclared(() => exprOrNever),
             'expected an expression'
           ),
           combine(maybe_s_nl, exact('}', 'expected a closing brace (}) to close the "else" body'))
@@ -126,7 +134,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
               combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
               withStatementClosingChar(
                 '}',
-                withLatelyDeclared(() => expr)
+                withLatelyDeclared(() => exprOrNever)
               ),
               combine(maybe_s_nl, exact('}', "expected a closing brace (}) to close the block's content"))
             ),
@@ -204,4 +212,11 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
   ),
 
   expr: toOneProp(expr, 'inner'),
+})
+
+export const exprOrNever: Parser<ExprOrNever> = mappedCases<ExprOrNever>()('type', {
+  throw: map(combine(exact('throw'), s, expr), ([_, __, expr]) => ({ expr })),
+  return: map(combine(exact('return'), s, expr), ([_, __, expr]) => ({ expr })),
+  panic: map(combine(exact('panic'), s, expr), ([_, __, message]) => ({ message })),
+  expr: toOneProp(expr, 'content'),
 })

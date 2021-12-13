@@ -79,6 +79,10 @@ export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
 export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
 
+export type ExprOrNever =
+  | { type: 'expr'; content: Token<Expr> }
+  | Extract<Statement, { type: 'throw' | 'return' | 'panic' }>
+
 export type ExprOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> | null }
@@ -92,16 +96,16 @@ export type ExprElementContent =
   | {
       type: 'ternary'
       cond: Token<ExprOrTypeAssertion>
-      then: Token<Expr>
+      then: Token<ExprOrNever>
       elif: ElIfExpr[]
-      els: Token<Expr>
+      els: Token<ExprOrNever>
     }
-  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
+  | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<ExprOrNever> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
   // Internal type
   | { type: 'synth'; inner: Token<Expr> }
 
-export type ElIfExpr = { cond: Token<ExprOrTypeAssertion>; expr: Token<Expr> }
+export type ElIfExpr = { cond: Token<ExprOrTypeAssertion>; expr: Token<ExprOrNever> }
 
 export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
 

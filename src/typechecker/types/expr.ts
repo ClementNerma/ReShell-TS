@@ -1,4 +1,4 @@
-import { Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
+import { Expr, ExprElement, ExprElementContent, ExprOrNever, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerContext } from '../base'
@@ -28,6 +28,58 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
     ctx
   )
 }
+
+export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> = (exprOrNever, ctx) =>
+  matchUnion(exprOrNever.parsed, 'type', {
+    expr: ({ content }) => resolveExprType(content, ctx),
+
+    panic: () =>
+      ctx.typeExpectation
+        ? success(ctx.typeExpectation.type)
+        : err(exprOrNever.at, 'cannot determine the type of this expression'),
+
+    return: ({ expr }) => {
+      if (!ctx.fnExpectation) {
+        return err(exprOrNever.at, 'cannot return a value outside of a function')
+      }
+
+      if (!ctx.typeExpectation) {
+        return err(exprOrNever.at, 'cannot determine the type of this expression')
+      }
+
+      if (!ctx.fnExpectation.returnType) {
+        return expr ? err(expr.at, 'unexpected value (no return value expected)') : success(ctx.typeExpectation.type)
+      }
+
+      if (!expr) {
+        return err(exprOrNever.at, 'missing return value')
+      }
+
+      const check = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
+      return check.ok ? success(ctx.typeExpectation.type) : check
+    },
+
+    throw: ({ expr }) => {
+      if (!ctx.fnExpectation) {
+        return err(exprOrNever.at, 'cannot throw a value outside of a function')
+      }
+
+      if (!ctx.typeExpectation) {
+        return err(exprOrNever.at, 'cannot determine the type of this expression')
+      }
+
+      if (!ctx.fnExpectation.failureType) {
+        return expr ? err(expr.at, 'unexpected value (no return value expected)') : success(ctx.typeExpectation.type)
+      }
+
+      if (!expr) {
+        return err(exprOrNever.at, 'missing return value')
+      }
+
+      const check = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.failureType })
+      return check.ok ? success(ctx.typeExpectation.type) : check
+    },
+  })
 
 export const resolveExprOrTypeAssertionType: Typechecker<
   Token<ExprOrTypeAssertion>,
@@ -145,7 +197,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
       if (!condType.ok) return condType
 
-      const thenType = resolveExprType(
+      const thenType = resolveExprOrNeverType(
         then,
         condType.data.type === 'assertion' ? { ...ctx, scopes: ctx.scopes.concat([condType.data.assertionScope]) } : ctx
       )
@@ -160,7 +212,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
         if (!condType.ok) return condType
 
-        const elifType = resolveExprType(expr, {
+        const elifType = resolveExprOrNeverType(expr, {
           ...ctx,
           scopes: condType.data.type === 'assertion' ? ctx.scopes.concat([condType.data.assertionScope]) : ctx.scopes,
           typeExpectation: { type: thenType.data, from: then.at },
@@ -169,7 +221,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
         if (!elifType.ok) return elifType
       }
 
-      const elseType = resolveExprType(els, {
+      const elseType = resolveExprOrNeverType(els, {
         ...ctx,
         typeExpectation: { type: thenType.data, from: then.at },
       })
@@ -192,7 +244,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
         })
       }
 
-      return resolveExprType(catchExpr, {
+      return resolveExprOrNeverType(catchExpr, {
         ...ctx,
         scopes: ctx.scopes.concat([
           {
