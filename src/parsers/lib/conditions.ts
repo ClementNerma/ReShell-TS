@@ -123,6 +123,17 @@ export function extract<T>(parser: Parser<Token<T>[]>): Parser<T[]> {
   }
 }
 
+export function filterNullables<T>(parser: Parser<Token<T | null>[]>): Parser<Token<T>[]> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    if (!parsed.ok) return parsed
+
+    // NOTE: unsafe typecast here with type predicate
+    const results: Token<T>[] = parsed.data.parsed.filter((entry): entry is Token<T> => entry.parsed !== null)
+    return success(start, parsed.data.at.next, results, parsed.data.matched)
+  }
+}
+
 export function then<T, U>(
   parser: Parser<T>,
   then: (parsed: T, token: Token<T>, context: ParsingContext) => ParserResult<U>
