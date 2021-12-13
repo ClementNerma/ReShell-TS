@@ -260,7 +260,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return check.data.neverReturns ? err(stmt.at, 'This loop never returns') : success({ neverReturns: false })
+          return check.data.neverReturns
+            ? err(stmt.at, 'This loop always return or break')
+            : success({ neverReturns: false })
         },
 
         break: () => {
