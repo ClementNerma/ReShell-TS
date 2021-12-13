@@ -61,7 +61,7 @@ if (!parsed.ok) {
   console.error(
     parsed.stack.length === 0
       ? '<no error provided>'
-      : formatErr(parsed.stack[0], parsed.context.source.ref, errorFormatters)
+      : formatErr(parsed.stack[0].content, parsed.context.source.ref, errorFormatters)
   )
   process.exit(1)
 }

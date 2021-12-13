@@ -1,4 +1,4 @@
-import { FormatableExtract, FormatableExtractsInput, formattableExtract } from '../../shared/errors'
+import { FormatableErrInput, FormatableError, formattableErr } from '../../shared/errors'
 import { CodeLoc, Token } from '../../shared/parsed'
 
 export type ParserResult<T> = ParserSucess<T> | ParserErr
@@ -20,11 +20,7 @@ export type ParserErr = {
   context: ParsingContext
 }
 
-export type ParserErrStackEntry = {
-  context: ParsingContext
-  error: FormatableExtract
-  also: FormatableExtract[]
-}
+export type ParserErrStackEntry = { context: ParsingContext; content: FormatableError }
 
 export type ParsingContext = Readonly<{
   source: { ref: string }
@@ -83,14 +79,13 @@ export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<Par
   }
 }
 
-export type ErrInputData = null | FormatableExtractsInput | ParserErr['stack']
+export type ErrInputData = null | FormatableErrInput | ParserErr['stack']
 
 export function err(
   start: CodeLoc,
   next: CodeLoc,
   context: ParsingContext,
   errData?: ErrInputData,
-  also?: FormatableExtract[],
   precedence?: boolean
 ): ParserErr {
   return {
@@ -100,7 +95,7 @@ export function err(
         ? []
         : Array.isArray(errData)
         ? errData
-        : [{ context, error: formattableExtract({ start, next }, errData), also: also ?? [] }],
+        : [{ context, content: formattableErr({ start, next }, errData) }],
     precedence: precedence ?? (errData !== undefined && errData !== null),
     start,
     next,
@@ -134,21 +129,13 @@ export function parseSource<T>(source: string, parser: Parser<T>, $custom: unkno
   return parser({ line: 0, col: 0 }, source, context)
 }
 
-export type WithErrData =
-  | undefined
-  | FormatableExtractsInput
-  | { error: FormatableExtractsInput; also: FormatableExtract[] }
-  | ((err: ParserErr) => FormatableExtractsInput | { error: FormatableExtractsInput; also: FormatableExtract[] })
+export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)
 
 export function withErr(error: ParserErr, context: ParsingContext, mapping: WithErrData): ParserErr {
   if (mapping !== undefined) {
-    const data = typeof mapping === 'function' ? mapping(error) : mapping
+    const errData = typeof mapping === 'function' ? mapping(error) : mapping
 
-    error.stack.push(
-      typeof data === 'object' && 'also' in data
-        ? { context, error: formattableExtract({ start: error.start, next: error.next }, data.error), also: data.also }
-        : { context, error: formattableExtract({ start: error.start, next: error.next }, data), also: [] }
-    )
+    error.stack.push({ context, content: formattableErr({ start: error.start, next: error.next }, errData) })
 
     error.precedence = true
   }

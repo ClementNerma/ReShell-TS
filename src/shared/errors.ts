@@ -1,37 +1,28 @@
-import { CodeLoc, CodeSection } from './parsed'
+import { CodeSection } from './parsed'
 import { computeCodeSectionEnd } from './utils'
 
 export type FormatableError = { error: FormatableExtract; also: FormatableExtract[] }
 
 export type FormatableExtract = {
-  start: CodeLoc
-  next: CodeLoc
+  at: CodeSection
   message: string
   complements?: [string, string][]
 }
 
-export type FormatableExtractsInput = string | { message: string; complements?: [string, string][] }
+export type FormatableErrInput =
+  | string
+  | { message: string; complements?: [string, string][]; also?: FormatableExtract[] }
 
-export const formattableExtract = (at: CodeSection, input: FormatableExtractsInput): FormatableExtract => {
-  // Fallback message provided
-  return typeof input === 'string'
-    ? {
-        start: at.start,
-        next: at.next,
-        message: input,
-      }
-    : input.complements
-    ? {
-        start: at.start,
-        next: at.next,
-        message: input.message,
-        complements: input.complements,
-      }
-    : {
-        start: at.start,
-        next: at.next,
-        message: input.message,
-      }
+export const formattableErr = (at: CodeSection, input: FormatableErrInput): FormatableError => {
+  const stringInput = typeof input === 'string'
+
+  const error: FormatableExtract = { at, message: stringInput ? input : input.message }
+
+  if (!stringInput && input.complements) {
+    error.complements = input.complements
+  }
+
+  return { error, also: stringInput || !input.also ? [] : input.also }
 }
 
 export type ErrorParsingFormatters = {
@@ -55,10 +46,10 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
   const text = [err.error]
     .concat(err.also)
-    .map(({ start, next, message, complements }) => {
-      const { line, col } = start
+    .map(({ at, message, complements }) => {
+      const { line, col } = at.start
 
-      const end = computeCodeSectionEnd({ start, next }, source)
+      const end = computeCodeSectionEnd(at, source)
 
       const addLines = end.line - line
       const addLinesPadding = addLines ? '  ' : ''

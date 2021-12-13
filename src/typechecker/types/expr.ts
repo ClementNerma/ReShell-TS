@@ -1,4 +1,3 @@
-import { formattableExtract } from '../../shared/errors'
 import { CodeSection, Expr, ExprElement, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from '../base'
@@ -49,9 +48,10 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
 
               case 'Null':
                 if (!leftExprType.nullable) {
-                  return err('This operator can only be applied on nullable values', action.op.at, [
-                    formattableExtract(leftExprAt, 'This expression is not nullable'),
-                  ])
+                  return err(action.op.at, {
+                    message: 'This operator can only be applied on nullable values',
+                    also: [{ at: leftExprAt, message: 'This expression is not nullable' }],
+                  })
                 }
 
                 checkRightOperandType = null
@@ -173,16 +173,13 @@ export const errCannotApplyOperator = (
   operator: Token<string>,
   expectedType: string,
   foundType: ValueType,
-  leftExpr: CodeSection
+  leftExprAt: CodeSection
 ) => {
-  return err(
-    {
-      message: `cannot apply operator \`${operator.parsed}\` on type \`${rebuildType(foundType, true)}\``,
-      complements: [
-        ['Expected', expectedType],
-        ['Found   ', rebuildType(foundType)],
-      ],
-    },
-    leftExpr
-  )
+  return err(leftExprAt, {
+    message: `cannot apply operator \`${operator.parsed}\` on type \`${rebuildType(foundType, true)}\``,
+    complements: [
+      ['Expected', expectedType],
+      ['Found   ', rebuildType(foundType)],
+    ],
+  })
 }

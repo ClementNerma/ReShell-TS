@@ -1,4 +1,4 @@
-import { FormatableExtractsInput } from '../../shared/errors'
+import { FormatableErrInput } from '../../shared/errors'
 import { Parser, ParsingContext } from './base'
 
 export function matches<C>(input: string, parser: Parser<unknown>, $custom: C) {
@@ -14,6 +14,6 @@ export function addComplementsIf(
   message: string,
   cond: boolean,
   complements: [string, string][]
-): string | FormatableExtractsInput {
+): string | FormatableErrInput {
   return cond ? { message, complements } : message
 }
