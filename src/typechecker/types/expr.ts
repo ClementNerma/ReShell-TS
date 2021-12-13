@@ -1,35 +1,43 @@
-import { CodeSection, Expr, ExprElement, Token, ValueType } from '../../shared/parsed'
+import { CodeSection, Expr, ExprElement, ExprElementContent, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { success, Typechecker } from '../base'
-import { resolveExprSequenceActionType } from './expr-seq'
+import { resolveDoubleOpType } from './double-op'
 import { resolveValueType } from './value'
 
-export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, context) => {
-  const from = resolveExprElementType(expr.parsed.from, context)
-  if (!from.ok) return from
+export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) => {
+  const fromType = resolveExprElementType(expr.parsed.from, ctx)
+  if (!fromType.ok) return fromType
 
   let leftExprAt: CodeSection = expr.parsed.from.at
-  let leftExprType = from.data
+  let leftExprType = fromType.data
 
-  for (const { parsed: action } of expr.parsed.sequence) {
-    const newLeftExprType = resolveExprSequenceActionType({ leftExprAt, leftExprType, action }, context)
+  for (const { parsed: op } of expr.parsed.doubleOps) {
+    const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op }, ctx)
     if (!newLeftExprType.ok) return newLeftExprType
 
-    leftExprAt = action.right.at
+    leftExprAt = op.right.at
     leftExprType = newLeftExprType.data
   }
 
-  return from
+  return success(leftExprType)
 }
 
-export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) =>
+export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) => {
+  if (element.parsed.propAccess.length > 0) {
+    throw new Error('// TODO: property access in expr element type resolution')
+  }
+
+  return resolveExprElementContentType(element.parsed.content, ctx)
+}
+
+export const resolveExprElementContentType: Typechecker<Token<ExprElementContent>, ValueType> = (element, ctx) =>
   matchUnion(element.parsed, 'type', {
     paren: ({ inner }) => resolveExprType(inner, ctx),
 
     singleOp: ({ op, right }) =>
       matchStr(op.parsed.op.parsed, {
         Not: () =>
-          resolveExprElementType(right, { ...ctx, expectedType: { nullable: false, inner: { type: 'bool' } } }),
+          resolveExprElementContentType(right, { ...ctx, expectedType: { nullable: false, inner: { type: 'bool' } } }),
       }),
 
     ternary: ({ cond, then, elif, els }) => {

@@ -1,30 +1,12 @@
-import {
-  CodeSection,
-  DoubleOp,
-  ExprElement,
-  ExprSequenceAction,
-  PropertyAccess,
-  Token,
-  ValueType,
-} from '../../shared/parsed'
-import { matchUnion } from '../../shared/utils'
+import { CodeSection, ExprDoubleOp, Token, ValueType } from '../../shared/parsed'
 import { err, success, Typechecker } from '../base'
 import { resolveExprElementType } from './expr'
 import { rebuildType } from './rebuilder'
 
-export const resolveExprSequenceActionType: Typechecker<
-  { leftExprAt: CodeSection; leftExprType: ValueType; action: ExprSequenceAction },
-  ValueType
-> = ({ leftExprAt, leftExprType, action }, context) =>
-  matchUnion(action, 'type', {
-    doubleOp: ({ op, right }) => resolveDoubleOpType({ leftExprAt, leftExprType, op, right }, context),
-    propAccess: ({ right }) => resolvePropAccessType({ leftExprAt, leftExprType, right }, context),
-  })
-
 export const resolveDoubleOpType: Typechecker<
-  { leftExprAt: CodeSection; leftExprType: ValueType; op: Token<DoubleOp>; right: Token<ExprElement> },
+  { leftExprAt: CodeSection; leftExprType: ValueType; op: ExprDoubleOp },
   ValueType
-> = ({ leftExprAt, leftExprType, op, right }, context) => {
+> = ({ leftExprAt, leftExprType, op: { op, right } }, context) => {
   let checkRightOperandType: ValueType | null
   let producedType: ValueType | ((rightType: ValueType) => ValueType)
 
@@ -106,13 +88,6 @@ export const resolveDoubleOpType: Typechecker<
   if (!rightExprType.ok) return rightExprType
 
   return success(typeof producedType === 'function' ? producedType(rightExprType.data) : rightExprType.data)
-}
-
-export const resolvePropAccessType: Typechecker<
-  { leftExprAt: CodeSection; leftExprType: ValueType; right: Token<PropertyAccess> },
-  ValueType
-> = ({ leftExprAt, leftExprType, right }, context) => {
-  throw new Error('// TODO: prop access')
 }
 
 const errCannotApplyOperator = (

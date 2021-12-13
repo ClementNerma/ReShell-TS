@@ -174,21 +174,21 @@ export type Value =
     }
   | { type: 'reference'; varname: Token<string> }
 
-export type ExprSequenceAction =
-  | { type: 'propAccess'; right: Token<PropertyAccess> }
-  | { type: 'doubleOp'; op: Token<DoubleOp>; right: Token<ExprElement> }
-
-export type ExprElement =
+export type ExprElementContent =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
   | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: ElIfExpr[]; els: Token<Expr> }
   | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
-  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElement> }
+  | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
 
 export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
 
-export type Expr = { from: Token<ExprElement>; sequence: Token<ExprSequenceAction>[] }
+export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
+
+export type ExprDoubleOp = { op: Token<DoubleOp>; right: Token<ExprElement> }
+
+export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
 
 export type DoubleOp = { type: 'arith'; op: Token<DoubleArithOp> } | { type: 'logic'; op: Token<DoubleLogicOp> }
 

@@ -1,4 +1,4 @@
-import { ElIfExpr, Expr, ExprElement, ExprSequenceAction } from '../shared/parsed'
+import { ElIfExpr, Expr, ExprElement, ExprElementContent } from '../shared/parsed'
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -8,7 +8,7 @@ import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
 import { mappedCases } from './lib/switches'
-import { map, toOneProp } from './lib/transform'
+import { map } from './lib/transform'
 import { selfRef, withLatelyDeclared } from './lib/utils'
 import { doubleOp, singleOp } from './operators'
 import { propertyAccess } from './propaccess'
@@ -16,8 +16,8 @@ import { identifier } from './tokens'
 import { valueType } from './types'
 import { value } from './value'
 
-export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
-  mappedCases<ExprElement>()(
+export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExpr) =>
+  mappedCases<ExprElementContent>()(
     'type',
     {
       // <single operator> s expr
@@ -159,23 +159,27 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
   )
 )
 
-export const exprSequenceAction: Parser<ExprSequenceAction> = mappedCases<ExprSequenceAction>()('type', {
-  propAccess: toOneProp(propertyAccess, 'right'),
-
-  doubleOp: map(
-    combine(maybe_s, doubleOp, maybe_s, failure(exprElement, 'Expected an expression after operator')),
-    ([_, op, __, right]) => ({
-      type: 'doubleOp',
-      op,
-      right,
-    })
-  ),
-})
+export const exprElement: Parser<ExprElement> = map(
+  combine(exprElementContent, takeWhile(propertyAccess)),
+  ([content, { parsed: propAccess }]) => ({ content, propAccess })
+)
 
 export const expr: Parser<Expr> = map(
-  combine(exprElement, takeWhile(exprSequenceAction)),
-  ([from, { parsed: sequence }]) => ({
+  combine(
+    exprElement,
+    takeWhile(
+      map(
+        combine(maybe_s, doubleOp, maybe_s, failure(exprElement, 'Expected an expression after operator')),
+        ([_, op, __, right]) => ({
+          type: 'doubleOp',
+          op,
+          right,
+        })
+      )
+    )
+  ),
+  ([from, { parsed: doubleOps }]) => ({
     from,
-    sequence,
+    doubleOps,
   })
 )
