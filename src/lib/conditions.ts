@@ -31,7 +31,7 @@ export function ifThenElse<T>(cond: Parser<unknown>, then: Parser<T>, els: Parse
 export function failIf(failIf: Parser<unknown>, error?: ErrInputData): Parser<unknown> {
   return (start, input, context) => {
     const parsed = failIf(start, input, { ...context, failureWillBeNeutral: true })
-    return parsed.ok ? err(start, context, error) : neutralError(start)
+    return parsed.ok ? err(start, context, error) : success(start, start, void 0, '')
   }
 }
 
