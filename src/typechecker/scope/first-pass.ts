@@ -16,7 +16,15 @@ export const scopeFirstPass: Typechecker<Block, Scope> = (chain, ctx) => {
     scopes: ctx.scopes.concat([firstPass]),
   }
 
-  for (const stmt of flattenBlock(chain)) {
+  const flattened = flattenBlock(chain)
+
+  for (const stmt of flattened) {
+    if (stmt.parsed.type === 'typeAlias' || stmt.parsed.type === 'enumDecl') {
+      ctx.typeAliasesPrelook.add(stmt.parsed.typename.parsed)
+    }
+  }
+
+  for (const stmt of flattened) {
     switch (stmt.parsed.type) {
       case 'typeAlias':
       case 'enumDecl': {

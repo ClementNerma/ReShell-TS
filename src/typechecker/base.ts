@@ -8,6 +8,7 @@ export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => Typec
 
 export type TypecheckerContext = {
   scopes: Scope[]
+  typeAliasesPrelook: Set<string>
   typeAliases: PrecompData['typeAliases']
   resolvedGenerics: GenericResolutionScope[]
   inLoop: boolean
@@ -31,6 +32,7 @@ export function createTypecheckerContext(
   return {
     scopes: [nativeLibraryScope()],
     typeAliases: nativeLibraryTypeAliasesMap(),
+    typeAliasesPrelook: new Set(),
     resolvedGenerics: [],
     inLoop: false,
     typeExpectation: null,

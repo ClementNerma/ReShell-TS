@@ -20,7 +20,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
       ),
     enum: () => success(void 0),
     aliasRef: ({ typeAliasName }) =>
-      ctx.typeAliases.get(typeAliasName.parsed)
+      ctx.typeAliasesPrelook.has(typeAliasName.parsed)
         ? success(void 0)
         : err(typeAliasName.at, `type alias \`${typeAliasName.parsed}\` was not found`),
     unknown: () => success(void 0),
