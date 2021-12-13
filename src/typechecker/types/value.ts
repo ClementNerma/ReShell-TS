@@ -2,8 +2,10 @@ import { CodeSection, PrimitiveTypes, StructTypeMember, Token, Value, ValueType 
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../scope/search'
+import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
+import { fnTypeValidator } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -327,11 +329,24 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       )
     },
 
-    closure: ({ type, fnType, body }) => {
+    closure: ({ fnType, body }) => {
       const assert = assertExpectedNonPrimitiveType('fn')
       if (!assert.ok) return assert
 
-      throw new Error('// TODO: values => closure')
+      const check = fnTypeValidator(fnType, ctx)
+      if (!check.ok) return check
+
+      const stmtCheck = statementChainChecker(body, {
+        ...ctx,
+        fnExpectation: {
+          failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
+          returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
+        },
+      })
+
+      if (!stmtCheck.ok) return stmtCheck
+
+      return success(fnType.returnType?.parsed ?? { nullable: false, inner: { type: 'void' } })
     },
 
     fnCall: ({ type, name, args }) => {

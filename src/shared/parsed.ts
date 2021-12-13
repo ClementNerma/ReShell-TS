@@ -54,10 +54,10 @@ export type Statement =
       catchVarname: Token<string>
       catchBody: Token<StatementChain>[]
     }
-  | { type: 'throw'; expr: Token<Expr> }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'return'; expr: Token<Expr> | null }
+  | { type: 'throw'; expr: Token<Expr> }
   | ({ type: 'cmdCall' } & CmdCall)
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }

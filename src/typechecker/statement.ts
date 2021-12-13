@@ -6,7 +6,9 @@ import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveExprType } from './types/expr'
+import { fnScopeCreator } from './types/fn'
 import { resolvePropAccessType } from './types/propaccess'
+import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
 
 export const statementChainChecker: Typechecker<Token<StatementChain>[], void> = (chain, ctx) => {
@@ -121,9 +123,67 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
         // Nothing to do here, already handled in first pass
         typeAlias: () => success(void 0),
 
-        fnDecl: ({ name, fnType, body }) => {
-          // TODO: return & failure types
-          return statementChainChecker(body, ctx)
+        fnDecl: ({ fnType, body }) => {
+          return statementChainChecker(body, {
+            ...ctx,
+            scopes: scopes.concat([fnScopeCreator(fnType)]),
+            fnExpectation: {
+              failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
+              returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
+            },
+          })
+        },
+
+        return: ({ expr }) => {
+          if (!ctx.fnExpectation) {
+            return err(stmt.at, '`return` statements are only allowed inside functions')
+          }
+
+          if (!ctx.fnExpectation.returnType) {
+            return expr
+              ? err(expr.at, 'current function does not have a return type so the `return` statement should be empty')
+              : success(void 0)
+          }
+
+          if (!expr) {
+            return err(stmt.at, {
+              message: `missing return expression (expected \`${rebuildType(ctx.fnExpectation.returnType.type)}\`)`,
+              also: [
+                {
+                  at: ctx.fnExpectation.returnType.from,
+                  message: 'return type expectation originates here',
+                },
+              ],
+            })
+          }
+
+          const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
+          return resolved.ok ? success(void 0) : resolved
+        },
+
+        throw: ({ expr }) => {
+          if (!ctx.fnExpectation) {
+            return err(stmt.at, '`throw` statements are only allowed inside functions')
+          }
+
+          if (!ctx.fnExpectation.failureType) {
+            return expr ? err(stmt.at, 'current function does not have a failure type') : success(void 0)
+          }
+
+          if (!expr) {
+            return err(stmt.at, {
+              message: `missing failure value (expected \`${rebuildType(ctx.fnExpectation.failureType.type)}\`)`,
+              also: [
+                {
+                  at: ctx.fnExpectation.failureType.from,
+                  message: 'failure type expectation originates here',
+                },
+              ],
+            })
+          }
+
+          const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.failureType })
+          return resolved.ok ? success(void 0) : resolved
         },
 
         cmdCall: (call) => cmdCallTypechecker(call, ctx),

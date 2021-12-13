@@ -1,6 +1,6 @@
-import { CmdArg, CodeSection, FnArg, FnType, Token } from '../../shared/parsed'
+import { CmdArg, CodeSection, FnArg, FnType, Token, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { err, success, Typechecker, TypecheckerResult } from '../base'
+import { err, located, Located, Scope, success, Typechecker, TypecheckerResult } from '../base'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
@@ -8,46 +8,45 @@ import { resolveValueType } from './value'
 
 export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
   let hadOptionalPos: Token<FnArg> | null = null
-  const flagsLoc = new Map<string, CodeSection>()
-  const positionalLoc = new Map<string, CodeSection>()
+  const args = new Map<string, Located<ValueType>>()
 
   for (const arg of fnType.args) {
     if (arg.parsed.flag !== null) {
       const name = arg.parsed.name
 
-      const duplicate = flagsLoc.get(name.parsed)
+      const duplicate = args.get(name.parsed)
 
       if (duplicate) {
         return err(name.at, {
           message: 'cannot use the same name for two different flags',
           also: [
             {
-              at: duplicate,
+              at: duplicate.at,
               message: 'first usage of this name occurs here',
             },
           ],
         })
       }
 
-      flagsLoc.set(name.parsed, name.at)
+      args.set(name.parsed, located(name.at, arg.parsed.type))
     } else {
       const name = arg.parsed.name
 
-      const duplicate = positionalLoc.get(name.parsed)
+      const duplicate = args.get(name.parsed)
 
       if (duplicate) {
         return err(arg.at, {
           message: 'cannot use the same name for two different positional arguments',
           also: [
             {
-              at: duplicate,
+              at: duplicate.at,
               message: 'first usage of this name occurs here',
             },
           ],
         })
       }
 
-      positionalLoc.set(name.parsed, name.at)
+      args.set(name.parsed, located(name.at, arg.parsed.type))
 
       if (arg.parsed.optional) {
         if (hadOptionalPos !== null) {
@@ -193,4 +192,14 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
   }
 
   return success(void 0)
+}
+
+export function fnScopeCreator(fnType: FnType): Scope {
+  return {
+    functions: new Map(),
+    typeAliases: new Map(),
+    variables: new Map(
+      fnType.args.map((arg) => [arg.parsed.name.parsed, located(arg.at, { mutable: false, type: arg.parsed.type })])
+    ),
+  }
 }
