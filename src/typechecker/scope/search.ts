@@ -70,7 +70,7 @@ export const generateDuplicateDeclError = (
   err(
     {
       error: {
-        message: `A ${category} with this name was already declared in this scope`,
+        message: `A ${category} with this name was previously declared in this scope`,
         length: name.length,
       },
       also: [
