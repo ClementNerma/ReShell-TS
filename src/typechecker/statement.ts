@@ -49,7 +49,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           })
           if (!validation.ok) return validation
 
-          scope.variables.set(varname.parsed, located(varname.at, { mutable: mutable.parsed, type: validation.data }))
+          scope.variables.set(
+            varname.parsed,
+            located(varname.at, { mutable: mutable.parsed, type: expectedType ?? validation.data })
+          )
 
           return success(void 0)
         },
