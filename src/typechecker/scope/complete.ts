@@ -9,10 +9,14 @@ import { ensureScopeUnicity } from './search'
 import { typeValidator } from './type-validator'
 
 export type Scope = {
-  typeAliases: Map<string, Located<ValueType>>
-  functions: Map<string, Located<FnType>>
-  variables: Map<string, Located<{ mutable: boolean; type: ValueType }>>
+  typeAliases: Map<string, ScopeTypeAlias>
+  functions: Map<string, ScopeFn>
+  variables: Map<string, ScopeVar>
 }
+
+export type ScopeTypeAlias = Located<ValueType>
+export type ScopeFn = Located<FnType>
+export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 
 export const completeScope: TypecheckerArr<StatementChain, { parents: Scope[]; firstPass: ScopeFirstPass }, Scope> = (
   chain,
@@ -36,12 +40,12 @@ export const completeScope: TypecheckerArr<StatementChain, { parents: Scope[]; f
 
           if (sub.parsed.vartype) {
             console.dir(sub.parsed.vartype, { depth: null })
-            const validation = typeValidator(sub.parsed.vartype.parsed, scope)
+            const validation = typeValidator(sub.parsed.vartype.parsed, scopes)
             if (!validation.ok) return validation
 
             vartype = sub.parsed.vartype.parsed
           } else {
-            const validation = resolveExprType(sub.parsed.expr, scope)
+            const validation = resolveExprType(sub.parsed.expr, scopes)
             if (!validation.ok) return validation
 
             vartype = validation.data

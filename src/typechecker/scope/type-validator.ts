@@ -1,40 +1,41 @@
 import { ValueType } from '../../parsers/data'
 import { matchUnion } from '../../parsers/utils'
-import { err, success, TypecheckerArr, TypecheckerRaw } from '../base'
+import { success, TypecheckerArr, TypecheckerRaw } from '../base'
 import { Scope } from './complete'
+import { getTypeAliasInScope } from './search'
 
-export const typeValidator: TypecheckerRaw<ValueType, Scope, void> = (type, scope) =>
+export const typeValidator: TypecheckerRaw<ValueType, Scope[], void> = (type, parents) =>
   matchUnion(type.inner)('type', {
     void: () => success(void 0),
     bool: () => success(void 0),
     number: () => success(void 0),
     string: () => success(void 0),
     path: () => success(void 0),
-    list: ({ itemsType }) => typeValidator(itemsType.parsed, scope),
-    map: ({ itemsType }) => typeValidator(itemsType.parsed, scope),
+    list: ({ itemsType }) => typeValidator(itemsType.parsed, parents),
+    map: ({ itemsType }) => typeValidator(itemsType.parsed, parents),
     fn: ({ fnType }) =>
       multiTypeValidator(
         fnType.args
           .map((arg) => arg.parsed.type)
           .concat(fnType.returnType ? [fnType.returnType] : [])
           .concat(fnType.failureType ? [fnType.failureType] : []),
-        scope
+        parents
       ),
     struct: ({ members }) =>
       multiTypeValidator(
         members.parsed.map(({ type }) => type),
-        scope
+        parents
       ),
-    aliasRef: ({ typeAliasName }) =>
-      scope.typeAliases.has(typeAliasName.parsed)
-        ? success(void 0)
-        : err(`Unknown type name "${typeAliasName.parsed}"`, typeAliasName.start),
+    aliasRef: ({ typeAliasName }) => {
+      const typeAlias = getTypeAliasInScope([typeAliasName.parsed, typeAliasName.start], parents)
+      return typeAlias.ok ? success(void 0) : typeAlias
+    },
     unknown: () => success(void 0),
   })
 
-export const multiTypeValidator: TypecheckerArr<ValueType, Scope, void> = (types, scope) => {
+export const multiTypeValidator: TypecheckerArr<ValueType, Scope[], void> = (types, parents) => {
   for (const type of types) {
-    const validation = typeValidator(type.parsed, scope)
+    const validation = typeValidator(type.parsed, parents)
     if (!validation.ok) return validation
   }
 

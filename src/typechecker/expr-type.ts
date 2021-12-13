@@ -1,11 +1,12 @@
 import { Expr, ExprElement, SingleLogicOp, Value, ValueType } from '../parsers/data'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from './base'
 import { Scope } from './scope/complete'
+import { getFunctionInScope, getVariableInScope } from './scope/search'
 
 export type ScopedExprType = ValueType
 
-export const resolveExprType: Typechecker<Expr, Scope, ScopedExprType> = (expr, scope) => {
-  const from = resolveExprElementType(expr.parsed.from, scope)
+export const resolveExprType: Typechecker<Expr, Scope[], ScopedExprType> = (expr, scopes) => {
+  const from = resolveExprElementType(expr.parsed.from, scopes)
   if (!from.ok) return from
 
   for (const action of expr.parsed.sequence) {
@@ -15,16 +16,16 @@ export const resolveExprType: Typechecker<Expr, Scope, ScopedExprType> = (expr, 
   return from
 }
 
-export const resolveExprElementType: Typechecker<ExprElement, Scope, ScopedExprType> = (element, scope) => {
+export const resolveExprElementType: Typechecker<ExprElement, Scope[], ScopedExprType> = (element, scopes) => {
   switch (element.parsed.type) {
     case 'assertion':
       throw new Error('// TODO: type assertions')
 
     case 'paren':
-      return resolveExprType(element.parsed.inner, scope)
+      return resolveExprType(element.parsed.inner, scopes)
 
     case 'singleOp':
-      const rightType = resolveExprElementType(element.parsed.right, scope)
+      const rightType = resolveExprElementType(element.parsed.right, scopes)
       if (!rightType.ok) return rightType
 
       const opType = element.parsed.op.parsed.op.parsed
@@ -53,13 +54,13 @@ export const resolveExprElementType: Typechecker<ExprElement, Scope, ScopedExprT
       throw new Error('// TODO: inline try/catch expressions')
 
     case 'value':
-      return valueType(element.parsed.content, scope)
+      return valueType(element.parsed.content, scopes)
   }
 }
 
-export const valueType: Typechecker<Value, Scope, ScopedExprType> = (
+export const valueType: Typechecker<Value, Scope[], ScopedExprType> = (
   value,
-  scope
+  scopes
 ): TypecheckerResult<ScopedExprType> => {
   switch (value.parsed.type) {
     case 'null':
@@ -84,7 +85,7 @@ export const valueType: Typechecker<Value, Scope, ScopedExprType> = (
             break
 
           case 'expr':
-            const exprType = resolveExprType(segment.parsed.expr, scope)
+            const exprType = resolveExprType(segment.parsed.expr, scopes)
             if (!exprType.ok) return exprType
             if (!isStringifyableType(exprType.data))
               return err('Expression cannot be converted implicitly to a string', segment.start)
@@ -105,7 +106,7 @@ export const valueType: Typechecker<Value, Scope, ScopedExprType> = (
             break
 
           case 'expr':
-            const exprType = resolveExprType(segment.parsed.expr, scope)
+            const exprType = resolveExprType(segment.parsed.expr, scopes)
             if (!exprType.ok) return exprType
             if (!isTypeConvertibleToPath(exprType.data))
               return err('Expression cannot be converted implicitly to a path', segment.start)
@@ -139,13 +140,13 @@ export const valueType: Typechecker<Value, Scope, ScopedExprType> = (
     case 'reference':
       const varname = value.parsed.varname.parsed
 
-      const referencedVar = scope.variables.get(varname)
-      const referencedFn = scope.functions.get(varname)
+      const referencedVar = getVariableInScope([varname, value.parsed.varname.start], scopes)
+      const referencedFn = getFunctionInScope([varname, value.parsed.varname.start], scopes)
 
-      if (referencedVar) {
-        return success(referencedVar.data.type)
-      } else if (referencedFn) {
-        return success({ nullable: false, inner: { type: 'fn', fnType: referencedFn.data } })
+      if (referencedVar.ok) {
+        return success(referencedVar.data.data.type)
+      } else if (referencedFn.ok) {
+        return success({ nullable: false, inner: { type: 'fn', fnType: referencedFn.data.data } })
       } else {
         return err(`Referenced variable "${varname}" was not found in this scope`, value.start)
       }
