@@ -438,7 +438,6 @@ export const validateAndRegisterFnCall: Typechecker<
             type: relatedArg.parsed.type.parsed,
             from: relatedArg.at,
           },
-          fillgen: gScope,
         })
 
         return resolved.ok ? success([relatedArg.parsed.name.parsed, { type: 'expr', expr }]) : resolved
