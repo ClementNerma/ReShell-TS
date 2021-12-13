@@ -139,6 +139,7 @@ export const closureCallValidator: Typechecker<
   void
 > = ({ at, args, restArg, body, expected }, ctx) => {
   const candidateArgs = [...args]
+  const aliasedArgs: Token<FnArg>[] = []
 
   for (const arg of expected.args) {
     const c = candidateArgs.shift()
@@ -163,6 +164,8 @@ export const closureCallValidator: Typechecker<
         also: [{ at: arg.at, message: 'argument is not defined as a flag here' }],
       })
     }
+
+    aliasedArgs.push({ at: arg.at, matched: arg.matched, parsed: { ...arg.parsed, name: c.parsed.name } })
   }
 
   if (args.length > expected.args.length) {
@@ -175,17 +178,15 @@ export const closureCallValidator: Typechecker<
     return err(at, 'function was expected to have a rest argument')
   }
 
-  ctx = withFnScope(expected, ctx)
-
   return matchUnion(body.parsed, 'type', {
-    block: ({ body }) => validateFnBody({ fnType: expected, body }, ctx),
+    block: ({ body }) => validateFnBody({ fnType: { ...expected, args: aliasedArgs }, body }, ctx),
     expr: ({ body }) => {
       if (!expected.returnType) {
         return err(body.at, 'cannot use this syntax here as the function should not return any value')
       }
 
       const check = resolveExprType(body, {
-        ...ctx,
+        ...withFnScope({ ...expected, args: aliasedArgs }, ctx),
         typeExpectation: {
           from: expected.returnType.at,
           type: expected.returnType.parsed,
