@@ -14,10 +14,11 @@ import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar
+  withStatementClosingChar,
 } from './context'
 import { ChainedStatement, Statement, StatementChain } from './data'
-import { doubleArithOp, expr } from './expr'
+import { expr } from './expr'
+import { doubleArithOp } from './operators'
 import { propertyAccess } from './propaccess'
 import { cmdOnlyChainOp, endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
