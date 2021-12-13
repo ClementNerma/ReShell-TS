@@ -1,4 +1,4 @@
-import { Expr, ExprElement, SingleLogicOp, Token, ValueType } from '../../shared/parsed'
+import { Expr, ExprElement, Token, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
 import { resolveValueType } from './value'
@@ -25,7 +25,7 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
       const opType = op.parsed.op.parsed
 
       switch (opType) {
-        case SingleLogicOp.Not:
+        case 'Not':
           if (rightType.data.nullable) return err('Cannot apply negative operator to nullable value', element.start)
           if (rightType.data.inner.type !== 'bool')
             return err(

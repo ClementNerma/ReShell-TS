@@ -13,13 +13,13 @@ export const _catchUnknownOperator: Parser<void> = silence(
 
 export const doubleArithOp: Parser<DoubleArithOp> = map(
   combine(
-    oneOfMap([
-      ['+', DoubleArithOp.Add],
-      ['-', DoubleArithOp.Sub],
-      ['*', DoubleArithOp.Mul],
-      ['/', DoubleArithOp.Div],
-      ['%', DoubleArithOp.Rem],
-      ['??', DoubleArithOp.Null],
+    oneOfMap<DoubleArithOp>([
+      ['+', 'Add'],
+      ['-', 'Sub'],
+      ['*', 'Mul'],
+      ['/', 'Div'],
+      ['%', 'Rem'],
+      ['??', 'Null'],
     ]),
     failIfMatches(_catchUnknownOperator, 'Unknown operator')
   ),
@@ -28,16 +28,16 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
 
 export const doubleLogicOp: Parser<DoubleLogicOp> = map(
   combine(
-    oneOfMap([
-      ['&&', DoubleLogicOp.And],
-      ['||', DoubleLogicOp.Or],
-      ['^', DoubleLogicOp.Xor],
-      ['==', DoubleLogicOp.Eq],
-      ['!=', DoubleLogicOp.NotEq],
-      ['>=', DoubleLogicOp.GreaterThanOrEqualTo],
-      ['<=', DoubleLogicOp.LessThanOrEqualTo],
-      ['>', DoubleLogicOp.GreaterThan],
-      ['<', DoubleLogicOp.LessThan],
+    oneOfMap<DoubleLogicOp>([
+      ['&&', 'And'],
+      ['||', 'Or'],
+      ['^', 'Xor'],
+      ['==', 'Eq'],
+      ['!=', 'NotEq'],
+      ['>=', 'GreaterThanOrEqualTo'],
+      ['<=', 'LessThanOrEqualTo'],
+      ['>', 'GreaterThan'],
+      ['<', 'LessThan'],
     ]),
     failIfMatches(_catchUnknownOperator, 'Unknown operator')
   ),
@@ -50,7 +50,7 @@ export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
-  combine(oneOfMap([['!', SingleLogicOp.Not]]), failIfMatches(_catchUnknownOperator, 'Unknown operator')),
+  combine(oneOfMap<SingleLogicOp>([['!', 'Not']]), failIfMatches(_catchUnknownOperator, 'Unknown operator')),
   ([{ parsed: sym }]) => sym
 )
 

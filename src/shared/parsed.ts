@@ -24,12 +24,7 @@ export type StatementChain =
 
 export type ChainedStatement = { op: Token<StatementChainOp>; chainedStatement: Token<Statement> }
 
-export enum StatementChainOp {
-  Then,
-  And,
-  Or,
-  Pipe,
-}
+export type StatementChainOp = 'Then' | 'And' | 'Or' | 'Pipe'
 
 export type Statement =
   | {
@@ -106,15 +101,14 @@ export type CmdArg =
 
 export type CmdRedir = { op: Token<CmdRedirOp>; path: Token<Token<string>[]> }
 
-export enum CmdRedirOp {
-  Input,
-  Stdout,
-  AppendStdout,
-  Stderr,
-  AppendStderr,
-  StdoutStderr,
-  AppendStdoutStderr,
-}
+export type CmdRedirOp =
+  | 'Input'
+  | 'Stdout'
+  | 'AppendStdout'
+  | 'Stderr'
+  | 'AppendStderr'
+  | 'StdoutStderr'
+  | 'AppendStdoutStderr'
 
 export type NonNullableValueType =
   | { type: 'void' }
@@ -149,11 +143,7 @@ export type InlineCmdCall = CmdCall
 
 export type InlineChainedCmdCall = { op: Token<StatementChainOp>; chainedCmdCall: Token<InlineCmdCall> }
 
-export enum InlineCmdCallCapture {
-  Stdout,
-  Stderr,
-  Both,
-}
+export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 
 export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
 
@@ -199,29 +189,19 @@ export type Expr = { from: Token<ExprElement>; sequence: Token<ExprSequenceActio
 
 export type DoubleOp = { type: 'arith'; op: Token<DoubleArithOp> } | { type: 'logic'; op: Token<DoubleLogicOp> }
 
-export enum DoubleArithOp {
-  Add,
-  Sub,
-  Mul,
-  Div,
-  Rem,
-  Null,
-}
+export type DoubleArithOp = 'Add' | 'Sub' | 'Mul' | 'Div' | 'Rem' | 'Null'
 
-export enum DoubleLogicOp {
-  And,
-  Or,
-  Xor,
-  Eq,
-  NotEq,
-  GreaterThanOrEqualTo,
-  LessThanOrEqualTo,
-  GreaterThan,
-  LessThan,
-}
+export type DoubleLogicOp =
+  | 'And'
+  | 'Or'
+  | 'Xor'
+  | 'Eq'
+  | 'NotEq'
+  | 'GreaterThanOrEqualTo'
+  | 'LessThanOrEqualTo'
+  | 'GreaterThan'
+  | 'LessThan'
 
 export type SingleOp = { type: 'logic'; op: Token<SingleLogicOp> }
 
-export enum SingleLogicOp {
-  Not,
-}
+export type SingleLogicOp = 'Not'

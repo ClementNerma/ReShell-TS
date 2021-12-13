@@ -9,22 +9,22 @@ import { CmdRedirOp, StatementChainOp } from '../shared/parsed'
 import { matchStatementClose } from './context'
 
 export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
-  ['&&', StatementChainOp.And],
-  ['||', StatementChainOp.Or],
-  ['|', StatementChainOp.Pipe],
+  ['&&', 'And'],
+  ['||', 'Or'],
+  ['|', 'Pipe'],
 ])
 
 export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
-  ['err>>', CmdRedirOp.AppendStderr],
-  ['both>>', CmdRedirOp.AppendStdoutStderr],
-  ['err>', CmdRedirOp.Stderr],
-  ['both>', CmdRedirOp.StdoutStderr],
-  ['>>', CmdRedirOp.AppendStdout],
-  ['>', CmdRedirOp.Stdout],
-  ['<', CmdRedirOp.Input],
+  ['err>>', 'AppendStderr'],
+  ['both>>', 'AppendStdoutStderr'],
+  ['err>', 'Stderr'],
+  ['both>', 'StdoutStderr'],
+  ['>>', 'AppendStdout'],
+  ['>', 'Stdout'],
+  ['<', 'Input'],
 ])
 
-export const statementChainOp: Parser<StatementChainOp> = or([oneOfMap([[';', StatementChainOp.Then]]), cmdOnlyChainOp])
+export const statementChainOp: Parser<StatementChainOp> = or([oneOfMap([[';', 'Then']]), cmdOnlyChainOp])
 
 export const endOfInlineCmdCall: Parser<void> = lookahead(
   combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, matchStatementClose]))

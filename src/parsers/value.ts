@@ -15,7 +15,7 @@ import {
   FnCallArg,
   InlineChainedCmdCall,
   InlineCmdCallCapture,
-  Value
+  Value,
 } from '../shared/parsed'
 import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
@@ -212,9 +212,9 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
   inlineCmdCallSequence: map(
     combine(
       oneOfMap<InlineCmdCallCapture>([
-        ['$*(', InlineCmdCallCapture.Both],
-        ['$!(', InlineCmdCallCapture.Stderr],
-        ['$(', InlineCmdCallCapture.Stdout],
+        ['$*(', 'Both'],
+        ['$!(', 'Stderr'],
+        ['$(', 'Stdout'],
       ]),
       failure(
         withStatementClosingChar(
