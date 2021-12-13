@@ -37,6 +37,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
   ),
 
   number: toOneProp(
+    'value',
     notFollowedBy(
       or([
         regex(/(-)?0x([0-9a-fA-F]+)/, ([_, neg, num]) => parseInt(num, 16) * (neg ? -1 : 1)),
@@ -46,11 +47,10 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
       ]),
       digit,
       'unexpected token in number'
-    ),
-    'value'
+    )
   ),
 
-  string: toOneProp(rawString, 'value'),
+  string: toOneProp('value', rawString),
 
-  path: toOneProp(rawPath, 'segments'),
+  path: toOneProp('segments', rawPath),
 })

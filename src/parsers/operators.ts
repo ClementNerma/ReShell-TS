@@ -55,14 +55,14 @@ export const doubleComparisonLogicOp: Parser<DoubleComparisonOp> = map(
 )
 
 export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
-  arith: toOneProp(doubleArithOp, 'op'),
-  logic: toOneProp(doubleLogicOp, 'op'),
-  comparison: toOneProp(doubleComparisonLogicOp, 'op'),
+  arith: toOneProp('op', doubleArithOp),
+  logic: toOneProp('op', doubleLogicOp),
+  comparison: toOneProp('op', doubleComparisonLogicOp),
 })
 
 export const doubleOpForAssignment: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
-  arith: toOneProp(doubleArithOp, 'op'),
-  logic: toOneProp(doubleLogicOp, 'op'),
+  arith: toOneProp('op', doubleArithOp),
+  logic: toOneProp('op', doubleLogicOp),
   comparison: never(),
 })
 
@@ -72,5 +72,5 @@ export const singleLogicOp: Parser<SingleLogicOp> = map(
 )
 
 export const singleOp: Parser<SingleOp> = mappedCases<SingleOp>()('type', {
-  logic: toOneProp(singleLogicOp, 'op'),
+  logic: toOneProp('op', singleLogicOp),
 })

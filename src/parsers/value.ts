@@ -220,11 +220,11 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       ),
       mappedCases<ClosureBody>()('type', {
         block: toOneProp(
+          'body',
           withStatementClosingChar(
             '}',
             withLatelyDeclared(() => blockBody)
-          ),
-          'body'
+          )
         ),
         expr: map(
           withLatelyDeclared(() => expr),
@@ -262,8 +262,8 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               mappedCases<FnCallArg>()('type', {
                 flag: withLatelyDeclared(() => cmdFlag),
                 expr: toOneProp(
-                  withLatelyDeclared(() => expr),
-                  'expr'
+                  'expr',
+                  withLatelyDeclared(() => expr)
                 ),
               }),
               'invalid argument provided'
@@ -313,6 +313,6 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
   ),
 
   // FIX: TypeScript compiler produced an error because of the produced union being too complex
-  // with "toOneProp(identifier, 'varname')"
+  // with "toOneProp('varname', identifier)"
   reference: map(identifier, (_, varname) => ({ varname })),
 })

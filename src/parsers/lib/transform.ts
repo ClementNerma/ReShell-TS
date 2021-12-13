@@ -32,7 +32,7 @@ export function unify(parser: Parser<unknown>): Parser<string> {
   return map(parser, (_, parsed) => parsed.matched)
 }
 
-export function toOneProp<P extends string, T>(parser: Parser<T>, prop: P): Parser<{ [prop in P]: Token<T> }> {
+export function toOneProp<P extends string, T>(prop: P, parser: Parser<T>): Parser<{ [prop in P]: Token<T> }> {
   return map(parser, (_, value) => ({ [prop]: value } as { [prop in P]: Token<T> }))
 }
 

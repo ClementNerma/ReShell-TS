@@ -41,7 +41,7 @@ export const cmdFlag: Parser<CmdFlag> = map(
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
   flag: cmdFlag,
 
-  action: toOneProp(cmdAction, 'name'),
+  action: toOneProp('name', cmdAction),
 
   expr: map(
     combine(
@@ -56,7 +56,7 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
     ([_, expr, __]) => ({ expr })
   ),
 
-  value: toOneProp(value, 'value'),
+  value: toOneProp('value', value),
 
   rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
     varname,

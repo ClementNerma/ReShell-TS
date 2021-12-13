@@ -127,7 +127,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             from,
             to,
           })),
-          expr: toOneProp(failure(expr, 'expected an expression to iterate on'), 'expr'),
+          expr: toOneProp('expr', failure(expr, 'expected an expression to iterate on')),
         }),
         maybe_s_nl,
         withLatelyDeclared(() => blockBody)

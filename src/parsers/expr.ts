@@ -219,12 +219,12 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
     ([varname, _, minimum]) => ({ varname, minimum: flattenMaybeToken(minimum) })
   ),
 
-  expr: toOneProp(expr, 'inner'),
+  expr: toOneProp('inner', expr),
 })
 
 export const exprOrNever: Parser<ExprOrNever> = mappedCases<ExprOrNever>()('type', {
   throw: map(combine(exact('throw'), s, expr), ([_, __, expr]) => ({ expr })),
   return: map(combine(exact('return'), s, expr), ([_, __, expr]) => ({ expr })),
   panic: map(combine(exact('panic'), s, expr), ([_, __, message]) => ({ message })),
-  expr: toOneProp(expr, 'content'),
+  expr: toOneProp('content', expr),
 })
