@@ -1,3 +1,4 @@
+import { UNICODE_LETTER } from '../../parsers/lib/littles'
 import { Block, ClosureArg, ClosureBody, CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { FnCallGeneric, FnCallPrecompArg } from '../../shared/precomp'
@@ -292,14 +293,28 @@ export const validateAndRegisterFnCall: Typechecker<
     }
 
     const resolved: TypecheckerResult<[string, FnCallPrecompArg]> = matchUnion(arg.parsed, 'type', {
-      action: ({ name }) =>
-        err(name.at, {
+      action: ({ name }) => {
+        const complements: [string, string][] = []
+
+        if (declaredCommand === undefined) {
+          complements.push([
+            'tip',
+            'non-quoted strings are not allowed for commands without a declaration, try to quote this string instead',
+          ])
+        }
+
+        if (UNICODE_LETTER.exec(name.parsed.charAt(0))) {
+          complements.push(['tip', `if you want to reference a variable, wrap it like this: \${${name.parsed}}`])
+        }
+
+        return err(name.at, {
           message:
             declaredCommand === undefined
-              ? 'no signature match this call'
+              ? 'no signature match this call (does the command have a declaration?)'
               : 'non-quoted arguments are only allowed for commands',
-          complements: [['tip', `if you want to reference a variable, wrap it like this: \${${name.parsed}}`]],
-        }),
+          complements,
+        })
+      },
 
       expr: ({ expr }) => {
         const relatedArg = positional.shift()
