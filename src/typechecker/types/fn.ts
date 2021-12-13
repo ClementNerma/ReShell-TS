@@ -1,6 +1,6 @@
 import { CmdArg, CodeSection, FnArg, FnType, Token, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { err, located, Located, Scope, success, Typechecker, TypecheckerResult } from '../base'
+import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
@@ -199,7 +199,16 @@ export function fnScopeCreator(fnType: FnType): Scope {
     functions: new Map(),
     typeAliases: new Map(),
     variables: new Map(
-      fnType.args.map((arg) => [arg.parsed.name.parsed, located(arg.at, { mutable: false, type: arg.parsed.type })])
+      fnType.args.map((arg): [string, ScopeVar] => [
+        arg.parsed.name.parsed,
+        located(arg.at, {
+          mutable: false,
+          type: {
+            nullable: arg.parsed.optional || arg.parsed.type.nullable,
+            inner: arg.parsed.type.inner,
+          },
+        }),
+      ])
     ),
   }
 }
