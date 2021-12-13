@@ -4,7 +4,7 @@ import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
-import { bol, eol, exact, match } from '../lib/matchers'
+import { bol, eol, exact } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken } from '../lib/utils'
@@ -18,8 +18,6 @@ import { fnDecl, valueType } from './types'
 export const statement: Parser<Statement> = mappedCases<Statement>()(
   'type',
   {
-    comment: map(combine(exact('#'), match(/[^\n]*/), { inter: maybe_s }), ([_, content]) => ({ content })),
-
     return: map(combine(exact('return'), maybeFlatten(map(combine(s, expr), ([_, expr]) => expr))), ([_, expr]) => ({
       expr,
     })),

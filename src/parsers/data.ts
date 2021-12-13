@@ -25,7 +25,6 @@ export enum StatementChainOp {
 }
 
 export type Statement =
-  | { type: 'comment'; content: Token<string> }
   | {
       type: 'variableDecl'
       varname: Token<string>
