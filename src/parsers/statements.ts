@@ -1,11 +1,11 @@
-import { ChainedStatement, ElIfBlock, Statement, StatementChain } from '../shared/ast'
+import { ChainedStatement, ElIfBlock, ForLoopSubject, Statement, StatementChain } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
-  withStatementClosingChar
+  withStatementClosingChar,
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
 import { fnDecl } from './fn'
@@ -18,7 +18,7 @@ import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
-import { map } from './lib/transform'
+import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
 import { doubleOpForAssignment } from './operators'
@@ -139,7 +139,13 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           exact('in', 'expected "in" keyword'),
           failure(s, 'expected a space after the "in" keyword')
         ),
-        failure(expr, 'expected an expression to iterate on'),
+        mappedCases<ForLoopSubject>()('type', {
+          range: map(combine(exact('seq'), s, expr, combine(s, exact('to'), s), expr), ([_, __, from, ___, to]) => ({
+            from,
+            to,
+          })),
+          expr: toOneProp(failure(expr, 'expected an expression to iterate on'), 'expr'),
+        }),
         map(
           combine(
             combine(maybe_s_nl, exact('{', 'expected an opening brace ({)'), maybe_s_nl),
@@ -260,10 +266,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       expr,
     })),
 
-    panic: map(
-      combine(exact('panic'), s, expr),
-      ([{ parsed: category }, _, message]) => ({ category, message })
-    ),
+    panic: map(combine(exact('panic'), s, expr), ([{ parsed: category }, _, message]) => ({ category, message })),
 
     assignment: map(
       combine(

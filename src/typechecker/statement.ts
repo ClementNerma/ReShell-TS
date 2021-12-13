@@ -232,12 +232,32 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         },
 
         forLoop: ({ loopvar, subject, body }) => {
-          const subjectType = resolveExprType(subject, ctx)
-          if (!subjectType.ok) return subjectType
+          const subjectType: TypecheckerResult<ValueType> = matchUnion(subject.parsed, 'type', {
+            expr: ({ expr }) => {
+              const subjectType = resolveExprType(expr, ctx)
+              if (!subjectType.ok) return subjectType
+              if (subjectType.data.type !== 'list') return err(subject.at, 'cannot iterate over non-list values')
+              return success(subjectType.data.itemsType)
+            },
 
-          if (subjectType.data.type !== 'list') {
-            return err(subject.at, 'cannot iterate over non-list values')
-          }
+            range: ({ from, to }) => {
+              const fromType = resolveExprType(from, {
+                ...ctx,
+                typeExpectation: { from: null, type: { type: 'number' } },
+              })
+              if (!fromType.ok) return fromType
+
+              const toType = resolveExprType(to, {
+                ...ctx,
+                typeExpectation: { from: null, type: { type: 'number' } },
+              })
+              if (!toType.ok) return toType
+
+              return success({ type: 'number' })
+            },
+          })
+
+          if (!subjectType.ok) return subjectType
 
           const check = statementChainChecker(body, {
             ...ctx,
@@ -246,9 +266,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               {
                 functions: new Map(),
                 typeAliases: new Map(),
-                variables: new Map([
-                  [loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data.itemsType })],
-                ]),
+                variables: new Map([[loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data })]]),
               },
             ]),
           })

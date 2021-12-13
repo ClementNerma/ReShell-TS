@@ -35,7 +35,7 @@ export type Statement =
       elif: ElIfBlock[]
       els: Token<StatementChain>[] | null
     }
-  | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr>; body: Token<StatementChain>[] }
+  | { type: 'forLoop'; loopvar: Token<string>; subject: Token<ForLoopSubject>; body: Token<StatementChain>[] }
   | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
   | { type: 'break' }
   | {
@@ -53,6 +53,8 @@ export type Statement =
   | { type: 'fileInclusion'; content: Program; imports: Token<string>[] | null }
 
 export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
+
+export type ForLoopSubject = { type: 'expr'; expr: Token<Expr> } | { type: 'range'; from: Token<Expr>; to: Token<Expr> }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
