@@ -23,4 +23,13 @@ export const keyword: Parser<string> = oneOfWords([
   'async',
   'let',
   'void',
+  'bool',
+  'number',
+  'float',
+  'int',
+  'path',
+  'list',
+  'map',
+  'struct',
+  'unknown',
 ])
