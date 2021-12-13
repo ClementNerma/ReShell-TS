@@ -44,6 +44,13 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
     return formatter ? formatter(text) : text
   }
 
+  const formatFaultyLine = (line: string) => line.replace(/\t/g, '    ')
+
+  const addTabsPadding = (line: string, col: number) => {
+    const count = line.substr(0, col).match(/\t/g)
+    return count === null ? col : col + count.length * 3 /* 4 - 1 for the already counted col. */
+  }
+
   const text = [err.error]
     .concat(err.also)
     .map(({ at, message, complements }) => {
@@ -66,8 +73,9 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
       const rawLocPtr =
         addLines === 0
-          ? ' '.repeat(col) + '^'.repeat(end.col - col + 1)
-          : '_'.repeat(col + 1) + '^' /*.repeat(failedLine.substr(failedLine.length - col + 1).length)*/
+          ? ' '.repeat(addTabsPadding(failedLine, col)) + '^'.repeat(end.col - col + 1)
+          : '_'.repeat(addTabsPadding(failedLine, col) + 1) +
+            '^' /*.repeat(failedLine.substr(failedLine.length - col + 1).length)*/
 
       const locPtr = format('locationPointer', rawLocPtr)
 
@@ -76,7 +84,10 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       const upToError: string[] = [
         `${format('gutter', linePad)}${addLinesPadding}${format('header', header)}`,
         `${paddingGutter}`,
-        `${format('gutter', padLineNb(line) + ' | ')}${addLinesPadding}${format('failedLine', failedLine)}`,
+        `${format('gutter', padLineNb(line) + ' | ')}${addLinesPadding}${format(
+          'failedLine',
+          formatFaultyLine(failedLine)
+        )}`,
         `${paddingGutter}${addLines ? ' ' : addLinesPadding}${locPtr} ${
           addLines ? '' : format('errorMessage', message)
         }`,
@@ -92,16 +103,20 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
           for (let l = line + addLines - 2; l < line + addLines; l++) {
             upToError.push(
-              `${format('gutter', padLineNb(l) + ' | ')}${format('locationPointer', '|')} ${sourceLines[l]}`
+              `${format('gutter', padLineNb(l) + ' | ')}${format('locationPointer', '|')} ${formatFaultyLine(
+                sourceLines[l]
+              )}`
             )
           }
         }
 
         upToError.push(
-          `${format('gutter', padLineNb(end.line) + ' |')} ${format('locationPointer', '|')} ${sourceLines[end.line]}`
+          `${format('gutter', padLineNb(end.line) + ' |')} ${format('locationPointer', '|')} ${formatFaultyLine(
+            sourceLines[end.line]
+          )}`
         )
 
-        const rawLocPtr = '|_' + '_'.repeat(end.col) + '^'
+        const rawLocPtr = '|_' + '_'.repeat(addTabsPadding(sourceLines[end.line], end.col)) + '^'
         upToError.push(`${paddingGutter}${format('locationPointer', rawLocPtr)} ${format('errorMessage', message)}`)
       }
 
