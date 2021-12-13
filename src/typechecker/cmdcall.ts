@@ -13,7 +13,7 @@ import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
 import { getTypedEntityInScope } from './scope/search'
 import { resolveExprType } from './types/expr'
-import { validateAndRegisterFnCall } from './types/fn'
+import { resolveFnCallType, validateAndRegisterFnCall } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
@@ -96,6 +96,7 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
           flag: ({ prefixSym, name, directValue }) =>
             !directValue && prefixSym.parsed + name.parsed === candidate.parsed,
           expr: () => false,
+          fnCall: () => false,
           value: () => false,
           rest: () => false,
         })
@@ -201,6 +202,11 @@ export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
       if (directValue === null) return success(void 0)
       const resolved = resolveExprType(directValue, ctx)
       return resolved.ok ? cmdArgExprTypeValidator(directValue.at, resolved.data) : resolved
+    },
+
+    fnCall: ({ content }) => {
+      const resolved = resolveFnCallType(content.parsed, ctx)
+      return resolved.ok ? cmdArgExprTypeValidator(content.at, resolved.data) : resolved
     },
 
     value: ({ value }) => {

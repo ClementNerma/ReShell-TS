@@ -3,6 +3,7 @@ import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerContext, RunnerResult, success } from './base'
 import { runExpr } from './expr'
+import { executeFnCallByName } from './fncall'
 import { getEntityInScope } from './scope'
 import { runValue } from './value'
 
@@ -31,6 +32,11 @@ export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
     expr: ({ expr }) => {
       const execExpr = runExpr(expr.parsed, ctx)
       return execExpr.ok === true ? stringifyExecValue(expr.at, execExpr.data, ctx) : execExpr
+    },
+
+    fnCall: ({ content }) => {
+      const execCall = executeFnCallByName(content.parsed.name, ctx)
+      return execCall.ok === true ? stringifyExecValue(content.at, execCall.data, ctx) : execCall
     },
 
     value: ({ value }) => {

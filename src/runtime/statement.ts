@@ -1,12 +1,11 @@
 import { Statement } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
-import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
 import { runCmdCall } from './cmdcall'
 import { runCondOrTypeAssertion, runDoubleOp, runExpr, runNonNullablePropertyAccess } from './expr'
-import { executeFnCall } from './fncall'
+import { executeFnCallByName } from './fncall'
 import { expectValueType } from './value'
 
 export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
@@ -306,14 +305,8 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    fnCall: ({ content }) => {
-      const precomp = getLocatedPrecomp(ctx.fnCalls, content.name.at)
-
-      if (precomp === undefined) {
-        return err(content.name.at, 'internal error: failed to get precomputed function call data')
-      }
-
-      const result = executeFnCall({ name: content.name, precomp }, ctx)
+    fnCall: ({ content: { name } }) => {
+      const result = executeFnCallByName(name, ctx)
       return result.ok === true ? success(void 0) : result
     },
 

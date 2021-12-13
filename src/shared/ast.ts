@@ -247,6 +247,7 @@ export type CmdArg =
   // | { type: 'reference'; varname: Token<string> }
   | { type: 'action'; name: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
+  | { type: 'fnCall'; content: Token<FnCall> }
   | { type: 'value'; value: Token<Value> }
   | { type: 'rest'; varname: Token<string> }
 

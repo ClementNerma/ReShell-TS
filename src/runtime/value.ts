@@ -5,7 +5,7 @@ import { matchUnion } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
 import { runInlineCmdCall } from './cmdcall'
 import { runExpr } from './expr'
-import { executeFnCall } from './fncall'
+import { executeFnCallByName } from './fncall'
 import { nativeLibraryVariables } from './native-lib'
 import { getEntityInScope } from './scope'
 
@@ -193,15 +193,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       })
     },
 
-    fnCall: ({ content: { name } }) => {
-      const precomp = getLocatedPrecomp(ctx.fnCalls, name.at)
-
-      if (precomp === undefined) {
-        return err(name.at, 'internal error: failed to get precomputed function call data')
-      }
-
-      return executeFnCall({ name, precomp }, ctx)
-    },
+    fnCall: ({ content: { name } }) => executeFnCallByName(name, ctx),
 
     inlineCmdCall: ({ content }) => runInlineCmdCall(content, ctx),
 

@@ -453,6 +453,24 @@ export const validateAndRegisterFnCall: Typechecker<
         return resolved.ok ? success([name.parsed, { type: 'expr', expr: directValue }]) : resolved
       },
 
+      fnCall: ({ content }) => {
+        const relatedArg = positional.shift()
+        if (!relatedArg)
+          return err(content.parsed.name.at, 'argument was not expected (all arguments have already been supplied)')
+
+        const resolved = resolveFnCallType(content.parsed, {
+          ...ctx,
+          typeExpectation: {
+            type: relatedArg.parsed.type.parsed,
+            from: relatedArg.at,
+          },
+        })
+
+        return resolved.ok
+          ? success([relatedArg.parsed.name.parsed, { type: 'fnCall', nameForPrecomp: content.parsed.name }])
+          : resolved
+      },
+
       value: ({ value }) => {
         const relatedArg = positional.shift()
         if (!relatedArg) return err(value.at, 'argument was not expected (all arguments have already been supplied)')

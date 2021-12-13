@@ -1,5 +1,6 @@
 import { CmdArg, CmdFlag, Expr } from '../shared/ast'
 import { expr } from './expr'
+import { fnCall } from './fncall'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatchesAndCond, maybe } from './lib/conditions'
@@ -44,6 +45,7 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
     failIfMatchesAndCond(value, (value) => value.type === 'reference')
   ),
   expr: toOneProp('expr', cmdWrappedValue),
+  fnCall: toOneProp('content', fnCall),
   action: toOneProp('name', cmdAction),
   rest: map(combine(exact('...'), failure(identifier, 'expected a rest variable name')), ([_, varname]) => ({
     varname,

@@ -26,6 +26,7 @@ export type FnCallPrecompArg =
   | { type: 'true' }
   | { type: 'value'; value: Token<Value> }
   | { type: 'expr'; expr: Token<Expr> }
+  | { type: 'fnCall'; nameForPrecomp: Token<string> }
 
 export type LocatedPrecomp<T> = Array<{ at: CodeSection; data: T }>
 

@@ -1,6 +1,6 @@
 import { Block, Expr } from '../shared/ast'
 import { Token } from '../shared/parsed'
-import { FnCallPrecomp } from '../shared/precomp'
+import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerContext, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
@@ -9,10 +9,13 @@ import { runExpr } from './expr'
 import { NativeFn, nativeLibraryFunctions } from './native-lib'
 import { runValue } from './value'
 
-export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp }, ExecValue> = (
-  { name, precomp: fnCall },
-  ctx
-) => {
+export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx) => {
+  const precomp = getLocatedPrecomp(ctx.fnCalls, name.at)
+
+  if (precomp === undefined) {
+    return err(name.at, 'internal error: failed to get precomputed function call data')
+  }
+
   let fn:
     | { type: 'block'; body: Token<Block> }
     | { type: 'expr'; body: Token<Expr> }
@@ -45,35 +48,36 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
 
   const fnScope: Scope['entities'] = new Map()
 
-  for (const [argName, content] of fnCall.args) {
+  for (const [argName, content] of precomp.args) {
     const execValue: RunnerResult<ExecValue> = matchUnion(content, 'type', {
       null: () => success({ type: 'null' }),
       false: () => success({ type: 'bool', value: false }),
       true: () => success({ type: 'bool', value: true }),
       expr: ({ expr }) => runExpr(expr.parsed, ctx),
       value: ({ value }) => runValue(value, ctx),
+      fnCall: ({ nameForPrecomp }) => executeFnCallByName(nameForPrecomp, ctx),
     })
 
     if (execValue.ok !== true) return execValue
     fnScope.set(argName, execValue.data)
   }
 
-  if (fnCall.restArg) {
+  if (precomp.restArg) {
     const out: string[] = []
 
-    for (const cmdArg of fnCall.restArg.content) {
+    for (const cmdArg of precomp.restArg.content) {
       const stringified = runCmdArg(cmdArg.parsed, ctx)
       if (stringified.ok !== true) return stringified
 
       out.push(stringified.data)
     }
 
-    fnScope.set(fnCall.restArg.name, { type: 'rest', content: out })
+    fnScope.set(precomp.restArg.name, { type: 'rest', content: out })
   }
 
   const fnCtx: RunnerContext = {
     ...ctx,
-    scopes: ctx.scopes.concat([{ generics: fnCall.generics, entities: fnScope }]),
+    scopes: ctx.scopes.concat([{ generics: precomp.generics, entities: fnScope }]),
   }
 
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {
@@ -91,7 +95,7 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
 
   if (result.ok === false) return result
 
-  if (!fnCall.hasReturnType) {
+  if (!precomp.hasReturnType) {
     if (result.ok === null && result.breaking === 'return' && result.value !== null) {
       return err(name.at, 'internal error: function unexpectedly returned a value')
     }
