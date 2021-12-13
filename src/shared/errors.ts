@@ -84,14 +84,14 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       ]
 
       if (addLines) {
-        for (let l = line + 1; l <= line - 1 + (addLines <= 5 ? addLines : 3); l++) {
+        for (let l = line + 1; l < line + (addLines <= 5 ? addLines : 3); l++) {
           upToError.push(`${format('gutter', padLineNb(l) + ' | ')}${format('locationPointer', '|')} ${sourceLines[l]}`)
         }
 
         if (addLines > 5) {
           upToError.push('...')
 
-          for (let l = line + addLines - 2; l <= line + addLines; l++) {
+          for (let l = line + addLines - 2; l < line + addLines; l++) {
             upToError.push(
               `${format('gutter', padLineNb(l) + ' | ')}${format('locationPointer', '|')} ${sourceLines[l]}`
             )
