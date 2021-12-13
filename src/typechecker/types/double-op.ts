@@ -165,7 +165,20 @@ export const resolveDoubleOpType: Typechecker<
         case 'LessThan':
         case 'LessThanOrEqualTo':
           if (leftExprType.type !== 'number') {
-            return errCannotApplyOperator(op.at, 'number', leftExprType, leftExprAt)
+            return errCannotApplyOperator(
+              op.at,
+              'number',
+              leftExprType,
+              leftExprAt,
+              op.parsed.op.parsed === 'LessThan' && leftExprType.type === 'fn'
+                ? [
+                    [
+                      'tip',
+                      'if you want to provide generics to a function, use the turbofish syntax ::<> (funcname::<A, B>)',
+                    ],
+                  ]
+                : []
+            )
           }
 
           checkRightOperandType = leftExprType
@@ -241,10 +254,12 @@ const errCannotApplyOperator = (
   opAt: CodeSection,
   expectedType: string,
   foundType: ValueType,
-  leftExprAt: CodeSection
+  leftExprAt: CodeSection,
+  complements?: [string, string][]
 ) => {
   return err(opAt, {
     message: `cannot apply this operator on type \`${rebuildType(foundType, true)}\``,
+    complements,
     also: [
       {
         at: leftExprAt,
