@@ -91,11 +91,6 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
 
       unknown: map(exact('unknown'), () => ({})),
 
-      generic: map(
-        combine(exact(':'), failure(identifier, 'expected a generic identifier after (:) symbol')),
-        ([_, name]) => ({ name })
-      ),
-
       // Internal types
       void: never(),
     },

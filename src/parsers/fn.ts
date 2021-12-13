@@ -2,11 +2,11 @@ import { FnArg, FnType } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
+import { failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
 import { always, notFollowedBy } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
-import { takeWhile, takeWhile1 } from './lib/loops'
+import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
@@ -90,32 +90,10 @@ export const fnArg: Parser<FnArg> = map(
   })
 )
 
-const fnGenerics: Parser<Token<string>[]> = map(
-  combine(
-    exact('<'),
-    maybe_s_nl,
-    extract(
-      takeWhile1(
-        map(combine(exact(':'), failure(identifier, 'expected an identifier for the generic')), ([_, name]) => name),
-        {
-          inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          interExpect: 'expected another generic',
-          noMatchError: 'please provide at least one generic',
-        }
-      )
-    ),
-    maybe_s_nl,
-    exact('>', 'expected a closing (>) symbol after the list of generics')
-  ),
-  ([_, __, { parsed: generics }]) => generics
-)
-
 const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (nameParser) =>
   map(
     combine(
       map(combine(exact('fn'), nameParser), ([_, name]) => name),
-      maybe_s,
-      maybe(fnGenerics),
       combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
       useSeparatorIf(
         takeWhile(fnArg, {
@@ -161,18 +139,15 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (n
     ([
       { parsed: name },
       _,
-      { parsed: generics },
-      __,
       {
         parsed: [{ parsed: args }, restArg],
       },
-      ___,
+      __,
       { parsed: returnType },
       { parsed: failureType },
     ]) => ({
       name,
       args,
-      generics: generics ?? [],
       restArg: restArg !== null ? restArg.parsed : null,
       returnType,
       failureType,

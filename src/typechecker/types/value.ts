@@ -393,7 +393,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       const entity = getEntityInScope(name, ctx)
 
-      if (!entity.ok || entity.data.type === 'typeAlias' || entity.data.type === 'generic') {
+      if (!entity.ok || entity.data.type === 'typeAlias') {
         return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
       }
 
