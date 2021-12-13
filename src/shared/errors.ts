@@ -1,3 +1,4 @@
+import { SourceFilesServer } from './files-server'
 import { CodeSection } from './parsed'
 import { computeCodeSectionEnd } from './utils'
 
@@ -28,6 +29,7 @@ export const formattableErr = (at: CodeSection, input: FormatableErrInput): Form
 export type ErrorParsingFormatters = {
   wrapper?: (error: string) => string
   header?: (header: string) => string
+  filename?: (filename: string) => string
   location?: (col: string) => string
   gutter?: (text: string) => string
   paddingChar?: (char: string) => string
@@ -38,7 +40,7 @@ export type ErrorParsingFormatters = {
   complement?: (fullText: string) => string
 }
 
-export function formatErr(err: FormatableError, source: string, f?: ErrorParsingFormatters): string {
+export function formatErr(err: FormatableError, sourceServer: SourceFilesServer, f?: ErrorParsingFormatters): string {
   const format = (formatterName: keyof ErrorParsingFormatters, text: string) => {
     const formatter = f?.[formatterName]
     return formatter ? formatter(text) : text
@@ -54,7 +56,19 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
   const text = [err.error]
     .concat(err.also)
     .map(({ at, message, complements }) => {
+      const sourceFile = at.start.file.ref
       const { line, col } = at.start
+
+      const header = `--> At ${format('filename', sourceFile ?? sourceServer.entrypointFilename)}${format(
+        'location',
+        `:${line + 1}:${col + 1}`
+      )}:`
+
+      const fileContent = sourceFile ? sourceServer.read(sourceFile, null) : sourceServer.entrypoint()
+
+      if (fileContent === false) return `${header}\n<file not found in source server>`
+
+      const source = fileContent.toFullStringSlow()
 
       const end = computeCodeSectionEnd(at, source)
 
@@ -65,8 +79,6 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       const linePad = ' '.repeat(maxLineLen)
 
       const padLineNb = (line: number) => (line + 1).toString().padEnd(maxLineLen, ' ')
-
-      const header = `--> At ${format('location', `${line + 1}:${col + 1}`)}:`
 
       const sourceLines = source.split(/\n/)
       const failedLine = sourceLines[line]

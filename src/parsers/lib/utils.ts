@@ -76,8 +76,8 @@ export function addComplementsIf(
 // TODO: SLOW
 export function getErrorInput(err: ParserErr): string {
   return err.next.line === err.start.line
-    ? err.context.source.toFullStringSlow().substr(err.next.col - err.start.col)
-    : err.context.source
+    ? err.context.currentFile.toFullStringSlow().substr(err.next.col - err.start.col)
+    : err.context.currentFile
         .toFullStringSlow()
         .split('\n')
         .slice(err.next.line - err.start.line)

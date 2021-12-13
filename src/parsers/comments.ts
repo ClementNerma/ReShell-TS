@@ -44,7 +44,7 @@ export const commentStripper: Parser<StrView> = (start, input) => {
 
   return success(
     start,
-    { line: lines.length - 1, col: lines[lines.length - 1].length },
+    { file: start.file, line: lines.length - 1, col: lines[lines.length - 1].length },
     StrView.create(output.join('\n')), // SLOW
     input.toFullStringSlow() // SLOW
   )

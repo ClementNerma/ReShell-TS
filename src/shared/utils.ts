@@ -16,8 +16,12 @@ export const computeCodeSectionEnd = (section: CodeSection, source: string): Cod
   section.start.line === section.next.line && section.start.col === section.next.col
     ? section.start
     : section.next.col === 0
-    ? { line: section.next.line - 1, col: source.split(/\n/)[section.next.line - 1].length - 1 }
-    : { line: section.next.line, col: section.next.col - 1 }
+    ? {
+        file: section.start.file,
+        line: section.next.line - 1,
+        col: source.split(/\n/)[section.next.line - 1].length - 1,
+      }
+    : { file: section.start.file, line: section.next.line, col: section.next.col - 1 }
 
 // export const getExtractEndLoc = (loc: FormatableExtractEndLoc, source: string): CodeLoc =>
 //   loc.col !== 'lineEnd' ? loc : { line: loc.line, col: source.split(/\n/)[loc.line].length - 1 }

@@ -1,4 +1,5 @@
 import { FormatableErrInput, FormatableError, formattableErr } from '../../shared/errors'
+import { SourceFilesServer } from '../../shared/files-server'
 import { CodeLoc, Token } from '../../shared/parsed'
 import { StrView } from '../../shared/strview'
 
@@ -19,7 +20,8 @@ export type ParserErr = {
 }
 
 export type ParsingContext = Readonly<{
-  source: StrView
+  sourceServer: SourceFilesServer
+  currentFile: StrView
   $custom: unknown
   self: () => ParsingContext
 }>
@@ -77,18 +79,19 @@ export function err(
 
 export function addLoc(start: CodeLoc, add: CodeLoc): CodeLoc {
   return {
+    file: start.file,
     line: start.line + add.line,
     col: add.line ? add.col : start.col + add.col,
   }
 }
 
 export function addCols(start: CodeLoc, cols: number): CodeLoc {
-  return { line: start.line, col: start.col + cols }
+  return { file: start.file, line: start.line, col: start.col + cols }
 }
 
-export function parseSource<T>(source: StrView, parser: Parser<T>, $custom: unknown): ParserResult<T> {
-  const context: ParsingContext = { source, $custom, self: () => context }
-  return parser({ line: 0, col: 0 }, source, context)
+export function parseSource<T>(sourceServer: SourceFilesServer, parser: Parser<T>, $custom: unknown): ParserResult<T> {
+  const context: ParsingContext = { sourceServer, currentFile: sourceServer.entrypoint(), $custom, self: () => context }
+  return parser({ file: { ref: null }, line: 0, col: 0 }, sourceServer.entrypoint(), context)
 }
 
 export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => FormatableErrInput)

@@ -4,16 +4,17 @@
 
 import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
-import { delimiter, join } from 'path'
+import { delimiter, dirname, join, relative } from 'path'
 import { install } from 'source-map-support'
 import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
 import { program } from './parsers/program'
 import { ErrorParsingFormatters, formatErr } from './shared/errors'
-import { StrView } from './shared/strview'
+import { SourceFilesServer } from './shared/files-server'
 import { createTypecheckerContext } from './typechecker/base'
 import { programChecker } from './typechecker/program'
+import path = require('path/posix')
 
 install()
 Error.stackTraceLimit = Infinity
@@ -32,6 +33,8 @@ const examplePath = join(__dirname, '..', 'examples', argv[0] + '.rsh')
 
 if (!existsSync(examplePath)) fail('Example not found')
 
+const basePath = dirname(examplePath)
+
 const source = readFileSync(examplePath, 'utf-8')
 
 const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
@@ -40,7 +43,8 @@ const iterSrc = iter > 1 ? `if true { ${source} }\n`.repeat(iter) : source
 
 const errorFormatters: ErrorParsingFormatters = {
   header: chalk.yellowBright,
-  location: chalk.cyanBright,
+  filename: chalk.cyanBright,
+  location: chalk.magentaBright,
   gutter: chalk.cyanBright,
   locationPointer: chalk.redBright,
   errorMessage: chalk.redBright,
@@ -56,11 +60,21 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
   return [elapsed, out]
 }
 
-const [parsingDuration, parsed] = measurePerf(() => parseSource(StrView.create(iterSrc), program, initContext()))
+const sourceServer = new SourceFilesServer(
+  (filename, relativeTo) => {
+    if (relativeTo) filename = join(dirname(relativeTo), filename)
+    if (!existsSync(filename)) return false
+    return readFileSync(filename, 'utf8')
+  },
+  relative(process.cwd(), examplePath),
+  iterSrc
+)
+
+const [parsingDuration, parsed] = measurePerf(() => parseSource(sourceServer, program, initContext()))
 
 if (!parsed.ok) {
   const error = parsed.history?.[0] ?? '<no error provided>'
-  console.error(formatErr(error, parsed.context.source.toFullStringSlow(), errorFormatters))
+  console.error(formatErr(error, sourceServer, errorFormatters))
   process.exit(1)
 }
 
@@ -130,7 +144,7 @@ const typecheckerContext = createTypecheckerContext((cmd) => {
 const [typecheckerDuration, typechecked] = measurePerf(() => programChecker(parsed.data, typecheckerContext))
 
 if (!typechecked.ok) {
-  console.error(formatErr(typechecked, iterSrc, errorFormatters))
+  console.error(formatErr(typechecked, sourceServer, errorFormatters))
   process.exit(1)
 }
 

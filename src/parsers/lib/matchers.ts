@@ -54,7 +54,11 @@ export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
 
     return success(
       start,
-      addLoc(start, { line: matchedLines.length - 1, col: matchedLines[matchedLines.length - 1].length }),
+      addLoc(start, {
+        file: start.file,
+        line: matchedLines.length - 1,
+        col: matchedLines[matchedLines.length - 1].length,
+      }),
       parsed,
       matched
     )
@@ -112,7 +116,7 @@ export function eol(error?: ErrInputData): Parser<string> {
     input.empty()
       ? success(start, start, '', '')
       : input.startsWithChar('\n')
-      ? success(start, addLoc(start, { line: 1, col: 0 }), '\n', '\n')
+      ? success(start, addLoc(start, { file: start.file, line: 1, col: 0 }), '\n', '\n')
       : err(start, start, context, error)
 }
 
