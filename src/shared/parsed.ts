@@ -42,7 +42,7 @@ export type Statement =
   | {
       type: 'ifBlock'
       cond: Token<ExprOrTypeAssertion>
-      body: Token<StatementChain>[]
+      then: Token<StatementChain>[]
       elif: ElIfBlock[]
       els: Token<StatementChain>[] | null
     }

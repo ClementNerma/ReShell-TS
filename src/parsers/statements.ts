@@ -112,7 +112,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           )
         )
       ),
-      ([_, cond, __, { parsed: body }, ___, { parsed: elif }, { parsed: els }]) => ({ cond, body, elif, els })
+      ([_, cond, __, { parsed: then }, ___, { parsed: elif }, { parsed: els }]) => ({ cond, then, elif, els })
     ),
 
     forLoop: map(
