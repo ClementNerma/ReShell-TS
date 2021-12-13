@@ -132,7 +132,6 @@ export type LiteralValue =
   | { type: 'number'; value: Token<number> }
   | { type: 'string'; value: Token<LiteralString> }
   | { type: 'path'; segments: Token<Token<string>[]> }
-  | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
 
 export type LiteralString =
   | { type: 'raw'; content: Token<string> }
@@ -157,6 +156,7 @@ export type Value =
   | { type: 'list'; items: Token<Token<Expr>[]> }
   | { type: 'map'; entries: Token<{ key: Token<LiteralString>; expr: Token<Expr> }[]> }
   | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
+  | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'

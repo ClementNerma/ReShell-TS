@@ -28,9 +28,10 @@ import {
 } from './data'
 import { literalString, literalValue } from './literals'
 import { propertyAccess } from './propaccess'
+import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
-import { valueType } from './types'
+import { fnType, valueType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   list: map(
@@ -112,6 +113,20 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     ([_, entries, __]) => ({
       entries: mapToken(entries, (_, { parsed }) => parsed),
     })
+  ),
+
+  closure: map(
+    combine(
+      withLatelyDeclared(() => fnType),
+      exact('{', "Expected an opening brace ({) for the closure's content"),
+      withStatementClose(
+        '}',
+        withLatelyDeclared(() => blockBody)
+      ),
+      exact('}', "Expected a closing brace (}) after the closure's content"),
+      { inter: maybe_s_nl }
+    ),
+    ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
   ),
 
   fnCall: map(

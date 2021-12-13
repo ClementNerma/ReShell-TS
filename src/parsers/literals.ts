@@ -8,11 +8,8 @@ import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
 import { withLatelyDeclared } from '../lib/utils'
-import { withStatementClose } from './context'
 import { ComputedStringSegment, LiteralString, LiteralValue } from './data'
 import { expr } from './expr'
-import { blockBody } from './statements'
-import { fnType } from './types'
 
 export const literalPath: Parser<Token<string>[]> = takeWhileMN(
   unify(takeWhile1N(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
@@ -86,18 +83,4 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
   string: toOneProp(literalString, 'value'),
 
   path: toOneProp(literalPath, 'segments'),
-
-  closure: map(
-    combine(
-      fnType,
-      exact('{', "Expected an opening brace ({) for the closure's content"),
-      withStatementClose(
-        '}',
-        withLatelyDeclared(() => blockBody)
-      ),
-      exact('}', "Expected a closing brace (}) after the closure's content"),
-      { inter: maybe_s_nl }
-    ),
-    ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
-  ),
 })
