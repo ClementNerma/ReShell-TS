@@ -1,12 +1,13 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
+import { extract } from '../lib/conditions'
 import { failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
 import { exact } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map, toOneProp } from '../lib/transform'
-import { logUsage, selfRef, withLatelyDeclared } from '../lib/utils'
+import { selfRef, withLatelyDeclared } from '../lib/utils'
 import { ElIfExpr, Expr, ExprElement, ExprSequenceAction } from '../shared/parsed'
 import { withStatementClosingChar } from './context'
 import { doubleOp, singleOp } from './operators'
@@ -60,27 +61,29 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           ),
           exact('{', 'Expected an opening brace ({) after the condition'),
           failure(
-            logUsage(withLatelyDeclared)(() => expr),
+            withLatelyDeclared(() => expr),
             'Expected an expression in the "if" body'
           ),
           exact('}', 'Expected a closing brace (}) to close the "if" body'),
-          takeWhile<ElIfExpr>(
-            map(
-              combine(
-                combine(exact('elif'), s),
-                failure(
-                  withLatelyDeclared(() => expr),
-                  'Expecting a condition'
+          extract(
+            takeWhile<ElIfExpr>(
+              map(
+                combine(
+                  combine(exact('elif'), s),
+                  failure(
+                    withLatelyDeclared(() => expr),
+                    'Expecting a condition'
+                  ),
+                  exact('{', 'Expected an opening brace ({) after the condition'),
+                  failure(
+                    withLatelyDeclared(() => expr),
+                    'Expected an expression in the "elif" body'
+                  ),
+                  exact('}', 'Expected an opening brace (}) to close the "elif" body'),
+                  { inter: maybe_s_nl }
                 ),
-                exact('{', 'Expected an opening brace ({) after the condition'),
-                failure(
-                  withLatelyDeclared(() => expr),
-                  'Expected an expression in the "elif" body'
-                ),
-                exact('}', 'Expected an opening brace (}) to close the "elif" body'),
-                { inter: maybe_s_nl }
-              ),
-              ([_, cond, __, expr]) => ({ cond, expr })
+                ([_, cond, __, expr]) => ({ cond, expr })
+              )
             )
           ),
           exact('else', 'Expected an "else" counterpart'),

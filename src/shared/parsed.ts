@@ -50,7 +50,7 @@ export type Statement =
       type: 'ifBlock'
       cond: Token<Expr>
       body: Token<StatementChain>[]
-      elif: Token<ElIfBlock>[]
+      elif: ElIfBlock[]
       els: Token<StatementChain>[] | null
     }
   | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr>; body: Token<StatementChain>[] }
@@ -188,7 +188,7 @@ export type ExprSequenceAction =
 export type ExprElement =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
-  | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: Token<ElIfExpr>[]; els: Token<Expr> }
+  | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; elif: ElIfExpr[]; els: Token<Expr> }
   | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElement> }

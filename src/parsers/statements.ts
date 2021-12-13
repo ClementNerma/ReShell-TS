@@ -1,6 +1,6 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { failIfMatchesElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
+import { extract, failIfMatchesElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { not } from '../lib/consumeless'
 import { contextualFailIf, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
@@ -8,7 +8,7 @@ import { takeWhile } from '../lib/loops'
 import { bol, eol, exact } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, logUsage, mapToken, withLatelyDeclared } from '../lib/utils'
+import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
 import { ChainedStatement, ElIfBlock, Statement, StatementChain, Token } from '../shared/parsed'
 import { cmdCall } from './cmdcall'
 import {
@@ -68,7 +68,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         combine(exact('if'), s),
         failure(expr, 'Expected a condition'),
-        logUsage(exact)('{', 'Expected an opening brace ({) for the "if"\'s body'),
+        exact('{', 'Expected an opening brace ({) for the "if"\'s body'),
         withStatementClosingChar(
           '}',
           withContinuationKeyword(
@@ -77,25 +77,27 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           )
         ),
         exact('}', "Expected a closing brace (}) to close the block's content"),
-        takeWhile<ElIfBlock>(
-          map(
-            combine(
-              combine(exact('elif'), s),
-              failure(expr, 'Expected a condition for the "elif" statement'),
-              exact('{', 'Expected an opening brace ({) for the "elif" body'),
-              withStatementClosingChar(
-                '}',
-                withContinuationKeyword(
-                  ['else', 'elif'],
-                  withLatelyDeclared(() => blockBody)
-                )
+        extract(
+          takeWhile<ElIfBlock>(
+            map(
+              combine(
+                combine(exact('elif'), s),
+                failure(expr, 'Expected a condition for the "elif" statement'),
+                exact('{', 'Expected an opening brace ({) for the "elif" body'),
+                withStatementClosingChar(
+                  '}',
+                  withContinuationKeyword(
+                    ['else', 'elif'],
+                    withLatelyDeclared(() => blockBody)
+                  )
+                ),
+                exact('}', "Expected a closing brace (}) to close the block's content"),
+                { inter: maybe_s_nl }
               ),
-              exact('}', "Expected a closing brace (}) to close the block's content"),
-              { inter: maybe_s_nl }
+              ([_, cond, __, { parsed: body }]) => ({ cond, body })
             ),
-            ([_, cond, __, { parsed: body }]) => ({ cond, body })
-          ),
-          { inter: maybe_s_nl }
+            { inter: maybe_s_nl }
+          )
         ),
         maybe(
           map(
