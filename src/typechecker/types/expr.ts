@@ -83,7 +83,7 @@ export const resolveCondOrTypeAssertionType: Typechecker<
           return check.ok ? success(check.data.varType) : check
         },
 
-        aliasedAssertion: ({ subject }) => resolveExprType(subject, ctx),
+        aliasedAssertion: ({ subject }) => resolveExprType(subject, { ...ctx, typeExpectation: null }),
       })
 
       if (!subject.ok) return subject
