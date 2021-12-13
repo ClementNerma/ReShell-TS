@@ -40,7 +40,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         withLatelyDeclared(() => expr),
         { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
       ),
-      exact(']'),
+      exact(']', "Expected a closing bracket (]) to end the list's content"),
       {
         inter: maybe_s_nl,
       }
