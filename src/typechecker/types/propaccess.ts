@@ -23,6 +23,17 @@ export const resolvePropAccessType: Typechecker<
       }
 
       previousIterType = alias.data.content
+    } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
+      const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
+
+      if (!alias.ok) {
+        return err(
+          leftAt,
+          'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+        )
+      }
+
+      previousIterType = { type: 'nullable', inner: alias.data.content }
     }
 
     switch (propAccess.parsed.access.type) {
