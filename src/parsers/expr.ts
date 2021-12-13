@@ -1,4 +1,4 @@
-import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion } from '../shared/parsed'
+import { ElIfExpr, Expr, ExprElement, ExprElementContent, ExprOrTypeAssertion, ValueType } from '../shared/parsed'
 import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -8,9 +8,9 @@ import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
-import { mappedCases } from './lib/switches'
+import { mappedCases, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
-import { selfRef, withLatelyDeclared } from './lib/utils'
+import { flattenMaybeToken, selfRef, withLatelyDeclared } from './lib/utils'
 import { doubleOp, singleOp } from './operators'
 import { propertyAccess } from './propaccess'
 import { identifier } from './tokens'
@@ -184,9 +184,12 @@ export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<Expr
     combine(
       identifier,
       combine(s, exact('is'), s),
-      failure(valueType, 'Expected a type after the "is" type assertion operator')
+      or<ValueType | null>([
+        map(combine(exact('not'), s, exact('null', 'Expected `not null` type assertion')), (_) => null),
+        failure(valueType, 'Expected a type after the "is" type assertion operator'),
+      ])
     ),
-    ([varname, _, minimum]) => ({ varname, minimum })
+    ([varname, _, minimum]) => ({ varname, minimum: flattenMaybeToken(minimum) })
   ),
 
   expr: toOneProp(expr, 'inner'),

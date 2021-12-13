@@ -41,18 +41,35 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       const subject = getVariableInScope(expr.parsed.varname, ctx)
       if (!subject.ok) return subject
 
-      if (subject.data.content.type.inner.type !== 'unknown') {
-        return err(
-          expr.parsed.minimum.at,
-          `Type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
-            subject.data.content.type,
-            true
-          )}\``
-        )
-      }
+      const subjectType = subject.data.content.type
 
-      const assertionType = typeValidator(expr.parsed.minimum.parsed, ctx)
-      if (!assertionType.ok) return assertionType
+      let assertionType: ValueType
+
+      if (expr.parsed.minimum) {
+        if (subjectType.inner.type !== 'unknown') {
+          return err(
+            expr.at,
+            `Type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
+              subjectType,
+              true
+            )}\``
+          )
+        }
+
+        const validated = typeValidator(expr.parsed.minimum.parsed, ctx)
+        if (!validated.ok) return validated
+
+        assertionType = expr.parsed.minimum.parsed
+      } else {
+        if (!subjectType.nullable) {
+          return err(
+            expr.at,
+            `"not null" type assertion only works for nullable values, but found \`${rebuildType(subjectType, true)}\``
+          )
+        }
+
+        assertionType = { nullable: false, inner: subjectType.inner }
+      }
 
       const assertionScope: Scope = {
         functions: new Map(),
@@ -64,7 +81,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
         at: expr.at,
         content: {
           mutable: subject.data.content.mutable,
-          type: expr.parsed.minimum.parsed,
+          type: assertionType,
         },
       })
 

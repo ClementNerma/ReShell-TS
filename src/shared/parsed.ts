@@ -90,7 +90,7 @@ export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] 
 
 export type ExprOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
+  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> | null }
 
 export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
 
