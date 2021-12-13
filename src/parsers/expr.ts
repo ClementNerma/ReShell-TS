@@ -12,7 +12,7 @@ import { valueChaining } from './chaining'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract } from './lib/conditions'
-import { never } from './lib/consumeless'
+import { never, not } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -171,14 +171,17 @@ export const condOrTypeAssertion: Parser<CondOrTypeAssertion> = mappedCases<Cond
   aliasedAssertion: map(
     combine(
       expr,
-      s,
-      exact('as'),
-      failure(s, 'expected space after "as" keyword'),
+      combine(
+        s,
+        not(exact('is'), 'expression assertions need to be aliased with the "as" keyword'),
+        exact('as'),
+        failure(s, 'expected space after "as" keyword')
+      ),
       failure(identifier, 'expected a type assertion alias'),
       failure(s, 'expected space after the type assertion alias'),
       assertionContent
     ),
-    ([subject, _, __, ___, alias, ____, { parsed: assertion }]) => ({ subject, alias, assertion })
+    ([subject, _, alias, __, { parsed: assertion }]) => ({ subject, alias, assertion })
   ),
 
   expr: toOneProp('inner', expr),
