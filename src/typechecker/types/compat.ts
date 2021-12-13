@@ -176,7 +176,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
           }
         )
 
-        if (!retTypeCompat) return retTypeCompat
+        if (!retTypeCompat.ok) return retTypeCompat
       } else if (!c.fnType.returnType && r.fnType.returnType) {
         return expectationErr(`function was expected to have a return type`)
       }
