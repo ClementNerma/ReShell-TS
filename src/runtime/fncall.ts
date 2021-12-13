@@ -96,7 +96,10 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
 
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {
     block: ({ body }) => runBlock(body.parsed, fnCtx),
-    expr: ({ body }) => runExpr(body.parsed, fnCtx),
+    expr: ({ body }) => {
+      const result = runExpr(body.parsed, fnCtx)
+      return result.ok === true ? { ok: null, breaking: 'return', value: result.data } : result
+    },
     native: ({ exec }) => {
       const result = exec(
         { at: name.at, ctx: fnCtx, pipeTo: ctx.pipeTo ?? { stdout: process.stdout, stderr: process.stderr } },
