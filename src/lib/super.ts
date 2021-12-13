@@ -27,7 +27,7 @@ export function fullTrimmedLine<T>(
 
 export function fullSource<T>(
   parser: Parser<T>,
-  errors?: { bos: string; error: ErrorMapping; eos: string }
+  errors?: { bos?: string; error?: ErrorMapping; eos?: string }
 ): Parser<T> {
   return (start, input, context) => {
     if (start.col !== 0 || start.line !== 0) return err(start, context, errors?.bos)
