@@ -7,7 +7,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
   { candidate, at, _path },
   context
 ) => {
-  const expectationErr = (message?: string) =>
+  const expectationErr = (message?: string, atOverride?: CodeSection) =>
     errIncompatibleValueType({
       message: path.length > 0 ? path.join(' > ') + ' > ' + message : message,
       typeExpectation: {
@@ -15,7 +15,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
         from,
       },
       foundType: candidate,
-      valueAt: at,
+      valueAt: atOverride ?? at,
     })
 
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
@@ -110,12 +110,112 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
 
       return success(void 0)
     },
+
     fn: (c, r) => {
-      throw new Error('// TODO: function type comparison')
+      for (let i = 0; i < c.fnType.args.length; i++) {
+        const { at, parsed: cArg } = c.fnType.args[i]
+
+        if (r.fnType.args.length <= i) {
+          return expectationErr(`argument \`${cArg.name.parsed}\` is provided but not expected in parent type`, at)
+        }
+
+        const { at: rArgAt, parsed: rArg } = r.fnType.args[i]
+
+        if (cArg.flag) {
+          if (!rArg.flag) {
+            return expectationErr(
+              `argument \`${cArg.name.parsed}\` is provided here as a flag but not in the parent type`,
+              at
+            )
+          }
+
+          if (cArg.name.parsed !== rArg.name.parsed) {
+            return expectationErr(
+              `flag argument \`${cArg.name.parsed}\` does not have the same type as in the parent type (\`${rArg.name.parsed}\`)`
+            )
+          }
+        } else if (rArg.flag) {
+          return expectationErr(
+            `argument \`${cArg.name.parsed}\` is provided here as positional but the parent type provides it as a flag`,
+            at
+          )
+        }
+
+        if (cArg.optional && !rArg.optional) {
+          return expectationErr(`argument \`${cArg.name.parsed}\` is marked as optional but not in the parent type`)
+        }
+
+        if (!cArg.optional && rArg.optional) {
+          return expectationErr(`argument \`${cArg.name.parsed}\` is not marked as optional unlike in the parent type`)
+        }
+
+        const compat = isTypeCompatible(
+          { candidate: cArg.type, at },
+          {
+            scopes: context.scopes,
+            typeExpectation: {
+              type: rArg.type,
+              from: rArgAt,
+            },
+          }
+        )
+
+        if (!compat.ok) return compat
+      }
+
+      if (r.fnType.args.length > c.fnType.args.length) {
+        return expectationErr(`argument \`${r.fnType.args[c.fnType.args.length].parsed.name.parsed}\` is missing`)
+      }
+
+      if (c.fnType.returnType) {
+        if (!r.fnType.returnType) {
+          return expectationErr(`function was not expected to have a return type`, c.fnType.returnType.at)
+        }
+
+        const retTypeCompat = isTypeCompatible(
+          { candidate: c.fnType.returnType.parsed, at: c.fnType.returnType.at },
+          {
+            scopes: context.scopes,
+            typeExpectation: {
+              type: r.fnType.returnType.parsed,
+              from: r.fnType.returnType.at,
+            },
+          }
+        )
+
+        if (!retTypeCompat) return retTypeCompat
+      } else if (!c.fnType.returnType && r.fnType.returnType) {
+        return expectationErr(`function was expected to have a return type`)
+      }
+
+      if (c.fnType.failureType) {
+        if (!r.fnType.failureType) {
+          return expectationErr(`function was not expected to have a failure type`, c.fnType.failureType.at)
+        }
+
+        const retTypeCompat = isTypeCompatible(
+          { candidate: c.fnType.failureType.parsed, at: c.fnType.failureType.at },
+          {
+            scopes: context.scopes,
+            typeExpectation: {
+              type: r.fnType.failureType.parsed,
+              from: r.fnType.failureType.at,
+            },
+          }
+        )
+
+        if (!retTypeCompat) return retTypeCompat
+      } else if (!c.fnType.failureType && r.fnType.failureType) {
+        return expectationErr(`function was expected to have a failure type`)
+      }
+
+      return success(void 0)
     },
+
     aliasRef: (c, r) => {
       throw new Error('Internal error: trying to compare an alias ref')
     },
+
     unknown: () => {
       throw new Error('Internal error: unreachable "unknown" type comparison')
     },

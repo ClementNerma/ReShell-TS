@@ -18,18 +18,20 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
       fn: ({ fnType: { named, args, returnType, failureType } }) =>
         noDepth
           ? 'fn'
-          : `fn${named ? ' ' + named.parsed + ' ' : ''}(${args.map(
-              ({ name, optional, type, defaultValue }) =>
-                `${name}${optional ? '?' : ''}: ${rebuildType(type)}${
-                  defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
-                }${
-                  returnType || failureType
-                    ? ` -> ${returnType ? rebuildType(returnType.parsed) : 'void'}${
-                        failureType ? ' throws ' + rebuildType(failureType.parsed) : ''
-                      }`
-                    : ''
-                }`
-            )})`,
+          : `fn${named ? ' ' + named.parsed + ' ' : ''}(${args
+              .map(
+                ({ parsed: { flag, name, optional, type, defaultValue } }) =>
+                  `${flag?.parsed ?? ''}${name.parsed}${optional ? '?' : ''}: ${rebuildType(type)}${
+                    defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
+                  }`
+              )
+              .join(', ')})${
+              returnType || failureType
+                ? ` -> ${returnType ? rebuildType(returnType.parsed) : 'void'}${
+                    failureType ? ' throws ' + rebuildType(failureType.parsed) : ''
+                  }`
+                : ''
+            }`,
       aliasRef: ({ typeAliasName }) => '@' + typeAliasName.parsed,
       unknown: () => 'unknown',
 
