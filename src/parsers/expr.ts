@@ -51,7 +51,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
       // if <cond> { <then> } else { <else> }
       ternary: map(
         combine(
-          exact('if'),
+          combine(exact('if'), s),
           failure(
             withLatelyDeclared(() => expr),
             'Expected a condition'
