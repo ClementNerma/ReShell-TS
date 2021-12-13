@@ -224,7 +224,7 @@ export type CmdCall = {
 
 export type CmdCallSub = { unaliased: boolean; name: Token<string>; args: Token<CmdArg>[] }
 
-export type CmdFlag = { short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
+export type CmdFlag = { prefixSym: Token<'--' | '-'>; name: Token<string>; directValue: Token<Expr> | null }
 
 export type CmdArg =
   // NOTE: flags may have a non-direct value, e.g. `--arg value` will be parsed as a long 'arg' flag without direct value,

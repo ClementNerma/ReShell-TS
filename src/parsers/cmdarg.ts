@@ -5,7 +5,7 @@ import { combine } from './lib/combinations'
 import { maybe } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s_nl } from './lib/littles'
-import { exact, oneOfMap } from './lib/matchers'
+import { exact, oneOf } from './lib/matchers'
 import { mappedCases } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
@@ -30,14 +30,11 @@ const cmdWrappedValue: Parser<Expr> = map(
 
 export const cmdFlag: Parser<CmdFlag> = map(
   combine(
-    oneOfMap([
-      ['--', false],
-      ['-', true],
-    ]),
+    oneOf(['--', '-']),
     failure(identifier, 'expected a flag name'),
     maybe(map(combine(exact('='), failure(cmdWrappedValue, 'expected a value: ${...}')), ([_, expr]) => expr))
   ),
-  ([short, name, { parsed: directValue }]) => ({ short, name, directValue })
+  ([prefixSym, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
 )
 
 export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {

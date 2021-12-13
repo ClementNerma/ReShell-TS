@@ -72,8 +72,8 @@ export const cmdDeclSubCmdCallTypechecker: Typechecker<
       for (const candidate of variant.parsed.argCandidates) {
         const candidateMatches: boolean = matchUnion(args[0].parsed, 'type', {
           action: ({ name }) => name.parsed === candidate.parsed,
-          flag: ({ name, short, directValue }) =>
-            !directValue && (short.parsed ? '-' : '--') + name.parsed === candidate.parsed,
+          flag: ({ prefixSym, name, directValue }) =>
+            !directValue && prefixSym.parsed + name.parsed === candidate.parsed,
           expr: () => false,
           value: () => false,
           rest: () => false,

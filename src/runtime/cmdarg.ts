@@ -7,8 +7,8 @@ import { runValue } from './value'
 
 export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
   matchUnion(cmdArg, 'type', {
-    flag: ({ name, short, directValue }) => {
-      const out: string[] = [short.parsed ? '-' : '--', name.parsed]
+    flag: ({ prefixSym, name, directValue }) => {
+      const out: string[] = [prefixSym.parsed, name.parsed]
 
       if (directValue) {
         out.push('=')
