@@ -21,8 +21,8 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
         : `fn${generics.length === 0 ? '' : `<${generics.map((g) => ':' + g.parsed).join(', ')}>`}(${args
             .map(
               ({ parsed: { flag, name, optional, type, defaultValue } }) =>
-                `${flag?.parsed ?? ''}${name.parsed}${optional ? '?' : ''}: ${rebuildType(type)}${
-                  defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
+                `${flag?.parsed ?? ''}${name.parsed}${optional ? '?' : ''}: ${rebuildType(type.parsed)}${
+                  defaultValue ? ' = ' + rebuildLiteralValue(defaultValue.parsed) : ''
                 }`
             )
             .join(', ')}${restArg === null ? '' : '...' + restArg.parsed})${

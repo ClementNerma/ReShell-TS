@@ -75,12 +75,12 @@ export function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope
             fnType: {
               generics: type.fnType.generics,
               args: type.fnType.args.map((arg) => {
-                const [resolved, deps] = _subroutine(arg.parsed.type, gScopes)
+                const [resolved, deps] = _subroutine(arg.parsed.type.parsed, gScopes)
                 allDeps.push(...deps)
 
                 return {
                   ...arg,
-                  parsed: { ...arg.parsed, type: resolved },
+                  parsed: { ...arg.parsed, type: { ...arg.parsed.type, parsed: resolved } },
                 }
               }),
               restArg: type.fnType.restArg,

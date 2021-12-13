@@ -4,6 +4,7 @@ import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection } from '../../shared/parsed'
 import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getResolvedGenericInSingleScope } from '../scope/search'
+import { getFnArgType } from './fn'
 import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
@@ -275,7 +276,7 @@ export const isTypeCompatible: Typechecker<
           return expectationErr(`argument \`${cArg.name.parsed}\` is not marked as optional unlike in the parent type`)
         }
 
-        const compat = subCheck({ candidate: cArg.type, referent: rArg.type, referentAt: rArgAt })
+        const compat = subCheck({ candidate: getFnArgType(cArg), referent: getFnArgType(rArg), referentAt: rArgAt })
         if (!compat.ok) return compat
       }
 

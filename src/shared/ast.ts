@@ -210,8 +210,8 @@ export type FnArg = {
   flag: Token<string> | null
   name: Token<string>
   optional: boolean
-  type: ValueType
-  defaultValue: LiteralValue | null
+  type: Token<ValueType>
+  defaultValue: Token<LiteralValue> | null
 }
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //

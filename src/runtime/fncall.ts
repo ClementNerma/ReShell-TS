@@ -49,6 +49,7 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
     const execValue: RunnerResult<ExecValue> = matchUnion(content, 'type', {
       null: () => success({ type: 'null' }),
       false: () => success({ type: 'bool', value: false }),
+      true: () => success({ type: 'bool', value: true }),
       expr: ({ expr }) => runExpr(expr.parsed, ctx),
       value: ({ value }) => runValue(value, ctx),
     })

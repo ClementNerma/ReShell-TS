@@ -56,7 +56,7 @@ export const fnArg: Parser<FnArg> = map(
             'expected a literal value'
           )
         ),
-        ([_, { parsed: defaultValue }]) => defaultValue
+        ([_, defaultValue]) => defaultValue
       )
     )
   ),
@@ -65,7 +65,7 @@ export const fnArg: Parser<FnArg> = map(
       parsed: { name, flag },
     },
     { parsed: optional },
-    { parsed: type },
+    type,
     { parsed: defaultValue },
   ]): FnArg => ({
     name,

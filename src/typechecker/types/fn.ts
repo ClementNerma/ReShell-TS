@@ -69,6 +69,8 @@ export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: 
   const args = new Map<string, { at: CodeSection; type: ValueType }>()
 
   for (const arg of fnArgs) {
+    const argType = arg.parsed.type.parsed
+
     if (arg.parsed.flag !== null) {
       const name = arg.parsed.name
 
@@ -86,7 +88,7 @@ export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: 
         })
       }
 
-      args.set(name.parsed, { at: name.at, type: arg.parsed.type })
+      args.set(name.parsed, { at: name.at, type: argType })
     } else {
       const name = arg.parsed.name
 
@@ -104,7 +106,7 @@ export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: 
         })
       }
 
-      args.set(name.parsed, { at: name.at, type: arg.parsed.type })
+      args.set(name.parsed, { at: name.at, type: argType })
 
       if (arg.parsed.optional) {
         if (hadOptionalPos !== null) {
@@ -123,8 +125,29 @@ export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: 
       }
     }
 
-    const typeCheck = typeValidator(arg.parsed.type, ctx)
+    const typeCheck = typeValidator(argType, ctx)
     if (!typeCheck.ok) return typeCheck
+
+    if (arg.parsed.defaultValue) {
+      if (!arg.parsed.optional) {
+        return err(arg.parsed.defaultValue.at, {
+          message: 'only optional arguments can have a default value',
+          complements: [
+            [
+              'tip',
+              `if you want to make this argument optional, add a "?" after its name: ${arg.parsed.name.parsed}?:`,
+            ],
+          ],
+        })
+      }
+
+      const defaultValueCheck = resolveValueType(arg.parsed.defaultValue, {
+        ...ctx,
+        typeExpectation: { type: argType, from: arg.parsed.type.at },
+      })
+
+      if (!defaultValueCheck.ok) return defaultValueCheck
+    }
   }
 
   return success(args)
@@ -323,7 +346,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(expr, {
           ...ctx,
           typeExpectation: {
-            type: relatedArg.parsed.type,
+            type: relatedArg.parsed.type.parsed,
             from: relatedArg.at,
           },
         })
@@ -337,19 +360,19 @@ export const validateAndRegisterFnCall: Typechecker<
 
         flags.delete(name.parsed)
 
-        if (!directValue) {
-          return !flag.parsed.optional && flag.parsed.type.type === 'bool'
-            ? success([name.parsed, { type: 'null' }])
+        if (directValue === null) {
+          return !flag.parsed.optional && flag.parsed.type.parsed.type === 'bool'
+            ? success([name.parsed, { type: 'false' }])
             : err(
                 name.at,
-                `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type, true)}\`)`
+                `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type.parsed, true)}\`)`
               )
         }
 
         const resolved = resolveExprType(directValue, {
           ...ctx,
           typeExpectation: {
-            type: flag.parsed.type,
+            type: flag.parsed.type.parsed,
             from: flag.at,
           },
         })
@@ -373,7 +396,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveValueType(value, {
           ...ctx,
           typeExpectation: {
-            type: relatedArg.parsed.type,
+            type: relatedArg.parsed.type.parsed,
             from: relatedArg.at,
           },
         })
@@ -396,7 +419,7 @@ export const validateAndRegisterFnCall: Typechecker<
   if (positional.length > 0 && !positional[0].parsed.optional) {
     return err(lastPos, {
       message: `missing required argument \`${positional[0].parsed.name.parsed}\` of type \`${rebuildType(
-        positional[0].parsed.type,
+        positional[0].parsed.type.parsed,
         true
       )}\``,
       also: [{ at: positional[0].at, message: 'argument is defined here' }],
@@ -408,7 +431,7 @@ export const validateAndRegisterFnCall: Typechecker<
   if (missingFlag) {
     return err(lastPos, {
       message: `missing required flag \`${missingFlag.parsed.name.parsed}\` of type \`${rebuildType(
-        missingFlag.parsed.type,
+        missingFlag.parsed.type.parsed,
         true
       )}\``,
       also: [{ at: missingFlag.at, message: 'flag is defined here' }],
@@ -419,7 +442,9 @@ export const validateAndRegisterFnCall: Typechecker<
     if (!suppliedArgsScope.get(arg.parsed.name.parsed)) {
       suppliedArgsScope.set(
         arg.parsed.name.parsed,
-        arg.parsed.flag && !arg.parsed.optional && arg.parsed.type.type === 'bool'
+        arg.parsed.defaultValue
+          ? { type: 'value', value: arg.parsed.defaultValue }
+          : arg.parsed.flag && !arg.parsed.optional && arg.parsed.type.parsed.type === 'bool'
           ? { type: 'false' }
           : { type: 'null' }
       )
@@ -460,6 +485,12 @@ export const validateAndRegisterFnCall: Typechecker<
   ])
 }
 
+export function getFnArgType(fnArg: FnArg): ValueType {
+  return fnArg.optional && fnArg.defaultValue === null
+    ? { type: 'nullable', inner: fnArg.type.parsed }
+    : fnArg.type.parsed
+}
+
 export function withFnScope(fnType: FnType, ctx: TypecheckerContext): TypecheckerContext {
   return {
     ...ctx,
@@ -474,7 +505,7 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
                 type: 'var',
                 at: arg.at,
                 mutable: false,
-                varType: arg.parsed.optional ? { type: 'nullable', inner: arg.parsed.type } : arg.parsed.type,
+                varType: getFnArgType(arg.parsed),
               },
             ])
           )
