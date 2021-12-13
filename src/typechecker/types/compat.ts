@@ -191,7 +191,7 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
           { ...ctx, typeExpectation: { type: r.fnType.failureType.parsed, from: r.fnType.failureType.at } }
         )
 
-        if (!retTypeCompat) return retTypeCompat
+        if (!retTypeCompat.ok) return retTypeCompat
       } else if (!c.fnType.failureType && r.fnType.failureType) {
         return expectationErr(`function was expected to have a failure type`)
       }
