@@ -250,7 +250,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
             generics: new Map(),
             methods: [],
             entities: new Map([
-              [loopVar.parsed, { type: 'var', at: loopVar.at, mutable: false, varType: subjectType.data }],
+              [loopVar.parsed, { type: 'var', at: loopVar.at, mutable: false, varType: subjectType.data.itemsType }],
             ]),
           },
         ]),
