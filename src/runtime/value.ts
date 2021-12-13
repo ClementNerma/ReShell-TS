@@ -197,7 +197,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       }
 
       return success({
-        type: 'callback',
+        type: 'fn',
         body: body.parsed,
         argsMapping: argsMapping.data,
         fnType,

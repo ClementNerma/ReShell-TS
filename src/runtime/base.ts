@@ -1,5 +1,5 @@
 import { Writable } from 'stream'
-import { Block, ClosureBody, MethodInfos, ValueType } from '../shared/ast'
+import { Block, ClosureBody, FnType, MethodInfos, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
@@ -63,8 +63,7 @@ export type ExecValue =
   | { type: 'map'; entries: Map<string, ExecValue> }
   | { type: 'struct'; members: Map<string, ExecValue> }
   | { type: 'enum'; variant: string }
-  | { type: 'fn'; body: Token<Block> }
-  | { type: 'callback'; body: ClosureBody; argsMapping: Map<string, string | null> }
+  | { type: 'fn'; body: ClosureBody; fnType: FnType; argsMapping: Map<string, string | null> | null }
   | { type: 'failable'; success: boolean; value: ExecValue }
   | { type: 'rest'; content: string[] }
 

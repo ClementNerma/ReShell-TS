@@ -1,3 +1,4 @@
+import { ExecValue } from '../runtime/base'
 import { CmdArg, Expr, FnType, Value, ValueType } from './ast'
 import { isLocEq } from './loc-cmp'
 import { CodeSection, Token } from './parsed'
@@ -30,6 +31,7 @@ export type FnCallPrecompArg =
   | { type: 'value'; value: Token<Value> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'fnCall'; nameForPrecomp: Token<string> }
+  | { type: 'synth'; value: ExecValue }
 
 export type LocatedPrecomp<T> = Array<{ at: CodeSection; data: T }>
 

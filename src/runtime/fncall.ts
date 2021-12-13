@@ -33,7 +33,6 @@ export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnC
   ctx
 ) => {
   let fn: RunnableFnContent | null = null
-
   let scopeMapping: Map<string, string | null> | null = null
 
   for (let s = ctx.scopes.length - 1; s >= 0; s--) {
@@ -41,8 +40,6 @@ export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnC
 
     if (entity) {
       if (entity.type === 'fn') {
-        fn = { type: 'block', body: entity.body }
-      } else if (entity.type === 'callback') {
         fn = entity.body
         scopeMapping = entity.argsMapping
       } else {
@@ -90,6 +87,7 @@ export const executePrecompFnBody: Runner<
       expr: ({ expr }) => runExpr(expr.parsed, ctx),
       value: ({ value }) => runValue(value, ctx),
       fnCall: ({ nameForPrecomp }) => executeFnCallByName(nameForPrecomp, ctx),
+      synth: ({ value }) => success(value),
     })
 
     if (execValue.ok !== true) return execValue

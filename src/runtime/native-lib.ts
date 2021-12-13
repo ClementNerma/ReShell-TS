@@ -3,8 +3,10 @@ import { isAbsolute, join } from 'path'
 import { ValueType } from '../shared/ast'
 import { nativeLibraryFnTypes, nativeLibraryMethodsTypes, nativeLibraryVarTypes } from '../shared/native-lib'
 import { CodeSection } from '../shared/parsed'
+import { FnCallPrecompArg, PrecompFnCall } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
+import { executePrecompFnBody } from './fncall'
 
 export const nativeLibraryVariables = makeMap<typeof nativeLibraryVarTypes, (ctx: RunnerContext) => ExecValue>({
   argv: (ctx) => ({
@@ -241,6 +243,27 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     return success({ type: 'string', value: pieces.join(glue.value) })
   }),
 
+  map: withArguments({ self: 'list', mapper: 'fn' }, ({ self, mapper }, { ctx }) => {
+    const out: ExecValue[] = []
+
+    for (let i = 0; i < self.items.length; i++) {
+      const mapped = unsafeCallbackExec(
+        mapper,
+        new Map<string, ExecValue>([
+          ['value', self.items[i]],
+          ['index', { type: 'int', value: i }],
+        ]),
+        ctx
+      )
+
+      if (mapped.ok !== true) return mapped
+
+      out.push(mapped.data)
+    }
+
+    return success({ type: 'list', items: out })
+  }),
+
   // Nullables
   unwrap: withArguments({ self: 'unknown' }, ({ self }, { at }) =>
     self.type !== 'null' ? success(self) : err(at, 'tried to unwrap a "null" value')
@@ -317,8 +340,7 @@ const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: Ru
         })
         .join(',' + (pretty ? '\n' : ' '))}${pretty ? '\n' : ''}}`,
     enum: ({ variant }) => `enum::.${variant}`,
-    fn: () => `<declared function>`,
-    callback: () => `<callback>`,
+    fn: ({ argsMapping }) => (argsMapping ? '<declared function>' : '<callback>'),
     failable: ({ success, value }) => `${success ? 'ok' : 'err'}(${valueToStr(value, pretty, dumping, ctx)})`,
     rest: () => `<rest>`,
   })
@@ -405,4 +427,26 @@ export function expectValueType<T extends ExecValue['type']>(
         at,
         `internal error in native library executor: type mismatch (expected internal type "${type}", found "${value.type}")`
       )
+}
+
+function unsafeCallbackExec(
+  callback: Extract<ExecValue, { type: 'fn' }>,
+  sortedArgs: Map<string, ExecValue>,
+  ctx: RunnerContext
+): RunnerResult<ExecValue> {
+  const precomp: PrecompFnCall = {
+    args: new Map(
+      [...sortedArgs.entries()].map<[string, FnCallPrecompArg]>(([name, value]) => [name, { type: 'synth', value }])
+    ),
+    generics: [], // TODO
+    restArg: null,
+    propagateFirstArgNullability: false,
+    methodTypeRef: null,
+    hasReturnType: callback.fnType.returnType !== null,
+  }
+
+  return executePrecompFnBody(
+    { nameAt: callback.body.body.at, precomp, fn: callback.body, scopeMapping: callback.argsMapping },
+    ctx
+  )
 }

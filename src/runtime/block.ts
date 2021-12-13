@@ -12,7 +12,12 @@ export const runBlock: Runner<Block> = (block, ctx) => {
 
   for (const { parsed: stmt } of flattened) {
     if (stmt.type === 'fnDecl') {
-      blockScope.entities.set(stmt.name.parsed, { type: 'fn', body: stmt.body })
+      blockScope.entities.set(stmt.name.parsed, {
+        type: 'fn',
+        body: { type: 'block', body: stmt.body },
+        fnType: stmt.fnType,
+        argsMapping: null,
+      })
     } else if (stmt.type === 'methodDecl') {
       blockScope.methods.push({ infos: stmt.infos, body: stmt.body })
     }
