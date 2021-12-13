@@ -4,7 +4,7 @@ import { extract, failIf, failIfBool, failIfElse } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, s, unicodeAlphanumericUnderscore } from '../lib/littles'
-import { takeWhile, takeWhile1N } from '../lib/loops'
+import { takeWhile, takeWhile1 } from '../lib/loops'
 import { exact, match, oneOf, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, silence, toOneProp } from '../lib/transform'
@@ -63,7 +63,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   computedPath: map(
     failIfBool(
-      takeWhile1N(
+      takeWhile1(
         or<ComputedPathSegment>([
           map(exact('/'), () => ({ type: 'separator' })),
           map(

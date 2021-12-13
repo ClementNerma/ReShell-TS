@@ -81,7 +81,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
   }
 }
 
-export function takeWhile1N<T>(
+export function takeWhile1<T>(
   parser: Parser<T>,
   options?: TakeWhileOptions & { noMatchError?: string }
 ): Parser<Token<T>[]> {
@@ -90,7 +90,7 @@ export function takeWhile1N<T>(
   )
 }
 
-export function takeWhileMN<T>(
+export function takeWhileN<T>(
   parser: Parser<T>,
   options: TakeWhileOptions & { noMatchError?: string; minimum: number }
 ): Parser<Token<T>[]> {

@@ -2,14 +2,14 @@ import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { notFollowedBy } from '../lib/conditions'
 import { digit, unicodeAlphanumericUnderscore } from '../lib/littles'
-import { takeWhile1N, takeWhileMN } from '../lib/loops'
+import { takeWhile1, takeWhileN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map, toOneProp, unify } from '../lib/transform'
 import { LiteralValue } from './data'
 
-export const rawPath: Parser<Token<string>[]> = takeWhileMN(
-  unify(takeWhile1N(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
+export const rawPath: Parser<Token<string>[]> = takeWhileN(
+  unify(takeWhile1(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
   {
     inter: exact('/'),
     minimum: 2,

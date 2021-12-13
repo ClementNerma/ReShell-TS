@@ -3,7 +3,7 @@ import { combine } from '../lib/combinations'
 import { extract, maybe, maybeFlatten } from '../lib/conditions'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
-import { takeWhile, takeWhile1N } from '../lib/loops'
+import { takeWhile, takeWhile1 } from '../lib/loops'
 import { exact, word } from '../lib/matchers'
 import { addTipIf } from '../lib/raw'
 import { mappedCases, OrErrorStrategy } from '../lib/switches'
@@ -54,7 +54,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
       combine(
         exact('{'),
         extract(
-          takeWhile1N(
+          takeWhile1(
             map(
               combine(
                 failure(identifier, 'Expected a member name'),
