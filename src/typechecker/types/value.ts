@@ -183,25 +183,44 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!assert.ok) return assert
 
       const foundType: ValueType = { type: 'path' }
+      let segmentHasContent = false
+      let segmentHasInnerPath = false
 
       for (const segment of segments) {
         switch (segment.parsed.type) {
-          case 'separator':
           case 'literal':
+            segmentHasContent = true
             break
 
           case 'expr': {
-            const exprType = resolveExprType(segment.parsed.expr, {
-              ...ctx,
-              typeExpectation: {
-                type: foundType,
-                from: null,
-              },
-            })
-
+            const exprType = resolveExprType(segment.parsed.expr, { ...ctx, typeExpectation: null })
             if (!exprType.ok) return exprType
+
+            if (exprType.data.type === 'string') {
+              segmentHasContent = true
+            } else if (exprType.data.type === 'path') {
+              if (segmentHasContent) {
+                return err(segment.at, 'path values must be isolated in a single segment')
+              }
+
+              segmentHasContent = true
+              segmentHasInnerPath = true
+            } else {
+              return err(segment.at, `expected a "string" or "path", found a ${rebuildType(exprType.data, true)}`)
+            }
+
             break
           }
+
+          case 'separator':
+            if (!segmentHasContent && !segmentHasInnerPath) {
+              return err(segment.at, 'cannot use two separators one after the other')
+            }
+
+            segmentHasContent = false
+            segmentHasInnerPath = false
+
+            break
 
           default:
             return ensureCoverage(segment.parsed)

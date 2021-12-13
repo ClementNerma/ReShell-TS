@@ -10,9 +10,12 @@ import { exact, match, oneOfFirstChar, oneOfMap, regex } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 
-export const rawPath: Parser<Token<string>[]> = takeWhileN(
-  buildUnicodeRegexMatcher((letter, digit) => `(${letter}|${digit}|\\.|\\\\\\.)+`),
-  { inter: exact('/'), minimum: 2, interExpect: false }
+export const rawPath: Parser<Token<string>[]> = notFollowedBy(
+  takeWhileN(
+    buildUnicodeRegexMatcher((letter, digit) => `(${letter}|${digit}|\\.|\\\\.)+`),
+    { inter: exact('/'), minimum: 2, interExpect: false }
+  ),
+  exact('$')
 )
 
 export const rawString: Parser<string> = map(
