@@ -65,12 +65,12 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       const sourceLines = source.split(/\n/)
       const failedLine = sourceLines[line]
 
-      const locPtr = format(
-        'locationPointer',
+      const rawLocPtr =
         addLines === 0
           ? ' '.repeat(col) + '^'.repeat(end.col - loc.col + 1)
           : '_'.repeat(col + 1) + '^' /*.repeat(failedLine.substr(failedLine.length - col + 1).length)*/
-      )
+
+      const locPtr = format('locationPointer', rawLocPtr)
 
       const paddingGutter = format('gutter', linePad + ' | ')
 
@@ -82,6 +82,8 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
           addLines ? '' : format('errorMessage', message)
         }`,
       ]
+
+      let componentsAlignmentCol = addLinesPadding.length + rawLocPtr.length
 
       if (addLines) {
         for (let l = line + 1; l < line + (addLines <= 5 ? addLines : 3); l++) {
@@ -102,19 +104,17 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
           `${format('gutter', padLineNb(end.line) + ' |')} ${format('locationPointer', '|')} ${sourceLines[end.line]}`
         )
 
-        upToError.push(
-          `${paddingGutter}${format('locationPointer', '|_' + '_'.repeat(end.col) + '^')} ${format(
-            'errorMessage',
-            message
-          )}`
-        )
+        const rawLocPtr = '|_' + '_'.repeat(end.col) + '^'
+        componentsAlignmentCol = rawLocPtr.length
+
+        upToError.push(`${paddingGutter}${format('locationPointer', rawLocPtr)} ${format('errorMessage', message)}`)
       }
 
       for (const [name, text] of complements ?? []) {
         upToError.push(
-          `${paddingGutter}${addLinesPadding}${' '.repeat(col)}  ${format(
+          `${paddingGutter}${' '.repeat(componentsAlignmentCol)} ${format(
             'complement',
-            `${format('complementName', name)}: ${text}`
+            `${format('complementName', name)} : ${text}`
           )}`
         )
       }
