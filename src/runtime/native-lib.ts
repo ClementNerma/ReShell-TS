@@ -43,7 +43,6 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
     pipeTo.stdout.write(message.type === 'string' ? message.value : '<echo: invalid string value>')
 
     const n = args.get('n')!
-    console.log({ n })
     if (n.type !== 'bool' || !n.value) pipeTo.stdout.write('\n')
 
     return { ok: null, breaking: 'return', value: null }

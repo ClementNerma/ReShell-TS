@@ -443,7 +443,7 @@ export const validateAndRegisterFnCall: Typechecker<
 
         if (directValue === null) {
           return !flag.parsed.optional && flag.parsed.type.parsed.type === 'bool'
-            ? success([name.parsed, { type: 'false' }])
+            ? success([name.parsed, { type: 'true' }])
             : err(
                 name.at,
                 `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type.parsed, true)}\`)`
