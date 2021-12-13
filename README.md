@@ -6,13 +6,13 @@ It is currently under heavy construction.
 
 ## Roadmap
 
-| Phase                               | Status                   |
-| ----------------------------------- | ------------------------ |
-| Language design                     | :heavy_check_mark:       |
-| Language parsing and AST generation | :heavy_check_mark: (80%) |
-| Syntax checking                     | :heavy_check_mark: (80%) |
-| Typechecking                        | _TODO_                   |
-| Runtime engine                      | _TODO_                   |
+| Phase                               | Status             |
+| ----------------------------------- | ------------------ |
+| Language design                     | :heavy_check_mark: |
+| Language parsing and AST generation | :heavy_check_mark: |
+| Syntax checking                     | :heavy_check_mark: |
+| Typechecking                        | :construction:     |
+| Runtime engine                      | _TODO_             |
 
 ## Comparison with other shells
 
