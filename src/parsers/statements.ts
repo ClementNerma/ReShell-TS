@@ -2,7 +2,7 @@ import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { failIfElse, flatten, maybe, maybeFlatten } from '../lib/conditions'
 import { not } from '../lib/consumeless'
-import { failure } from '../lib/errors'
+import { contextualFailIf, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeForever, takeWhile } from '../lib/loops'
 import { bol, eol, exact } from '../lib/matchers'
@@ -14,7 +14,7 @@ import { matchContinuationKeyword, matchStatementClose, withContinuationKeyword,
 import { ChainedStatement, Statement, StatementChain } from './data'
 import { doubleArithOp, expr } from './expr'
 import { propertyAccess } from './propaccess'
-import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
+import { cmdOnlyChainOp, endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
 import { fnDecl, valueType } from './types'
 
@@ -290,22 +290,35 @@ export const statementChainFree: Parser<StatementChain> = map(
   combine(
     maybe_s,
     statement,
-    maybe_s,
+    contextualFailIf(
+      cmdOnlyChainOp,
+      (ctx) => (ctx.combinationData!.soFar.previous!.parsed as Statement).type !== 'cmdCall',
+      'This chaining operator is reserved to command calls'
+    ),
     takeWhile(
       failIfElse(
         or([endOfStatementChain, matchContinuationKeyword]),
         map(
           combine(
+            contextualFailIf(
+              cmdOnlyChainOp,
+              (ctx) => {
+                const previous = ctx.combinationData!.soFar.previous
+                return !!previous && (previous.parsed as Statement).type !== 'cmdCall'
+              },
+              'This chaining operator is reserved to command calls'
+            ),
             failure(statementChainOp, 'Expected end of statement'),
             maybe_s_nl,
             failure(statement, 'Expected another statement')
           ),
-          ([op, _, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
+          ([_, op, __, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
         )
       ),
       { inter: maybe_s }
     ),
-    endOfStatementChain
+    endOfStatementChain,
+    { inter: maybe_s }
   ),
   ([_, start, __, { parsed: sequence }]): StatementChain => ({
     type: 'chain',

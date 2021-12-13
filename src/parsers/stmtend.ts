@@ -8,8 +8,7 @@ import { silence } from '../lib/transform'
 import { matchStatementClose } from './context'
 import { CmdRedirOp, StatementChainOp } from './data'
 
-export const statementChainOp: Parser<StatementChainOp> = oneOfMap([
-  [';', StatementChainOp.Then],
+export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
   ['&&', StatementChainOp.And],
   ['||', StatementChainOp.Or],
   ['|', StatementChainOp.Pipe],
@@ -24,6 +23,8 @@ export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
   ['>', CmdRedirOp.Stdout],
   ['<', CmdRedirOp.Input],
 ])
+
+export const statementChainOp: Parser<StatementChainOp> = or([oneOfMap([[';', StatementChainOp.Then]]), cmdOnlyChainOp])
 
 export const endOfInlineCmdCall: Parser<void> = lookahead(
   combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, matchStatementClose]))
