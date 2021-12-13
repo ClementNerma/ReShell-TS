@@ -197,7 +197,7 @@ export const resolveDoubleOpType: Typechecker<
 
   const rightExprType = resolveExprElementType(right, {
     ...ctx,
-    typeExpectation: { type: checkRightOperandType, from: op.at },
+    typeExpectation: { type: checkRightOperandType, from: { start: leftExprAt.start, next: op.at.next } },
   })
 
   if (!rightExprType.ok) return rightExprType
