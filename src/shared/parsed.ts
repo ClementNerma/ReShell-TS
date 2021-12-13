@@ -42,8 +42,8 @@ export type Statement =
   | {
       type: 'assignment'
       varname: Token<string>
-      propAccess: Token<NonNullablePropertyAccess>[]
-      prefixOp: Token<DoubleArithOp> | null
+      propAccesses: Token<NonNullablePropertyAccess>[]
+      prefixOp: Token<DoubleOp> | null
       expr: Token<Expr>
     }
   | {
@@ -181,6 +181,8 @@ export type ExprElementContent =
   | { type: 'try'; trying: Token<Expr>; catchVarname: Token<string>; catchExpr: Token<Expr> }
   | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElementContent> }
+  // Internal type
+  | { type: 'rebuilt'; inner: Token<Expr> }
 
 export type ElIfExpr = { cond: Token<Expr>; expr: Token<Expr> }
 

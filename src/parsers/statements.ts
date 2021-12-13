@@ -17,7 +17,7 @@ import { bol, eol, exact } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
-import { doubleArithOp } from './operators'
+import { doubleOp } from './operators'
 import { nonNullablePropertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
@@ -248,13 +248,13 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         maybe_s_nl,
         takeWhile(nonNullablePropertyAccess),
         maybe_s_nl,
-        combine(maybe(doubleArithOp), maybe_s_nl, exact('='), maybe_s_nl),
+        combine(maybe(doubleOp), maybe_s_nl, exact('='), maybe_s_nl),
         failure(expr, 'Expected an expression to assign')
       ),
       ([
         varname,
         _,
-        { parsed: propAccess },
+        { parsed: propAccesses },
         __,
         {
           parsed: [prefixOp],
@@ -262,7 +262,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         expr,
       ]) => ({
         varname,
-        propAccess,
+        propAccesses,
         prefixOp: flattenMaybeToken(prefixOp),
         expr,
       })

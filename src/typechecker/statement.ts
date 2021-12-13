@@ -1,9 +1,11 @@
 import { StatementChain, Token, ValueType } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { located, Scope, success, Typechecker, TypecheckerErr } from './base'
+import { err, located, Scope, success, Typechecker, TypecheckerResult } from './base'
 import { scopeFirstPass } from './scope/first-pass'
-import { ensureScopeUnicity } from './scope/search'
+import { ensureScopeUnicity, getVariableInScope } from './scope/search'
+import { resolveDoubleOpType } from './types/double-op'
 import { resolveExprType } from './types/expr'
+import { resolvePropAccessType } from './types/propaccess'
 import { typeValidator } from './types/validator'
 
 export const statementChainChecker: Typechecker<Token<StatementChain>[], void> = (chain, ctx) => {
@@ -16,19 +18,21 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
   const scope: Scope = { ...firstPass.data, variables: new Map() }
   const scopes = ctx.scopes.concat(scope)
 
+  ctx = { ...ctx, scopes }
+
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      const subResult: TypecheckerErr | false = matchUnion(sub.parsed, 'type', {
-        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerErr | false => {
-          const unicity = ensureScopeUnicity({ name: varname }, { ...ctx, scopes })
+      const subResult: TypecheckerResult<void> = matchUnion(sub.parsed, 'type', {
+        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<void> => {
+          const unicity = ensureScopeUnicity({ name: varname }, ctx)
           if (!unicity.ok) return unicity
 
           let expectedType: ValueType | null = null
 
           if (vartype) {
-            const validation = typeValidator(vartype.parsed, { ...ctx, scopes })
+            const validation = typeValidator(vartype.parsed, ctx)
             if (!validation.ok) return validation
 
             expectedType = vartype.parsed
@@ -47,15 +51,84 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           scope.variables.set(varname.parsed, located(varname.at, { mutable: mutable.parsed, type: validation.data }))
 
-          return false
+          return success(void 0)
         },
 
-        _: (): TypecheckerErr | false => {
+        assignment: ({ varname, propAccesses, prefixOp, expr }) => {
+          const tryScopedVar = getVariableInScope(varname, ctx)
+          if (!tryScopedVar.ok) return tryScopedVar
+
+          const { content: scopedVar } = tryScopedVar.data
+
+          if (!scopedVar.mutable) {
+            return err(varname.at, `cannot assign to non-mutable variable \`${varname.parsed}\``)
+          }
+
+          let expectedType: ValueType = scopedVar.type
+
+          if (propAccesses.length > 0) {
+            const check = resolvePropAccessType(
+              {
+                leftAt: varname.at,
+                leftType: scopedVar.type,
+                propAccesses: propAccesses.map(({ at, matched, parsed }) => ({
+                  at,
+                  matched,
+                  parsed: {
+                    nullable: false,
+                    access: parsed,
+                  },
+                })),
+              },
+              ctx
+            )
+
+            if (!check.ok) return check
+            expectedType = check.data
+          }
+
+          const check: TypecheckerResult<unknown> = prefixOp
+            ? resolveDoubleOpType(
+                {
+                  leftExprAt: varname.at,
+                  leftExprType: expectedType,
+                  op: {
+                    op: prefixOp,
+                    right: {
+                      at: expr.at,
+                      matched: expr.matched,
+                      parsed: {
+                        content: {
+                          at: expr.at,
+                          matched: expr.matched,
+                          parsed: { type: 'rebuilt', inner: expr },
+                        },
+                        propAccess: [],
+                      },
+                    },
+                  },
+                },
+                ctx
+              )
+            : resolveExprType(expr, {
+                scopes: ctx.scopes,
+                typeExpectation: {
+                  type: expectedType,
+                  from: varname.at,
+                },
+              })
+
+          if (!check.ok) return check
+
+          return success(void 0)
+        },
+
+        _: (): TypecheckerResult<void> => {
           throw new Error('// TODO: other statement types')
         },
       })
 
-      if (subResult) return subResult
+      if (!subResult.ok) return subResult
     }
   }
 

@@ -14,7 +14,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   }
 
   const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> =>
-    typeExpectation && typeExpectation.type.inner.type !== value.parsed.type
+    typeExpectation && typeExpectation.type.inner.type !== type
       ? errIncompatibleValueType(
           {
             typeExpectation,

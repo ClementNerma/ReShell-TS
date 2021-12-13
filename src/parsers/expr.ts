@@ -3,6 +3,7 @@ import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract } from './lib/conditions'
+import { never } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -154,6 +155,9 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
 
       // value
       value: map(value, (_, content) => ({ content })),
+
+      // Internal
+      rebuilt: never(),
     },
     'Failed to parse expression'
   )

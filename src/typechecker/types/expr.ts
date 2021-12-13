@@ -1,9 +1,9 @@
 import { CodeSection, Expr, ExprElement, ExprElementContent, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, success, Typechecker } from '../base'
+import { success, Typechecker } from '../base'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpType } from './double-op'
-import { rebuildType } from './rebuilder'
+import { resolvePropAccessType } from './propaccess'
 import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) => {
@@ -32,79 +32,23 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
   const resolved = resolveExprElementContentType(element.parsed.content, { scopes: ctx.scopes, typeExpectation: null })
   if (!resolved.ok) return resolved
 
-  let previousIterType = resolved.data
-  let upToPrevPropAccessSection: CodeSection = element.at
+  const withPropAccesses = resolvePropAccessType(
+    {
+      leftAt: element.parsed.content.at,
+      leftType: resolved.data,
+      propAccesses: element.parsed.propAccess,
+    },
+    ctx
+  )
 
-  for (const propAccess of element.parsed.propAccess) {
-    switch (propAccess.parsed.access.type) {
-      case 'refIndex':
-        if (previousIterType.inner.type !== 'list') {
-          return err(upToPrevPropAccessSection, {
-            message: `expected list due to index access, found \`${rebuildType(previousIterType, true)}\``,
-            complements: [
-              ['Expected', 'list'],
-              ['Found   ', rebuildType(previousIterType)],
-            ],
-            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
-          })
-        }
-
-        if (previousIterType.nullable && !propAccess.parsed.nullable) {
-          return err(upToPrevPropAccessSection, {
-            message: 'cannot access index of a nullable list',
-            complements: [['Tip', 'You can use nullable indexes with `?[index]`']],
-            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
-          })
-        }
-
-        previousIterType = { ...previousIterType.inner.itemsType, nullable: propAccess.parsed.nullable }
-        break
-
-      case 'refStructMember':
-        if (previousIterType.inner.type !== 'struct') {
-          return err(upToPrevPropAccessSection, {
-            message: `expected struct due to member access, found \`${rebuildType(previousIterType, true)}\``,
-            complements: [
-              ['Expected', 'struct'],
-              ['Found   ', rebuildType(previousIterType)],
-            ],
-            also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
-          })
-        }
-
-        if (previousIterType.nullable && !propAccess.parsed.nullable) {
-          return err(upToPrevPropAccessSection, {
-            message: 'cannot access member of a nullable struct',
-            complements: [['Tip', 'You can use nullable indexes with `?.member`']],
-          })
-        }
-
-        const expectedMember = propAccess.parsed.access.member
-        const resolvedMember = previousIterType.inner.members.find(({ name }) => name === expectedMember.parsed)
-
-        if (!resolvedMember) {
-          return err(expectedMember.at, {
-            message: `member \`${expectedMember.parsed}\` was not found in this struct`,
-            // also: [{ at: upToPrevPropAccessSection, message: 'originates in this expression' }],
-          })
-        }
-
-        previousIterType = { ...resolvedMember.type, nullable: propAccess.parsed.nullable }
-        break
-
-      default:
-        return ensureCoverage(propAccess.parsed.access)
-    }
-
-    upToPrevPropAccessSection = { start: upToPrevPropAccessSection.start, next: propAccess.at.next }
-  }
+  if (!withPropAccesses.ok) return withPropAccesses
 
   if (ctx.typeExpectation) {
-    const compat = isTypeCompatible({ at: upToPrevPropAccessSection, candidate: previousIterType }, ctx)
+    const compat = isTypeCompatible({ at: element.at, candidate: withPropAccesses.data }, ctx)
     if (!compat.ok) return compat
   }
 
-  return success(previousIterType)
+  return success(withPropAccesses.data)
 }
 
 export const resolveExprElementContentType: Typechecker<Token<ExprElementContent>, ValueType> = (element, ctx) =>
@@ -174,4 +118,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
     },
 
     value: ({ content }) => resolveValueType(content, ctx),
+
+    // Internal
+    rebuilt: ({ inner }) => resolveExprType(inner, ctx),
   })
