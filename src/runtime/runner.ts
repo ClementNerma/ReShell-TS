@@ -7,6 +7,7 @@ import {
   ExprElement,
   ExprElementContent,
   ExprOrNever,
+  NonNullablePropertyAccess,
   Program,
   Statement,
   Value,
@@ -513,10 +514,119 @@ const runDoubleOp: Runner<
 const runExprElement: Runner<ExprElement, ExecValue> = (element, ctx) => {
   const content = runExprElementContent(element.content.parsed, ctx)
   if (content.ok !== true) return content
-  if (element.propAccess.length === 0) return content // TODO: TO REMOVE
+  if (element.propAccess.length === 0) return content
 
-  throw new Error('TODO: property accesses')
+  let left = content.data
+
+  for (const { at, parsed: access } of element.propAccess) {
+    if (access.nullable && left.type === 'null') {
+      return success({ type: 'null' })
+    }
+
+    const value = runNonNullablePropertyAccess({ value: left, propAccessAt: at, propAccess: access.access }, ctx)
+    if (value.ok !== true) return value
+
+    left = value.data
+  }
+
+  return success(left)
 }
+
+const runNonNullablePropertyAccess: Runner<
+  {
+    value: ExecValue
+    propAccessAt: CodeSection
+    propAccess: NonNullablePropertyAccess
+    write?: (value: ExecValue) => ExecValue
+  },
+  ExecValue
+> = ({ value, propAccessAt, propAccess, write }, ctx) =>
+  matchUnion(propAccess, 'type', {
+    refIndex: ({ index }) => {
+      const execIndex = runExpr(index.parsed, ctx)
+      if (execIndex.ok !== true) return execIndex
+
+      if (execIndex.data.type === 'number') {
+        if (value.type !== 'list') {
+          return err(
+            propAccessAt,
+            `internal error: expected left value to be a "list" because of "number" index, found internal type "${value.type}"`
+          )
+        }
+
+        if (Math.floor(execIndex.data.value) !== execIndex.data.value) {
+          return err(index.at, `cannot use non-integer value as a list index (found: ${execIndex.data.value})`)
+        }
+
+        if (execIndex.data.value < 0) {
+          return err(index.at, `cannot use negative number as a list index (found: ${execIndex.data.value})`)
+        }
+
+        if (execIndex.data.value >= value.items.length) {
+          return err(
+            index.at,
+            `index out-of-bounds, list contains ${value.items.length} elements but tried to access index ${execIndex.data.value}`
+          )
+        }
+
+        let got = value.items[execIndex.data.value]
+
+        if (write) {
+          got = write(value.items[execIndex.data.value])
+          value.items[execIndex.data.value] = got
+        }
+
+        return success(got)
+      } else if (execIndex.data.type === 'string') {
+        if (value.type !== 'map') {
+          return err(
+            propAccessAt,
+            `internal error: expected left value to be a "map" because of "string" index, found internal type "${value.type}"`
+          )
+        }
+
+        let entry = value.entries.get(execIndex.data.value)
+
+        if (entry === undefined) {
+          return err(index.at, 'tried to access non-existent key in map')
+        }
+
+        if (write) {
+          entry = write(entry)
+          value.entries.set(execIndex.data.value, entry)
+        }
+
+        return success(entry)
+      } else {
+        return err(
+          index.at,
+          `internal error: expected index to be a "number" or "string", found internal type "${value.type}"`
+        )
+      }
+    },
+
+    refStructMember: ({ member }) => {
+      if (value.type !== 'struct') {
+        return err(
+          propAccessAt,
+          `internal error: expected left value to be a "struct" because of struct member access, found internal type "${value.type}"`
+        )
+      }
+
+      let accessed = value.members.get(member.parsed)
+
+      if (accessed === undefined) {
+        return err(propAccessAt, 'internal error: tried to access non-existent member in struct')
+      }
+
+      if (write) {
+        accessed = write(accessed)
+        value.members.set(member.parsed, accessed)
+      }
+
+      return success(accessed)
+    },
+  })
 
 const runExprElementContent: Runner<ExprElementContent, ExecValue> = (content, ctx) =>
   matchUnion(content, 'type', {
@@ -564,7 +674,7 @@ const runExprElementContent: Runner<ExprElementContent, ExecValue> = (content, c
 
 const runValue: Runner<Value, ExecValue> = (value, ctx) =>
   matchUnion(value, 'type', {
-    null: () => success({ type: 'null', value: null }),
+    null: () => success({ type: 'null' }),
     bool: ({ value }) => success({ type: 'bool', value: value.parsed }),
     number: ({ value }) => success({ type: 'number', value: value.parsed }),
     string: ({ value }) => success({ type: 'string', value: value.parsed }),

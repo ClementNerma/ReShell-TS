@@ -24,7 +24,7 @@ export type Scope = {
 }
 
 export type ExecValue =
-  | { type: 'null'; value: null }
+  | { type: 'null' }
   | { type: 'bool'; value: boolean }
   | { type: 'number'; value: number }
   | { type: 'string'; value: string }
