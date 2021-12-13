@@ -67,7 +67,7 @@ export function neutralError<T>(start: ParserLoc, neutralValue?: T): Extract<Par
     ok: true,
     data: {
       matched: '',
-      parsed: (neutralValue ?? void 0)!,
+      parsed: neutralValue!,
       neutralError: true,
       start,
       next: start,
