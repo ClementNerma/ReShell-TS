@@ -162,6 +162,13 @@ export enum DoubleArithOp {
 export enum DoubleLogicOp {
   And,
   Or,
+  Xor,
+  Eq,
+  NotEq,
+  GreaterThanOrEqualTo,
+  LessThanOrEqualTo,
+  GreaterThan,
+  LessThan,
 }
 
 export type SingleOp = { type: 'logic'; op: Token<SingleLogicOp> }

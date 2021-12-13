@@ -201,6 +201,13 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
     oneOfMap([
       ['&&', DoubleLogicOp.And],
       ['||', DoubleLogicOp.Or],
+      ['^', DoubleLogicOp.Xor],
+      ['==', DoubleLogicOp.Eq],
+      ['!=', DoubleLogicOp.NotEq],
+      ['>=', DoubleLogicOp.GreaterThanOrEqualTo],
+      ['<=', DoubleLogicOp.LessThanOrEqualTo],
+      ['>', DoubleLogicOp.GreaterThan],
+      ['<', DoubleLogicOp.LessThan],
     ]),
     failure(not(_opSym), 'Syntax error: unknown operator')
   ),
