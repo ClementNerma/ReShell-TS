@@ -56,17 +56,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
     const stmtMetadata: TypecheckerResult<StatementMetadata> = matchUnion(stmt.parsed, 'type', {
       variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementMetadata> => {
-        const fn = getTypedEntityInScope(varname, 'fn', ctx)
+        const entity = ctx.scopes[ctx.scopes.length - 1].get(varname.parsed)
 
-        if (fn.ok) {
+        if (entity?.type === 'fn') {
           return err(varname.at, {
             message: 'a function already exists with this name',
-            also: [
-              {
-                at: fn.data.at,
-                message: 'original declaration occurs here',
-              },
-            ],
+            also: [{ at: entity.at, message: 'original declaration occurs here' }],
           })
         }
 
