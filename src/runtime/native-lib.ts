@@ -1,6 +1,7 @@
 import { lstatSync, readdirSync } from 'fs'
 import { join } from 'path'
 import { buildWithNativeLibraryFunctionNames, buildWithNativeLibraryVarNames } from '../shared/native-lib'
+import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { ExecValue, RunnerContext, RunnerResult } from './base'
 
@@ -15,18 +16,23 @@ export const nativeLibraryVariables = buildWithNativeLibraryVarNames<(ctx: Runne
   }),
 })
 
-export type NativeFn = (ctx: RunnerContext, ...args: ExecValue[]) => RunnerResult<ExecValue>
+export type NativeFn = (ctx: RunnerContext, at: CodeSection, ...args: ExecValue[]) => RunnerResult<ExecValue>
 
 export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<NativeFn>({
-  ok: (ctx, value) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }),
-  err: (ctx, error) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: false, value: error } }),
+  ok: (ctx, at, value) => ({ ok: null, breaking: 'return', value: { type: 'failable', success: true, value } }),
 
-  echo: (ctx, message) => {
+  err: (ctx, at, error) => ({
+    ok: null,
+    breaking: 'return',
+    value: { type: 'failable', success: false, value: error },
+  }),
+
+  echo: (ctx, at, message) => {
     console.log(message.type === 'string' ? message.value : '<echo: invalid string value>')
     return { ok: null, breaking: 'return', value: null }
   },
 
-  dump: (ctx, value) => {
+  dump: (ctx, at, value) => {
     const valueToStr = (value: ExecValue): string =>
       matchUnion(value, 'type', {
         null: () => 'null',
@@ -49,6 +55,18 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
       })
 
     console.log(valueToStr(value))
+
+    return { ok: null, breaking: 'return', value: null }
+  },
+
+  trace: (ctx, at) => {
+    const file: string = matchUnion(at.start.file, 'type', {
+      entrypoint: ({ path }) => path,
+      file: ({ path }) => path,
+      internal: ({ path }) => `<internal:${path}>`,
+    })
+
+    console.log(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`)
 
     return { ok: null, breaking: 'return', value: null }
   },

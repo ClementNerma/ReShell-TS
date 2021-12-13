@@ -77,7 +77,7 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {
     block: ({ body }) => runBlock(body.parsed, fnCtx),
     expr: ({ body }) => runExpr(body.parsed, fnCtx),
-    native: ({ exec }) => exec(fnCtx, ...fnScope.values()),
+    native: ({ exec }) => exec(fnCtx, name.at, ...fnScope.values()),
   })
 
   if (result.ok === false) return result
