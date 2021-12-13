@@ -2,6 +2,7 @@ import { CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
+import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
@@ -190,6 +191,38 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
         true
       )}\``
     )
+  }
+
+  if (fnType.failureType !== null) {
+    if (ctx.expectedFailureWriter) {
+      if (ctx.expectedFailureWriter.ref === null) {
+        ctx.expectedFailureWriter.ref = {
+          at,
+          content: fnType.failureType.parsed,
+        }
+      } else {
+        const compat = isTypeCompatible(
+          { at, candidate: fnType.failureType.parsed },
+          {
+            ...ctx,
+            typeExpectation: {
+              type: ctx.expectedFailureWriter.ref.content,
+              from: ctx.expectedFailureWriter.ref.at,
+            },
+            typeExpectationNature: 'failure type',
+          }
+        )
+
+        if (!compat.ok) return compat
+      }
+    } else if (ctx.fnExpectation?.failureType) {
+      const compat = isTypeCompatible(
+        { at, candidate: fnType.failureType.parsed },
+        { ...ctx, typeExpectation: ctx.fnExpectation.failureType, typeExpectationNature: 'failure type' }
+      )
+
+      if (!compat.ok) return compat
+    }
   }
 
   return success(void 0)

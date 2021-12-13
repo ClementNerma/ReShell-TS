@@ -390,38 +390,6 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (!compat.ok) return compat
       }
 
-      if (fnType.failureType !== null) {
-        if (ctx.expectedFailureWriter) {
-          if (ctx.expectedFailureWriter.ref === null) {
-            ctx.expectedFailureWriter.ref = {
-              at: name.at,
-              content: fnType.failureType.parsed,
-            }
-          } else {
-            const compat = isTypeCompatible(
-              { at: name.at, candidate: fnType.failureType.parsed },
-              {
-                ...ctx,
-                typeExpectation: {
-                  type: ctx.expectedFailureWriter.ref.content,
-                  from: ctx.expectedFailureWriter.ref.at,
-                },
-                typeExpectationNature: 'failure type',
-              }
-            )
-
-            if (!compat.ok) return compat
-          }
-        } else if (ctx.fnExpectation?.failureType) {
-          const compat = isTypeCompatible(
-            { at: name.at, candidate: fnType.failureType.parsed },
-            { ...ctx, typeExpectation: ctx.fnExpectation.failureType, typeExpectationNature: 'failure type' }
-          )
-
-          if (!compat.ok) return compat
-        }
-      }
-
       const validator = validateFnCallArgs({ at: name.at, fnType, args }, ctx)
       if (!validator.ok) return validator
 
