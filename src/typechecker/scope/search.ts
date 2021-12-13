@@ -21,9 +21,11 @@ export const ensureScopeUnicity: TypecheckerRaw<
     }
   }
 
-  for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
-    const orig = map.get(name)
-    if (orig) return generateDuplicateDeclError(name, categoryMapping[category as keyof Scope], loc, orig.loc)
+  if (scopes.length > 0) {
+    for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
+      const orig = map.get(name)
+      if (orig) return generateDuplicateDeclError(name, categoryMapping[category as keyof Scope], loc, orig.loc)
+    }
   }
 
   return success(void 0)
