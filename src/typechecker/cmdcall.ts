@@ -8,10 +8,10 @@ import { validateFnCallArgs } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
-export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ name, args, redir }, ctx) => {
+export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name, args }, ctx) => {
   const fn = getFunctionInScope(name, ctx)
 
-  if (fn.ok) {
+  if (fn.ok && !unaliased) {
     return validateFnCallArgs({ at: name.at, args, fnType: fn.data.content }, ctx)
   } else {
     if (!ctx.checkIfCommandExists(name.parsed)) {

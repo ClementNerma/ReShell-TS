@@ -208,7 +208,7 @@ export type FnArg = {
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
-export type CmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
+export type CmdCall = { unaliased: boolean; name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
 export type CmdFlag = { short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
 
