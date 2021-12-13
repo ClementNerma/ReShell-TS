@@ -22,6 +22,7 @@ import { mappedCases, or } from './lib/switches'
 import { map, suppressErrorPrecedence, toOneProp } from './lib/transform'
 import { flattenMaybeToken, mapToken, withLatelyDeclared } from './lib/utils'
 import { rawString } from './literals'
+import { enumMatchingBlock } from './matching'
 import { doubleOpForAssignment } from './operators'
 import { program } from './program'
 import { nonNullablePropertyAccess } from './propaccess'
@@ -250,6 +251,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       ),
       ([_, __, typename, ___, { parsed: variants }]) => ({ typename, variants })
     ),
+
+    match: enumMatchingBlock,
 
     fnDecl: map(
       combine(

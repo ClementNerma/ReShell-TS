@@ -53,6 +53,11 @@ export type Statement =
     }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'enumDecl'; typename: Token<string>; variants: Token<string>[] }
+  | {
+      type: 'match'
+      subject: Token<Expr>
+      arms: { variant: Token<string>; matchWith: Token<Token<StatementChain>[]> }[]
+    }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
