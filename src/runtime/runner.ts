@@ -11,6 +11,7 @@ import {
   Program,
   Statement,
   Value,
+  ValueType,
 } from '../shared/ast'
 import { getOpPrecedence } from '../shared/constants'
 import { Diagnostic } from '../shared/diagnostics'
@@ -991,7 +992,22 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
 
 const runCondOrTypeAssertion: Runner<CondOrTypeAssertion, ExecValue> = (cond, ctx) =>
   matchUnion(cond, 'type', {
-    assertion: (/*{ varname, minimum, inverted }*/) => {
+    assertion: ({ varname, exact, inverted }) => {
+      let targetType: ValueType | null = null
+
+      for (const scope of ctx.scopes.reverse()) {
+        const target = scope.entities.get(varname.parsed)
+
+        if (target) {
+          targetType = target.type
+          break
+        }
+      }
+
+      if (targetType === null) {
+        return err(varname.at, 'internal error: variable not found in scope')
+      }
+
       throw new Error('TODO: type assertions')
     },
 
