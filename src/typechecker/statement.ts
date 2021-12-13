@@ -257,7 +257,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
       }
 
-      return success({ neverEnds: false })
+      return success({ neverEnds: check.data.neverEnds })
     },
 
     forLoopDuo: ({ keyVar, valueVar, subject, body }) => {
@@ -285,7 +285,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
         ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
       }
 
-      return success({ neverEnds: false })
+      return success({ neverEnds: check.data.neverEnds })
     },
 
     whileLoop: ({ cond, body }) => {
