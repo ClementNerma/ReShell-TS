@@ -5,7 +5,6 @@ import { err, success, Typechecker } from '../base'
 import { developTypeAliases } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprElementType, resolveExprType } from './expr'
-import { resolveGenerics } from './generics-resolver'
 import { rebuildType } from './rebuilder'
 
 export const resolveDoubleOpSequenceType: Typechecker<
@@ -53,7 +52,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
   }
 
   let leftExprAt = baseElement.at
-  let leftExprType = resolveGenerics(baseElementType, ctx.resolvedGenerics)
+  let leftExprType = baseElementType
 
   for (let i = 0; i < seq.length; i++) {
     if (i < seq.length - 1 && precedence[i + 1] === 2) {

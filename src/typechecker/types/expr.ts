@@ -5,6 +5,7 @@ import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerResult } f
 import { getTypedEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
+import { resolveGenerics } from './generics-resolver'
 import { resolvePropAccessType } from './propaccess'
 import { rebuildType } from './rebuilder'
 import { typeValidator } from './validator'
@@ -22,7 +23,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
   const withOpsType = resolveDoubleOpSequenceType(
     {
       baseElement: expr.parsed.from,
-      baseElementType: fromType.data,
+      baseElementType: resolveGenerics(fromType.data, ctx.resolvedGenerics),
       seq: expr.parsed.doubleOps,
     },
     ctx
