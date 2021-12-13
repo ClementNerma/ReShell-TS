@@ -1,3 +1,4 @@
+import { FormatableErrInput } from '../../shared/errors'
 import { Token } from '../../shared/parsed'
 import { Parser, ParserErr } from './base'
 
@@ -62,6 +63,14 @@ export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<
 
 export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
   return token.parsed !== null ? { ...token, parsed: token.parsed } : null
+}
+
+export function addComplementsIf(
+  message: string,
+  cond: boolean,
+  complements: [string, string][]
+): string | FormatableErrInput {
+  return cond ? { message, complements } : message
 }
 
 // TODO: SLOW
