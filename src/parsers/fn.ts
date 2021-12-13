@@ -122,7 +122,7 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (n
           ([_, restArg]) => restArg
         )
       ),
-      combine(maybe_s_nl, exact(')', "expected a closing paren ')'")),
+      combine(maybe_s_nl, exact(')', "expected a closing paren ')' after arguments list")),
       maybe(
         map(
           combine(
