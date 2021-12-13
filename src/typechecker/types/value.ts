@@ -379,7 +379,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
         }
 
-        const type = varType.data.content.type
+        let type = varType.data.content.type
+
+        if (type.type === 'aliasRef') {
+          const alias = getTypeAliasInScope(type.typeAliasName, ctx)
+
+          if (!alias.ok) {
+            return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
+          }
+
+          type = alias.data.content
+        }
 
         if (type.type !== 'fn') {
           return err(
