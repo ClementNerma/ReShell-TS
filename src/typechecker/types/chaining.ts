@@ -232,7 +232,7 @@ const resolvePropAccessType: Typechecker<
       if (leftType.type === 'list') {
         const check = resolveExprType(propAccess.index, {
           ...ctx,
-          typeExpectation: { from: null, type: { type: 'number' } },
+          typeExpectation: { from: null, type: { type: 'int' } },
         })
 
         if (!check.ok) return check
@@ -249,7 +249,7 @@ const resolvePropAccessType: Typechecker<
 
         const check = resolveExprType(propAccess.index, {
           ...ctx,
-          typeExpectation: { from: null, type: { type: 'number' } },
+          typeExpectation: { from: null, type: { type: 'int' } },
         })
 
         if (!check.ok) return check

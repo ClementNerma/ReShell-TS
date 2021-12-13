@@ -12,7 +12,8 @@ export function checkTypeCompatibilityAndClone(
 ): RunnerResult<false | ExecValue> {
   return matchUnion(type, 'type', {
     bool: () => success(value.type === 'bool' ? value : false),
-    number: () => success(value.type === 'number' ? value : false),
+    int: () => success(value.type === 'int' ? value : false),
+    float: () => success(value.type === 'float' ? value : false),
     string: () => success(value.type === 'string' ? value : false),
     path: () => success(value.type === 'path' ? value : false),
 

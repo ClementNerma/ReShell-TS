@@ -7,7 +7,8 @@ import { fnTypeValidator } from './fn'
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
   matchUnion(type, 'type', {
     bool: () => success(void 0),
-    number: () => success(void 0),
+    int: () => success(void 0),
+    float: () => success(void 0),
     string: () => success(void 0),
     path: () => success(void 0),
     list: ({ itemsType }) => typeValidator(itemsType, ctx),

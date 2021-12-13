@@ -14,7 +14,8 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
   matchUnion(value.parsed, 'type', {
     null: () => success({ type: 'null' }),
     bool: ({ value }) => success({ type: 'bool', value: value.parsed }),
-    number: ({ value }) => success({ type: 'number', value: value.parsed }),
+    int: ({ value }) => success({ type: 'int', value: value.parsed }),
+    float: ({ value }) => success({ type: 'float', value: value.parsed }),
     string: ({ value }) => success({ type: 'string', value: value.parsed }),
     path: ({ segments }) => success({ type: 'path', segments: segments.parsed.map((segment) => segment.parsed) }),
 
@@ -33,14 +34,14 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
 
             if (execExpr.data.type === 'string') {
               out.push(execExpr.data.value)
-            } else if (execExpr.data.type === 'number') {
+            } else if (execExpr.data.type === 'int' || execExpr.data.type === 'float') {
               out.push(execExpr.data.value.toString())
             } else if (execExpr.data.type === 'path') {
               out.push(execExpr.data.segments.join(ctx.platformPathSeparator))
             } else {
               return err(
                 segment.at,
-                `internal error: expected segment to be either "string", "number" or "path", found internal type "${execExpr.data.type}"`
+                `internal error: expected segment to be either "string", "int", "float" or "path", found internal type "${execExpr.data.type}"`
               )
             }
             break
@@ -224,4 +225,19 @@ export function expectValueType<T extends ExecValue['type']>(
   return value.type === type
     ? success(value as Extract<ExecValue, { type: T }>)
     : err(at, `internal error: type mismatch (expected internal type "${type}", found "${value.type}")`)
+}
+
+export function expectValueTypeIn<T extends ExecValue['type']>(
+  at: CodeSection,
+  value: ExecValue,
+  types: T[]
+): RunnerResult<Extract<ExecValue, { type: T }>> {
+  return (types as ExecValue['type'][]).includes(value.type)
+    ? success(value as Extract<ExecValue, { type: T }>)
+    : err(
+        at,
+        `internal error: type mismatch (expected one of internal types ${types
+          .map((type) => `"${type}"`)
+          .join(' / ')}, found "${value.type}")`
+      )
 }

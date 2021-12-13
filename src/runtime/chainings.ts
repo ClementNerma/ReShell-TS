@@ -104,16 +104,12 @@ export const runPropertyAccess: Runner<
       const execIndex = runExpr(index.parsed, ctx)
       if (execIndex.ok !== true) return execIndex
 
-      if (execIndex.data.type === 'number') {
+      if (execIndex.data.type === 'int') {
         if (value.type !== 'list') {
           return err(
             propAccessAt,
             `internal error: expected left value to be a "list" because of "number" index, found internal type "${value.type}"`
           )
-        }
-
-        if (Math.floor(execIndex.data.value) !== execIndex.data.value) {
-          return err(index.at, `cannot use non-integer value as a list index (found: ${execIndex.data.value})`)
         }
 
         if (execIndex.data.value < 0) {

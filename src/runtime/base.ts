@@ -54,7 +54,8 @@ export type Scope = {
 export type ExecValue =
   | { type: 'null' }
   | { type: 'bool'; value: boolean }
-  | { type: 'number'; value: number }
+  | { type: 'int'; value: number }
+  | { type: 'float'; value: number }
   | { type: 'string'; value: string }
   | { type: 'path'; segments: string[] }
   | { type: 'list'; items: ExecValue[] }

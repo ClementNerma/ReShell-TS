@@ -143,7 +143,8 @@ export const isTypeCompatible: Typechecker<
     ) => TypecheckerResult<void>
   } = {
     bool: () => success(void 0),
-    number: () => success(void 0),
+    int: () => success(void 0),
+    float: () => success(void 0),
     string: () => success(void 0),
     path: () => success(void 0),
     list: (c, r) => subCheck({ addPath: 'list', candidate: c.itemsType, referent: r.itemsType }),

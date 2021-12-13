@@ -6,16 +6,16 @@ import {
   ExprDoubleOp,
   ExprElement,
   ExprElementContent,
-  ExprOrNever
+  ExprOrNever,
 } from '../shared/ast'
 import { getOpPrecedence } from '../shared/constants'
 import { CodeSection, Token } from '../shared/parsed'
-import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
+import { matchStr, matchStrWithValues, matchUnion, matchUnionWithFallback } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 import { runValueChainings } from './chainings'
 import { getEntityInScope } from './scope'
 import { checkTypeCompatibilityAndClone } from './utils'
-import { expectValueType, runValue } from './value'
+import { expectValueType, expectValueTypeIn, runValue } from './value'
 
 export const runExpr: Runner<Expr, ExecValue> = (expr, ctx) => {
   const execFrom = runExprElement(expr.from.parsed, ctx)
@@ -140,11 +140,16 @@ export const runDoubleOp: Runner<
             left,
             'type',
             {
-              number: ({ value }) => {
-                const rightNumber = expectValueType(rightAt, right, 'number')
-                return rightNumber.ok === true
-                  ? success({ type: 'number', value: value + rightNumber.data.value })
-                  : rightNumber
+              int: ({ value }) => {
+                const rightInt = expectValueType(rightAt, right, 'int')
+                return rightInt.ok === true ? success({ type: 'int', value: value + rightInt.data.value }) : rightInt
+              },
+
+              float: ({ value }) => {
+                const rightFloat = expectValueType(rightAt, right, 'float')
+                return rightFloat.ok === true
+                  ? success({ type: 'float', value: value + rightFloat.data.value })
+                  : rightFloat
               },
 
               string: ({ value }) => {
@@ -161,10 +166,10 @@ export const runDoubleOp: Runner<
         case 'Mul':
         case 'Div':
         case 'Rem': {
-          const leftNumber = expectValueType(leftAt, left, 'number')
+          const leftNumber = expectValueTypeIn(leftAt, left, ['int', 'float'])
           if (leftNumber.ok !== true) return leftNumber
 
-          const rightNumber = expectValueType(rightAt, right, 'number')
+          const rightNumber = expectValueType(rightAt, right, leftNumber.data.type)
           if (rightNumber.ok !== true) return rightNumber
 
           const out: RunnerResult<number> = matchStr(op.parsed, {
@@ -180,7 +185,17 @@ export const runDoubleOp: Runner<
             Rem: () => success(leftNumber.data.value % rightNumber.data.value),
           })
 
-          return out.ok === true ? success({ type: 'number', value: out.data }) : out
+          return out.ok === true
+            ? success({
+                type: matchStrWithValues(op.parsed, {
+                  Sub: leftNumber.data.type,
+                  Div: 'float',
+                  Mul: leftNumber.data.type,
+                  Rem: leftNumber.data.type,
+                }),
+                value: out.data,
+              })
+            : out
         }
 
         case 'Null':
@@ -219,8 +234,12 @@ export const runDoubleOp: Runner<
                 const rightBool = expectValueType(rightAt, right, 'bool')
                 return rightBool.ok === true ? success(value === rightBool.data.value) : rightBool
               },
-              number: ({ value }) => {
-                const rightNumber = expectValueType(rightAt, right, 'number')
+              int: ({ value }) => {
+                const rightNumber = expectValueType(rightAt, right, 'int')
+                return rightNumber.ok === true ? success(value === rightNumber.data.value) : rightNumber
+              },
+              float: ({ value }) => {
+                const rightNumber = expectValueType(rightAt, right, 'float')
                 return rightNumber.ok === true ? success(value === rightNumber.data.value) : rightNumber
               },
               string: ({ value }) => {
@@ -250,10 +269,10 @@ export const runDoubleOp: Runner<
         case 'GreaterThanOrEqualTo':
         case 'LessThan':
         case 'LessThanOrEqualTo': {
-          const leftNumber = expectValueType(leftAt, left, 'number')
+          const leftNumber = expectValueTypeIn(leftAt, left, ['int', 'float'])
           if (leftNumber.ok !== true) return leftNumber
 
-          const rightNumber = expectValueType(rightAt, right, 'number')
+          const rightNumber = expectValueType(rightAt, right, leftNumber.data.type)
           if (rightNumber.ok !== true) return rightNumber
 
           const comp = matchStr(op.parsed, {

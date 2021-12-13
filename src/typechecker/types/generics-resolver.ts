@@ -20,7 +20,8 @@ export function resolveGenerics(type: ValueType, ctx: TypecheckerContext | 'unkn
   function _subroutine(type: ValueType): [ValueType, { name: Token<string>; orig: CodeSection }[]] {
     switch (type.type) {
       case 'bool':
-      case 'number':
+      case 'int':
+      case 'float':
       case 'string':
       case 'path':
       case 'enum':

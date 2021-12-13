@@ -1,6 +1,7 @@
 import { DoubleOp, ExprDoubleOp, ExprElement, ValueType } from '../../shared/ast'
 import { getOpPrecedence } from '../../shared/constants'
 import { CodeSection, Token } from '../../shared/parsed'
+import { matchStrWithValues } from '../../shared/utils'
 import { err, success, Typechecker } from '../base'
 import { developTypeAliases } from './aliases'
 import { isTypeCompatible } from './compat'
@@ -100,8 +101,8 @@ export const resolveDoubleOpType: Typechecker<
     case 'arith':
       switch (op.parsed.op.parsed) {
         case 'Add':
-          if (leftExprType.type !== 'number' && leftExprType.type !== 'string') {
-            return errCannotApplyOperator(op.at, 'number | string', leftExprType, leftExprAt)
+          if (leftExprType.type !== 'int' && leftExprType.type !== 'float' && leftExprType.type !== 'string') {
+            return errCannotApplyOperator(op.at, 'int | float | string', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -112,12 +113,19 @@ export const resolveDoubleOpType: Typechecker<
         case 'Mul':
         case 'Div':
         case 'Rem':
-          if (leftExprType.type !== 'number') {
-            return errCannotApplyOperator(op.at, 'number', leftExprType, leftExprAt)
+          if (leftExprType.type !== 'int' && leftExprType.type !== 'float') {
+            return errCannotApplyOperator(op.at, 'int | float', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
-          producedType = leftExprType
+          producedType = {
+            type: matchStrWithValues(op.parsed.op.parsed, {
+              Sub: leftExprType.type,
+              Mul: leftExprType.type,
+              Div: 'float',
+              Rem: leftExprType.type,
+            }),
+          }
           break
 
         case 'Null':
@@ -155,7 +163,7 @@ export const resolveDoubleOpType: Typechecker<
       switch (op.parsed.op.parsed) {
         case 'Eq':
         case 'NotEq': {
-          const compatibleTypes: ValueType['type'][] = ['bool', 'number', 'string', 'path', 'enum']
+          const compatibleTypes: ValueType['type'][] = ['bool', 'int', 'float', 'string', 'path', 'enum']
 
           if (!compatibleTypes.includes(leftExprType.type)) {
             return errCannotApplyOperator(op.at, compatibleTypes.join(', '), leftExprType, leftExprAt)
@@ -170,10 +178,10 @@ export const resolveDoubleOpType: Typechecker<
         case 'GreaterThanOrEqualTo':
         case 'LessThan':
         case 'LessThanOrEqualTo':
-          if (leftExprType.type !== 'number') {
+          if (leftExprType.type !== 'int' && leftExprType.type !== 'float') {
             return errCannotApplyOperator(
               op.at,
-              'number',
+              'int | float',
               leftExprType,
               leftExprAt,
               op.parsed.op.parsed === 'LessThan' && leftExprType.type === 'fn'

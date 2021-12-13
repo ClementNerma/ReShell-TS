@@ -98,7 +98,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     },
 
     bool: ({ type }) => assertExpectedType(type),
-    number: ({ type }) => assertExpectedType(type),
+    int: ({ type }) => assertExpectedType(type),
+    float: ({ type }) => assertExpectedType(type),
     string: ({ type }) => assertExpectedType(type),
     path: ({ type }) => assertExpectedType(type),
 
@@ -117,10 +118,15 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             const exprType = resolveExprType(segment.parsed.expr, { ...ctx, typeExpectation: null })
             if (!exprType.ok) return exprType
 
-            if (exprType.data.type !== 'string' && exprType.data.type !== 'number' && exprType.data.type !== 'path') {
+            if (
+              exprType.data.type !== 'string' &&
+              exprType.data.type !== 'int' &&
+              exprType.data.type !== 'float' &&
+              exprType.data.type !== 'path'
+            ) {
               return err(
                 segment.at,
-                `expected \`string\`, \`number\` or \`path\`, found \`${rebuildType(exprType.data, {
+                `expected \`string\`, \`number\`, \`float\` or \`path\`, found \`${rebuildType(exprType.data, {
                   noDepth: true,
                 })}\``
               )

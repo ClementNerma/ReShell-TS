@@ -4,7 +4,7 @@ import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { accelerateWithLookahead, failIfMatches, notFollowedBy } from './lib/conditions'
 import { lookahead } from './lib/consumeless'
-import { buildUnicodeRegexMatcher, digit } from './lib/littles'
+import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhileN } from './lib/loops'
 import { exact, match, oneOfFirstChar, oneOfMap, regex } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
@@ -39,7 +39,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
     (_, value) => ({ value })
   ),
 
-  number: toOneProp(
+  int: toOneProp(
     'value',
     accelerateWithLookahead(
       oneOfFirstChar(['-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
@@ -48,10 +48,22 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
           regex(/(-)?0x([0-9a-fA-F]+)/, ([_, neg, num]) => parseInt(num, 16) * (neg ? -1 : 1)),
           regex(/(-)?0b([0-1]+)/, ([_, neg, num]) => parseInt(num, 2) * (neg ? -1 : 1)),
           regex(/(-)?0o([0-7]+)/, ([_, neg, num]) => parseInt(num, 8) * (neg ? -1 : 1)),
-          regex(/(-)?0*(\d+(\.\d+)?)/, ([_, neg, num]) => parseFloat(num) * (neg ? -1 : 1)),
+          regex(/(-)?0*(\d+)/, ([_, neg, num]) => parseFloat(num) * (neg ? -1 : 1)),
         ]),
-        digit,
-        'unexpected token in number'
+        unicodeAlphanumericUnderscore,
+        'unexpected token in integer'
+      )
+    )
+  ),
+
+  float: toOneProp(
+    'value',
+    accelerateWithLookahead(
+      oneOfFirstChar(['-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']),
+      notFollowedBy(
+        regex(/(-)?0*(\d+\.\d+)/, ([_, neg, num]) => parseFloat(num) * (neg ? -1 : 1)),
+        unicodeAlphanumericUnderscore,
+        'unexpected token in floating-point number'
       )
     )
   ),

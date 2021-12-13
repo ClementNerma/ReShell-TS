@@ -74,7 +74,12 @@ export type ValueType =
   | { type: 'generic'; name: Token<string>; orig: CodeSection; fromFnCallAt: CodeLoc | null }
   | InternalTypes
 
-export type PrimitiveValueType = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
+export type PrimitiveValueType =
+  | { type: 'bool' }
+  | { type: 'int' }
+  | { type: 'float' }
+  | { type: 'string' }
+  | { type: 'path' }
 
 export type InternalTypes = { type: 'void' }
 
@@ -171,7 +176,8 @@ export type Value =
 export type LiteralValue =
   | { type: 'null' }
   | { type: 'bool'; value: Token<boolean> }
-  | { type: 'number'; value: Token<number> }
+  | { type: 'int'; value: Token<number> }
+  | { type: 'float'; value: Token<number> }
   | { type: 'string'; value: Token<string> }
   | { type: 'path'; segments: Token<Token<string>[]> }
 

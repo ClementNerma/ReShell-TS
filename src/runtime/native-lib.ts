@@ -30,21 +30,20 @@ type NativeFnInput = {
 
 export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
   // Numbers
-  rand: withArguments({ max: { nullable: 'number' } }, ({ max }) =>
-    success({ type: 'number', value: max.type === 'null' ? Math.random() : Math.floor(Math.random() * max.value) })
+  rand: withArguments({}, () => success({ type: 'float', value: Math.random() })),
+
+  randInt: withArguments({ max: 'int' }, ({ max }) =>
+    success({ type: 'int', value: Math.floor(Math.random() * max.value) })
   ),
 
   // Lists
-  seq: withArguments({ from: 'number', to: 'number' }, ({ from, to }) => {
-    const fromInt = Math.floor(from.value)
-    const toInt = Math.floor(to.value)
-
+  seq: withArguments({ from: 'int', to: 'int' }, ({ from, to }) => {
     return success({
       type: 'list',
       items:
-        fromInt > toInt
+        from.value > to.value
           ? []
-          : new Array(toInt - fromInt + 1).fill(0).map((_, i) => ({ type: 'number', value: fromInt + i })),
+          : new Array(to.value - from.value + 1).fill(0).map((_, i) => ({ type: 'int', value: from.value + i })),
     })
   }),
 
@@ -116,10 +115,10 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
                 : { type: 'enum', variant: 'Unknown' },
             ],
             ['name', { type: 'string', value: name }],
-            ['size', item.isFile() || item.isSymbolicLink() ? { type: 'number', value: item.size } : { type: 'null' }],
-            ['ctime', { type: 'number', value: item.ctime.getDate() }],
-            ['mtime', { type: 'number', value: item.mtime.getDate() }],
-            ['atime', { type: 'number', value: item.atime.getDate() }],
+            ['size', item.isFile() || item.isSymbolicLink() ? { type: 'int', value: item.size } : { type: 'null' }],
+            ['ctime', { type: 'int', value: item.ctime.getDate() }],
+            ['mtime', { type: 'int', value: item.mtime.getDate() }],
+            ['atime', { type: 'int', value: item.atime.getDate() }],
           ]),
         }
       }),
@@ -131,7 +130,7 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
 //       and should handle all the variants.
 export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, NativeFn>({
   // Numbers
-  toFixed: withArguments({ self: 'number', precision: 'number' }, ({ self, precision }) =>
+  toFixed: withArguments({ self: 'int', precision: 'int' }, ({ self, precision }) =>
     success({
       type: 'string',
       value: self.value.toFixed(precision.value),
@@ -143,9 +142,9 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     success({ type: 'bool', value: self.value.includes(lookup.value) })
   ),
 
-  charAt: withArguments({ self: 'string', index: 'number' }, ({ self, index }) =>
+  charAt: withArguments({ self: 'string', index: 'int' }, ({ self, index }) =>
     success(
-      Math.floor(index.value) === index.value && index.value >= 0 && index.value < self.value.length
+      index.value >= 0 && index.value < self.value.length
         ? { type: 'string', value: self.value.charAt(index.value) }
         : { type: 'null' }
     )
@@ -153,7 +152,7 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
 
   indexOf: withArguments({ self: 'string', lookup: 'string' }, ({ self, lookup }) =>
     success(
-      self.value.includes(lookup.value) ? { type: 'number', value: self.value.indexOf(lookup.value) } : { type: 'null' }
+      self.value.includes(lookup.value) ? { type: 'int', value: self.value.indexOf(lookup.value) } : { type: 'null' }
     )
   ),
 
@@ -164,7 +163,7 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     })
   ),
 
-  repeat: withArguments({ self: 'string', repeat: 'number' }, ({ self, repeat }) =>
+  repeat: withArguments({ self: 'string', repeat: 'int' }, ({ self, repeat }) =>
     success({ type: 'string', value: self.value.repeat(repeat.value) })
   ),
 
@@ -223,7 +222,7 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
   ),
 
   // Lists
-  at: withArguments({ self: 'list', index: 'number' }, ({ self, index }) => {
+  at: withArguments({ self: 'list', index: 'int' }, ({ self, index }) => {
     const item = self.items.at(index.value)
     return success(item ?? { type: 'null' })
   }),
@@ -254,9 +253,9 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
   // On multiple types
   len: withArguments({ self: 'unknown' }, ({ self }, { at }) =>
     self.type === 'string'
-      ? success({ type: 'number', value: self.value.length })
+      ? success({ type: 'int', value: self.value.length })
       : self.type === 'list'
-      ? success({ type: 'number', value: self.items.length })
+      ? success({ type: 'int', value: self.items.length })
       : wrongMixedType(at)
   ),
 
@@ -273,7 +272,8 @@ const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: Ru
   matchUnion(value, 'type', {
     null: () => 'null',
     bool: ({ value }) => (value ? 'true' : 'false'),
-    number: ({ value }) => value.toString(),
+    int: ({ value }) => value.toString(),
+    float: ({ value }) => value.toString(),
     string: ({ value }) => (dumping ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"` : value),
     path: ({ segments }) => segments.join(ctx.platformPathSeparator),
     list: ({ items }) =>

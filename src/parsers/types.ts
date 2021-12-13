@@ -19,7 +19,8 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
     'type',
     {
       bool: map(word('bool'), (_) => ({})),
-      number: map(word('number'), (_) => ({})),
+      int: map(word('int'), (_) => ({})),
+      float: map(word('float'), (_) => ({})),
       string: map(word('string'), (_) => ({})),
       path: map(word('path'), (_) => ({})),
 

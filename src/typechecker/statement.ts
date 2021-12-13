@@ -279,7 +279,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       }
 
       const iterVarType: ValueType = matchStrWithValues(subjectType.data.type, {
-        list: { type: 'number' },
+        list: { type: 'int' },
         map: { type: 'string' },
       })
 

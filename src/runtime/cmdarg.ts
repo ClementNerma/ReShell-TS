@@ -52,7 +52,8 @@ export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
 
 function stringifyExecValue(at: CodeSection, value: ExecValue, ctx: RunnerContext): RunnerResult<string> {
   switch (value.type) {
-    case 'number':
+    case 'int':
+    case 'float':
       return success(value.value.toString())
 
     case 'string':

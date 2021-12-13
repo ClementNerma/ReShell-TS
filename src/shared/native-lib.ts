@@ -7,10 +7,10 @@ export const nativeLibraryTypeAliases = ensureValueTypes<ValueType>()({
     members: [
       { name: 'type', type: { type: 'aliasRef', typeAliasName: _forgeToken('LsItemType') } },
       { name: 'name', type: { type: 'string' } },
-      { name: 'size', type: { type: 'nullable', inner: { type: 'number' } } },
-      { name: 'ctime', type: { type: 'number' } },
-      { name: 'mtime', type: { type: 'number' } },
-      { name: 'atime', type: { type: 'number' } },
+      { name: 'size', type: { type: 'nullable', inner: { type: 'int' } } },
+      { name: 'ctime', type: { type: 'int' } },
+      { name: 'mtime', type: { type: 'int' } },
+      { name: 'atime', type: { type: 'int' } },
     ],
   },
 
@@ -23,19 +23,25 @@ export const nativeLibraryVarTypes = ensureValueTypes<ValueType>()({
 })
 
 export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
-  // Numbers
+  // Integers
+  randInt: _buildNativeLibraryFn({
+    args: () => [{ name: 'max', type: 'int' }],
+    returnType: () => 'int',
+  }),
+
+  // Floats
   rand: _buildNativeLibraryFn({
-    args: () => [{ optional: true, name: 'max', type: 'number' }],
-    returnType: () => 'number',
+    args: () => [],
+    returnType: () => 'float',
   }),
 
   // Lists
   seq: _buildNativeLibraryFn({
     args: () => [
-      { name: 'from', type: 'number' },
-      { name: 'to', type: 'number' },
+      { name: 'from', type: 'int' },
+      { name: 'to', type: 'int' },
     ],
-    returnType: () => ({ type: 'list', itemsType: { type: 'number' } }),
+    returnType: () => ({ type: 'list', itemsType: { type: 'int' } }),
   }),
 
   // Failables
@@ -92,8 +98,8 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
 export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
   // Numbers
   toFixed: _buildNativeLibraryFn({
-    methodFor: () => 'number',
-    args: () => [{ name: 'precision', type: 'number' }],
+    methodFor: () => 'float',
+    args: () => [{ name: 'precision', type: 'int' }],
     returnType: () => 'string',
   }),
 
@@ -106,14 +112,14 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
 
   charAt: _buildNativeLibraryFn({
     methodFor: () => 'string',
-    args: () => [{ name: 'index', type: 'number' }],
+    args: () => [{ name: 'index', type: 'int' }],
     returnType: () => ({ type: 'nullable', inner: { type: 'string' } }),
   }),
 
   indexOf: _buildNativeLibraryFn({
     methodFor: () => 'string',
     args: () => [{ name: 'lookup', type: 'string' }],
-    returnType: () => ({ type: 'nullable', inner: { type: 'number' } }),
+    returnType: () => ({ type: 'nullable', inner: { type: 'int' } }),
   }),
 
   replace: _buildNativeLibraryFn({
@@ -127,7 +133,7 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
 
   repeat: _buildNativeLibraryFn({
     methodFor: () => 'string',
-    args: () => [{ name: 'repeat', type: 'number' }],
+    args: () => [{ name: 'repeat', type: 'int' }],
     returnType: () => 'string',
   }),
 
@@ -166,7 +172,7 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
   at: _buildNativeLibraryFn({
     generics: ['T'],
     methodFor: ({ T }) => [[T.name], { type: 'list', itemsType: T }],
-    args: () => [{ name: 'index', type: 'number' }],
+    args: () => [{ name: 'index', type: 'int' }],
     returnType: ({ T }) => ({ type: 'nullable', inner: T }),
   }),
 
@@ -215,13 +221,13 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
     _buildNativeLibraryFn({
       methodFor: () => 'string',
       args: () => [],
-      returnType: () => 'number',
+      returnType: () => 'int',
     }),
 
     _buildNativeLibraryFn({
       methodFor: () => ({ type: 'list', itemsType: { type: 'unknown' } }),
       args: () => [],
-      returnType: () => 'number',
+      returnType: () => 'int',
     }),
   ],
 

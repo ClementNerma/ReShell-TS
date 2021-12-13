@@ -200,7 +200,7 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
 
       for (const [key, value] of iterateOn) {
         const iterValue: ExecValue =
-          typeof key === 'number' ? { type: 'number', value: key } : { type: 'string', value: key }
+          typeof key === 'number' ? { type: 'int', value: key } : { type: 'string', value: key }
 
         scope.entities.set(keyVar.parsed, iterValue)
         scope.entities.set(valueVar.parsed, value)

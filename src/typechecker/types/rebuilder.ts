@@ -5,7 +5,8 @@ export function rebuildType(type: ValueType, options?: { noDepth?: boolean }): s
   function _subroutine(type: ValueType): string {
     return matchUnion(type, 'type', {
       bool: () => 'bool',
-      number: () => 'number',
+      int: () => 'int',
+      float: () => 'float',
       string: () => 'string',
       path: () => 'path',
       list: ({ itemsType }) => (noDepth === true ? 'list' : `[${_subroutine(itemsType)}]`),
@@ -52,7 +53,8 @@ export const rebuildLiteralValue = (value: LiteralValue): string =>
   matchUnion(value, 'type', {
     null: () => 'null',
     bool: ({ value }) => (value.parsed ? 'true' : 'false'),
-    number: ({ value }) => value.parsed.toString(),
+    int: ({ value }) => value.parsed.toString(),
+    float: ({ value }) => value.parsed.toString(),
     string: ({ value }) => `'${value.parsed}'`,
     path: ({ segments }) => segments.parsed.map((segment) => segment.parsed).join('/'),
   })

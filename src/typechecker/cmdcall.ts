@@ -227,10 +227,10 @@ export const inlineCmdCallChecker: Typechecker<InlineCmdCall, void> = ({ content
   cmdCallTypechecker(content.parsed, ctx)
 
 function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerResult<void> {
-  if (type.type !== 'string' && type.type !== 'number' && type.type !== 'path') {
+  if (type.type !== 'string' && type.type !== 'int' && type.type !== 'float' && type.type !== 'path') {
     return err(
       at,
-      `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, {
+      `command arguments can only be of type \`string\`, \`int\`, \`float\` or \`path\`, found \`${rebuildType(type, {
         noDepth: true,
       })}\``
     )
