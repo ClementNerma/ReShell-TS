@@ -72,8 +72,94 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       return success(void 0)
     },
 
-    assignment: (/*{ varname, propAccesses, prefixOp, listPush, expr }*/) => {
-      throw new Error('TODO: assignments')
+    assignment: ({ varname, propAccesses, prefixOp, listPush, expr }) => {
+      let found: { scope: Scope; target: ExecValue } | null = null
+
+      for (const scope of ctx.scopes.reverse()) {
+        const entityValue = scope.entities.get(varname.parsed)
+
+        if (entityValue) {
+          found = { scope, target: entityValue }
+          break
+        }
+      }
+
+      if (found === null) {
+        return err(varname.at, 'internal error: variable not found in scope')
+      }
+
+      const computeValue = (leftAt: CodeSection, left: ExecValue | undefined): RunnerResult<ExecValue> => {
+        const execExpr = runExpr(expr.parsed, ctx)
+        if (execExpr.ok !== true) return execExpr
+        if (prefixOp === null) return success(execExpr.data)
+
+        if (left === undefined) {
+          return err(leftAt, 'internal error: left value is undefined when applying prefix op during assignment')
+        }
+
+        return runDoubleOp(
+          {
+            leftAt,
+            left,
+            op: prefixOp,
+            rightAt: expr.at,
+            right: execExpr.data,
+          },
+          ctx
+        )
+      }
+
+      let targetAt = varname.at
+      let target = found.target
+
+      if (propAccesses.length > 0) {
+        const treatAtOnce = listPush ? propAccesses : propAccesses.slice(0, propAccesses.length - 1)
+
+        for (const { at, parsed: propAccess } of treatAtOnce) {
+          const resolved = runNonNullablePropertyAccess({ propAccessAt: at, propAccess, value: target }, ctx)
+          if (resolved.ok !== true) return resolved
+          target = resolved.data
+          targetAt = { start: targetAt.start, next: at.next }
+        }
+
+        if (listPush === null) {
+          const last = propAccesses[propAccesses.length - 1]
+
+          const written = runNonNullablePropertyAccess(
+            {
+              propAccessAt: last.at,
+              propAccess: last.parsed,
+              value: target,
+              write: (value) => computeValue(targetAt, value),
+              writeAllowNonExistentMapKeys: prefixOp === null,
+            },
+            ctx
+          )
+
+          return written.ok !== true ? written : success(void 0)
+        }
+      }
+
+      if (listPush) {
+        if (target.type !== 'list') {
+          return err(
+            listPush.at,
+            `internal error: expected left value to be a "list", found internal type "${target.type}"`
+          )
+        }
+
+        const newItem = computeValue(targetAt, target)
+        if (newItem.ok !== true) return newItem
+
+        target.items.push(newItem.data)
+        return success(void 0)
+      }
+
+      const newValue = computeValue(targetAt, target)
+      if (newValue.ok !== true) return newValue
+
+      found.scope.entities.set(varname.parsed, newValue.data)
+      return success(void 0)
     },
 
     ifBlock: ({ cond, then, elif, els }) => {
@@ -537,12 +623,13 @@ const runNonNullablePropertyAccess: Runner<
     value: ExecValue
     propAccessAt: CodeSection
     propAccess: NonNullablePropertyAccess
-    write?: (value: ExecValue) => ExecValue
+    write?: Runner<ExecValue | undefined, ExecValue>
+    writeAllowNonExistentMapKeys?: boolean
   },
   ExecValue
-> = ({ value, propAccessAt, propAccess, write }, ctx) =>
+> = ({ value, propAccessAt, propAccess, write, writeAllowNonExistentMapKeys }, ctx) =>
   matchUnion(propAccess, 'type', {
-    refIndex: ({ index }) => {
+    refIndex: ({ index }): RunnerResult<ExecValue> => {
       const execIndex = runExpr(index.parsed, ctx)
       if (execIndex.ok !== true) return execIndex
 
@@ -569,14 +656,15 @@ const runNonNullablePropertyAccess: Runner<
           )
         }
 
-        let got = value.items[execIndex.data.value]
+        const item = value.items[execIndex.data.value]
+        if (!write) return success(item)
 
-        if (write) {
-          got = write(value.items[execIndex.data.value])
-          value.items[execIndex.data.value] = got
-        }
+        const mapped = write(value.items[execIndex.data.value], ctx)
+        if (mapped.ok !== true) return mapped
 
-        return success(got)
+        value.items[execIndex.data.value] = mapped.data
+
+        return success(mapped.data)
       } else if (execIndex.data.type === 'string') {
         if (value.type !== 'map') {
           return err(
@@ -585,18 +673,22 @@ const runNonNullablePropertyAccess: Runner<
           )
         }
 
-        let entry = value.entries.get(execIndex.data.value)
+        const entry = value.entries.get(execIndex.data.value)
 
-        if (entry === undefined) {
-          return err(index.at, 'tried to access non-existent key in map')
+        if (!write) {
+          return entry !== undefined ? success(entry) : err(index.at, 'tried to access non-existent key in map')
         }
 
-        if (write) {
-          entry = write(entry)
-          value.entries.set(execIndex.data.value, entry)
+        if (entry === undefined && writeAllowNonExistentMapKeys !== true) {
+          return err(index.at, 'cannot assign to non-existent key in map')
         }
 
-        return success(entry)
+        const mapped = write(entry, ctx)
+        if (mapped.ok !== true) return mapped
+
+        value.entries.set(execIndex.data.value, mapped.data)
+
+        return success(mapped.data)
       } else {
         return err(
           index.at,
@@ -613,18 +705,20 @@ const runNonNullablePropertyAccess: Runner<
         )
       }
 
-      let accessed = value.members.get(member.parsed)
+      const accessed = value.members.get(member.parsed)
 
       if (accessed === undefined) {
         return err(propAccessAt, 'internal error: tried to access non-existent member in struct')
       }
 
-      if (write) {
-        accessed = write(accessed)
-        value.members.set(member.parsed, accessed)
-      }
+      if (!write) return success(accessed)
 
-      return success(accessed)
+      const mapped = write(accessed, ctx)
+      if (mapped.ok !== true) return mapped
+
+      value.members.set(member.parsed, mapped.data)
+
+      return success(mapped.data)
     },
   })
 
