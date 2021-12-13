@@ -13,6 +13,6 @@ const strippedProgram: Parser<Program> = map(combine(maybe_s_nl, block, maybe_s_
 
 export const program: Parser<Program> = withNormalizedNewlines(
   then(commentStripper, (_, data, context) =>
-    fullSource(strippedProgram, { eos: 'unexpected end of input' })(data.at.start, data.parsed, context)
+    fullSource(strippedProgram, { eos: 'expected end of input' })(data.at.start, data.parsed, context)
   )
 )
