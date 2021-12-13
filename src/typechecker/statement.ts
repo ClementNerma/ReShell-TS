@@ -64,7 +64,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           const { content: scopedVar } = tryScopedVar.data
 
           if (!scopedVar.mutable) {
-            return err(varname.at, `cannot assign to non-mutable variable \`${varname.parsed}\``)
+            return err(varname.at, {
+              message: `cannot assign to non-mutable variable \`${varname.parsed}\``,
+              complements: [
+                ['Tip', 'you can make the variable mutable by declaring it with `let mut` instead of `let`'],
+              ],
+            })
           }
 
           let expectedType: ValueType = scopedVar.type
