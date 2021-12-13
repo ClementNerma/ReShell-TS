@@ -323,7 +323,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             },
           })
 
-          return check.ok ? success({ neverEnds: false }) : check
+          if (!check.ok) return check
+
+          if (fnType.returnType !== null && !check.data.neverEnds) {
+            return err(fnType.returnType.at, 'not all code paths return a value')
+          }
+
+          return success({ neverEnds: false })
         },
 
         return: ({ expr }) => {
