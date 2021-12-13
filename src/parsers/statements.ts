@@ -7,10 +7,11 @@ import { takeWhile } from '../lib/loops'
 import { bol, eol, exact } from '../lib/matchers'
 import { mappedCases, or } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
+import { flattenMaybeToken, mapToken } from '../lib/utils'
 import { cmdCall } from './cmdcall'
-import { ChainedStatement, PropertyAccess, Statement, StatementChain } from './data'
+import { ChainedStatement, Statement, StatementChain } from './data'
 import { doubleArithOp, expr } from './expr'
+import { propertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { fnDecl, valueType } from './types'
@@ -56,19 +57,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     assignment: map(
       combine(
         identifier,
-        takeWhile(
-          or<PropertyAccess>([
-            map(
-              combine(
-                exact('['),
-                withLatelyDeclared(() => expr),
-                exact(']')
-              ),
-              ([_, indexOrKey, __]) => ({ type: 'refIndexOrKey', indexOrKey })
-            ),
-            map(combine(exact('.'), identifier), ([_, member]) => ({ type: 'refStructMember', member })),
-          ])
-        ),
+        takeWhile(propertyAccess),
         combine(maybe(doubleArithOp), exact('=', 'Syntax error: expected an assignment')),
         failure(expr, 'Syntax error: expected an expression'),
         { inter: maybe_s }

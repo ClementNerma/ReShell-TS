@@ -50,9 +50,11 @@ export type Statement =
   | { type: 'return'; expr: Token<Expr | null> }
   | ({ type: 'cmdCall' } & CmdCall)
 
-export type PropertyAccess =
+export type NonNullablePropertyAccess =
   | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }
   | { type: 'refStructMember'; member: Token<string> }
+
+export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAccess }
 
 export type FnType = {
   named: Token<string> | null
