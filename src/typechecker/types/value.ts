@@ -137,7 +137,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success(foundType)
     },
 
-    list: ({ items: { parsed: items } }) => {
+    list: ({ items }) => {
       if (items.length === 0) {
         return expectedType ? success(expectedType) : err('Unable to determine the type of this list', value)
       }
@@ -165,7 +165,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       )
     },
 
-    map: ({ entries: { parsed: entries } }) => {
+    map: ({ entries }) => {
       if (entries.length === 0) {
         return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
       }
@@ -209,7 +209,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       )
     },
 
-    struct: ({ members: { parsed: members } }) => {
+    struct: ({ members }) => {
       if (members.length === 0) {
         return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
       }

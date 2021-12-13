@@ -163,9 +163,9 @@ export type Value =
   | LiteralValue
   | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
   | { type: 'computedPath'; segments: Token<ComputedPathSegment>[] }
-  | { type: 'list'; items: Token<Token<Expr>[]> }
-  | { type: 'map'; entries: Token<{ key: Token<string>; value: Token<Expr> }[]> }
-  | { type: 'struct'; members: Token<{ name: Token<string>; value: Token<Expr> }[]> }
+  | { type: 'list'; items: Token<Expr>[] }
+  | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
+  | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {

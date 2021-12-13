@@ -8,7 +8,7 @@ import { takeWhile, takeWhile1 } from '../lib/loops'
 import { exact, match, oneOfMap } from '../lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from '../lib/switches'
 import { map, toOneProp } from '../lib/transform'
-import { mapToken, withLatelyDeclared } from '../lib/utils'
+import { withLatelyDeclared } from '../lib/utils'
 import {
   ComputedPathSegment,
   ComputedStringSegment,
@@ -98,7 +98,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact(']', "Expected a closing bracket (]) to end the list's content"),
       { inter: maybe_s_nl }
     ),
-    ([_, items, __]) => ({ items })
+    ([_, { parsed: items }, __]) => ({ items })
   ),
 
   map: map(
@@ -129,9 +129,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         inter: maybe_s_nl,
       }
     ),
-    ([_, entries, __]) => ({
-      entries: mapToken(entries, (_, { parsed }) => parsed),
-    })
+    ([_, { parsed: entries }, __]) => ({ entries })
   ),
 
   struct: map(
@@ -158,9 +156,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact('}', 'Expected a closing brace (}) to close the structure'),
       { inter: maybe_s_nl }
     ),
-    ([_, members, __]) => ({
-      members: mapToken(members, (_, { parsed }) => parsed),
-    })
+    ([_, { parsed: members }, __]) => ({ members })
   ),
 
   closure: map(
