@@ -163,6 +163,32 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           return success(void 0)
         },
 
+        forLoop: ({ loopvar, subject, body }) => {
+          const subjectType = resolveExprType(subject, ctx)
+          if (!subjectType.ok) return subjectType
+
+          if (subjectType.data.nullable) {
+            return err(subject.at, 'cannot iterate over nullable value')
+          }
+
+          if (subjectType.data.inner.type !== 'list') {
+            return err(subject.at, 'cannot iterate over non-list values')
+          }
+
+          return statementChainChecker(body, {
+            ...ctx,
+            scopes: scopes.concat([
+              {
+                functions: new Map(),
+                typeAliases: new Map(),
+                variables: new Map([
+                  [loopvar.parsed, located(loopvar.at, { mutable: false, type: subjectType.data.inner.itemsType })],
+                ]),
+              },
+            ]),
+          })
+        },
+
         tryBlock: ({ body, catchVarname, catchBody }) => {
           const wrapper: TypecheckerContext['expectedFailureWriter'] = { ref: null }
 
