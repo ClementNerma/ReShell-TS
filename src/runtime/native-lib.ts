@@ -95,36 +95,46 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
   }),
 
   // Filesystem utilities
-  ls: withArguments({ path: { nullable: 'path' } }, ({ path }, { ctx }) => {
+  ls: withArguments({ path: { nullable: 'path' } }, ({ path }, { ctx }): RunnerResult<ExecValue> => {
     const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
 
-    return success({
-      type: 'list',
-      items: readdirSync(dir).map((name): ExecValue => {
-        const item = lstatSync(join(dir, name))
+    const items = tryFn(() => readdirSync(dir))
+    if (!items.ok) return items.data
 
-        return {
-          type: 'struct',
-          members: new Map<string, ExecValue>([
-            [
-              'type',
-              item.isFile()
-                ? { type: 'enum', variant: 'File' }
-                : item.isDirectory()
-                ? { type: 'enum', variant: 'Dir' }
-                : item.isSymbolicLink()
-                ? { type: 'enum', variant: 'Symlink' }
-                : { type: 'enum', variant: 'Unknown' },
-            ],
-            ['name', { type: 'string', value: name }],
-            ['size', item.isFile() || item.isSymbolicLink() ? { type: 'int', value: item.size } : { type: 'null' }],
-            ['ctime', { type: 'int', value: item.ctime.getDate() }],
-            ['mtime', { type: 'int', value: item.mtime.getDate() }],
-            ['atime', { type: 'int', value: item.atime.getDate() }],
-          ]),
-        }
-      }),
-    })
+    const out: ExecValue[] = []
+
+    for (const name of items.data) {
+      const item = tryFn(() => lstatSync(join(dir, name)))
+      if (!item.ok) return item.data
+
+      out.push({
+        type: 'struct',
+        members: new Map<string, ExecValue>([
+          [
+            'type',
+            item.data.isFile()
+              ? { type: 'enum', variant: 'File' }
+              : item.data.isDirectory()
+              ? { type: 'enum', variant: 'Dir' }
+              : item.data.isSymbolicLink()
+              ? { type: 'enum', variant: 'Symlink' }
+              : { type: 'enum', variant: 'Unknown' },
+          ],
+          ['name', { type: 'string', value: name }],
+          [
+            'size',
+            item.data.isFile() || item.data.isSymbolicLink()
+              ? { type: 'int', value: item.data.size }
+              : { type: 'null' },
+          ],
+          ['ctime', { type: 'int', value: item.data.ctime.getDate() }],
+          ['mtime', { type: 'int', value: item.data.mtime.getDate() }],
+          ['atime', { type: 'int', value: item.data.atime.getDate() }],
+        ]),
+      })
+    }
+
+    return success({ type: 'failable', success: true, value: { type: 'list', items: out } })
   }),
 })
 
@@ -396,6 +406,23 @@ const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: Ru
 
 function makeMap<R extends object, O>(values: { [key in keyof R]: O }): Map<string, O> {
   return new Map(Object.entries(values))
+}
+
+function tryFn<T>(
+  fn: () => T
+): { ok: true; data: T } | { ok: false; data: RunnerResult<Extract<ExecValue, { type: 'failable' }>> } {
+  let data: T
+
+  try {
+    data = fn()
+  } catch (e: unknown) {
+    return {
+      ok: false,
+      data: success({ type: 'failable', success: false, value: { type: 'string', value: (e as Error).message } }),
+    }
+  }
+
+  return { ok: true, data }
 }
 
 function withArguments<

@@ -91,7 +91,11 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   // Filesystem utilities
   ls: _buildNativeLibraryFn({
     args: () => [{ name: 'path', type: 'path' }],
-    returnType: () => ({ type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } }),
+    returnType: () =>
+      _failableType(
+        { type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } },
+        { type: 'string' }
+      ),
   }),
 })
 
@@ -353,6 +357,10 @@ export function _forgeToken<T>(data: T): Token<T> {
 
 function _forgeTokens<T>(data: T[]): Token<T>[] {
   return data.map((item) => _forgeToken(item))
+}
+
+function _failableType(successType: ValueType, failureType: ValueType): ValueType {
+  return { type: 'failable', successType: _forgeToken(successType), failureType: _forgeToken(failureType) }
 }
 
 type _Generic = Extract<ValueType, { type: 'generic' }>
