@@ -169,7 +169,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       ),
       combine(maybe_s_nl, exact('}', "expected a closing brace (}) after the closure's content"))
     ),
-    ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
+    ([{ parsed: fnType }, __, body, ___]) => ({ fnType, body })
   ),
 
   callback: map(
@@ -201,7 +201,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             maybe_s_nl,
             exact('}')
           ),
-          ([_, __, { parsed: body }]) => ({ body })
+          ([_, __, body]) => ({ body })
         ),
         expr: map(
           withLatelyDeclared(() => expr),

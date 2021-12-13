@@ -45,7 +45,7 @@ export type Statement =
       catchBody: Token<StatementChain>[]
     }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
-  | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
+  | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'panic'; message: Token<Expr> }
@@ -147,7 +147,7 @@ export type Value =
   | { type: 'list'; items: Token<Expr>[] }
   | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
-  | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
+  | { type: 'closure'; fnType: FnType; body: Token<Token<StatementChain>[]> }
   | { type: 'callback'; args: Token<ClosureArg>[]; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {
@@ -176,7 +176,7 @@ export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Tok
 
 export type ClosureArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
 
-export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<StatementChain>[] }
+export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Token<StatementChain>[]> }
 
 export type InlineCmdCall = CmdCall
 

@@ -360,7 +360,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const check = fnTypeValidator(fnType, ctx)
       if (!check.ok) return check
 
-      const stmtCheck = statementChainChecker(body, {
+      const stmtCheck = statementChainChecker(body.parsed, {
         ...ctx,
         scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
         fnExpectation: {
@@ -372,7 +372,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!stmtCheck.ok) return stmtCheck
 
       if (fnType.returnType !== null && !stmtCheck.data.neverEnds) {
-        return err(fnType.returnType.at, 'not all code paths return a value')
+        return err(body.at, 'not all code paths return a value')
       }
 
       return success({ type: 'fn', fnType })

@@ -130,11 +130,11 @@ export const closureTypeValidator: Typechecker<
   })
 }
 
-export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<StatementChain>[] }, void> = (
+export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<StatementChain>[]> }, void> = (
   { fnType, body },
   ctx
 ) => {
-  const check = statementChainChecker(body, {
+  const check = statementChainChecker(body.parsed, {
     ...ctx,
     scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
     fnExpectation: {
@@ -146,7 +146,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Statement
   if (!check.ok) return check
 
   if (fnType.returnType !== null && !check.data.neverEnds) {
-    return err(fnType.returnType.at, 'not all code paths return a value')
+    return err(body.at, 'not all code paths return a value')
   }
 
   return success(void 0)

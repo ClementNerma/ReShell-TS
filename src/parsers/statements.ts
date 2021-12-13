@@ -257,7 +257,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           parsed: { name, fnType },
         },
         _,
-        { parsed: body },
+        body,
         __,
       ]) => ({ name, fnType, body })
     ),
