@@ -469,7 +469,7 @@ function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): Va
         if (generic) return generic
       }
 
-      throw new Error('Internal error: unresolved generic in type resolution')
+      return type
 
     default:
       return ensureCoverage(type)
