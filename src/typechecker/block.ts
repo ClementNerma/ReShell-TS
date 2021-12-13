@@ -32,7 +32,7 @@ export const blockChecker: Typechecker<Block, StatementChainMetadata> = (chain, 
             also: [
               {
                 at: previousStmt.at,
-                message: 'this statement always returns or break loop',
+                message: 'caused by the fact this statement always returns or break loop',
               },
             ],
           },
