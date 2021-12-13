@@ -7,6 +7,7 @@ import {
   withStatementClosingChar,
 } from './context'
 import { expr, exprOrTypeAssertion } from './expr'
+import { fnDecl } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
@@ -21,7 +22,7 @@ import { doubleOp } from './operators'
 import { nonNullablePropertyAccess } from './propaccess'
 import { endOfCmdCallStatement, endOfStatementChain, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
-import { fnDecl, valueType } from './types'
+import { valueType } from './types'
 
 export const statement: Parser<Statement> = mappedCases<Statement>()(
   'type',
@@ -220,7 +221,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     fnDecl: map(
       combine(
-        fnDecl,
+        withLatelyDeclared(() => fnDecl),
         combine(maybe_s_nl, exact('{', "Expected an opening brace ({) for the function's body"), maybe_s_nl),
         withStatementClosingChar(
           '}',

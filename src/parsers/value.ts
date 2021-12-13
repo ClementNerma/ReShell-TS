@@ -10,6 +10,7 @@ import { cmdFlag } from './cmdarg'
 import { cmdCall } from './cmdcall'
 import { withStatementClosingChar } from './context'
 import { expr } from './expr'
+import { fnType } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse } from './lib/conditions'
@@ -25,7 +26,6 @@ import { literalValue, rawString } from './literals'
 import { blockBody } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
-import { fnType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   computedString: map(
