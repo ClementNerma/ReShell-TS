@@ -35,6 +35,10 @@ export function fail<T>(error?: string): Parser<T> {
   return (start, _, context) => err(start, context, error)
 }
 
+export function never<T>(error?: string): Parser<T> {
+  return (start, _, context) => err(start, context, error)
+}
+
 export function inspect<T>(parser: Parser<T>, inspector: (result: ParserResult<T>) => void): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
