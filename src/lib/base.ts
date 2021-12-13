@@ -41,6 +41,7 @@ export type LoopContext = Readonly<{
     start: Readonly<ParserLoc>
     matched: ReadonlyArray<string>
     parsed: ReadonlyArray<unknown>
+    previous: Token<unknown> | null
   }>
 }>
 

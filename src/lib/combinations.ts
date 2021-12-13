@@ -7,7 +7,7 @@ import {
   sliceInput,
   success,
   Token,
-  withErr,
+  withErr
 } from './base'
 
 type CombineOptions = {
@@ -55,7 +55,12 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
     for (let i = 0; i < parsers.length; i++) {
       const combinationContext: ParsingContext = {
         ...context,
-        combinationData: { firstIter: i === 0, iter: i, lastWasNeutralError, soFar: { start, matched, parsed } },
+        combinationData: {
+          firstIter: i === 0,
+          iter: i,
+          lastWasNeutralError,
+          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
+        },
       }
 
       const result = (parsers[i] as Parser<unknown>)(loc, input, combinationContext)

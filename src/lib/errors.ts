@@ -1,4 +1,4 @@
-import { ErrorMapping, Parser, ParsingContext, withErr } from './base'
+import { err, ErrFnData, ErrorMapping, neutralError, Parser, ParsingContext, success, withErr } from './base'
 
 export type NotOptions = {
   error?: string
@@ -20,6 +20,21 @@ export function contextualFailure<T>(
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok ? parsed : cond(context) ? withErr(parsed, context, error) : parsed
+  }
+}
+
+export function contextualFailIf(
+  parser: Parser<unknown>,
+  cond: (context: ParsingContext) => boolean,
+  error: ErrFnData
+): Parser<void> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    return parsed.ok
+      ? cond(context)
+        ? err(start, context, error)
+        : success(start, start, void 0, '')
+      : neutralError(start)
   }
 }
 

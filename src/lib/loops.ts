@@ -21,7 +21,12 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     while (true) {
       const iterContext: ParsingContext = {
         ...context,
-        loopData: { firstIter: iter === 0, iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
+        loopData: {
+          firstIter: iter === 0,
+          iter: iter++,
+          lastWasNeutralError,
+          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
+        },
       }
 
       const result = parser(loc, input, iterContext)
@@ -106,7 +111,12 @@ export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
     while (input.length > 0) {
       const result = parser(loc, input, {
         ...context,
-        loopData: { firstIter: iter === 0, iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
+        loopData: {
+          firstIter: iter === 0,
+          iter: iter++,
+          lastWasNeutralError,
+          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
+        },
       })
 
       if (!result.ok) {
