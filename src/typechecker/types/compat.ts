@@ -97,9 +97,6 @@ export const isTypeCompatible: Typechecker<
     aliasRef: (c, r) => {
       throw new Error('Internal error: trying to compare an alias ref')
     },
-    implicit: () => {
-      throw new Error('Internal error: trying to compare with an "implicit" type')
-    },
     unknown: () => {
       throw new Error('Internal error: unreachable "unknown" type comparison')
     },

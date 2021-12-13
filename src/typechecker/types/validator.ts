@@ -30,9 +30,6 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
       return typeAlias.ok ? success(void 0) : typeAlias
     },
     unknown: () => success(void 0),
-
-    // Internal types
-    implicit: () => success(void 0),
   })
 
 export const multiTypeValidator: Typechecker<ValueType[], void> = (types, ctx) => {

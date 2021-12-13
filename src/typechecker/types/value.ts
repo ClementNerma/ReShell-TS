@@ -9,10 +9,6 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   const { expectedType } = ctx
 
-  if (expectedType?.inner.type === 'implicit') {
-    return err(value.at, 'Internal error: expected type is set as implicit while evaluating value type')
-  }
-
   if (expectedType?.inner.type === 'aliasRef') {
     throw new Error('// TODO: type alias development')
   }

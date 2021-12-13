@@ -117,22 +117,15 @@ export type CmdRedirOp =
 
 export type NonNullableValueType =
   | PrimitiveTypes
+  | { type: 'void' }
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
   | { type: 'struct'; members: StructTypeMember[] }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'unknown' }
-  | InternalTypes
 
-export type PrimitiveTypes =
-  | { type: 'void' }
-  | { type: 'bool' }
-  | { type: 'number' }
-  | { type: 'string' }
-  | { type: 'path' }
-
-export type InternalTypes = { type: 'implicit' }
+export type PrimitiveTypes = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
 
 export type StructTypeMember = { name: string; type: ValueType }
 

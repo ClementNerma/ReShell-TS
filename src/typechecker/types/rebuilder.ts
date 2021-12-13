@@ -33,9 +33,6 @@ export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
             )})`,
       aliasRef: ({ typeAliasName }) => '@' + typeAliasName.parsed,
       unknown: () => 'unknown',
-
-      // Internal types
-      implicit: () => '<implicit>',
     })
   )
 }

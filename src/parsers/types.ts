@@ -2,7 +2,6 @@ import { FnArg, FnType, NonNullableValueType, Token, ValueType } from '../shared
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, maybe, maybeFlatten } from './lib/conditions'
-import { never } from './lib/consumeless'
 import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
@@ -91,9 +90,6 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
     })),
 
     unknown: map(exact('unknown'), () => ({})),
-
-    // Internal types
-    implicit: never(),
   },
 
   [
