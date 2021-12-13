@@ -6,7 +6,10 @@ export type ParserResult<T> = ParserSucess<T> | ParserErr
 export type ParserSucess<T> = {
   ok: true
   data: Token<T>
+  infos: ParserSuccessInfos
 }
+
+export type ParserSuccessInfos = { neutralError: boolean; skipInter: boolean | null }
 
 export type ParserErr = {
   ok: false
@@ -35,12 +38,12 @@ export type ParsingContext = Readonly<{
 export type LoopContext = Readonly<{
   firstIter: boolean
   iter: number
-  lastWasNeutralError: boolean
   soFar: Readonly<{
     start: Readonly<CodeLoc>
     matched: ReadonlyArray<string>
     parsed: ReadonlyArray<unknown>
     previous: Token<unknown> | null
+    previousInfos: ParserSuccessInfos | null
   }>
 }>
 
@@ -51,11 +54,15 @@ export function success<T>(
   next: CodeLoc,
   parsed: T,
   matched: string,
-  neutralError?: boolean
+  infos?: Partial<ParserSuccessInfos>
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
-    data: { matched, parsed, neutralError: neutralError ?? false, at: { start, next } },
+    data: { matched, parsed, at: { start, next } },
+    infos: {
+      neutralError: infos?.neutralError ?? false,
+      skipInter: infos?.skipInter ?? null,
+    },
   }
 }
 
@@ -67,8 +74,11 @@ export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<Parse
     data: {
       matched: '',
       parsed: neutralValue!,
-      neutralError: true,
       at: { start, next: start },
+    },
+    infos: {
+      neutralError: true,
+      skipInter: true,
     },
   }
 }

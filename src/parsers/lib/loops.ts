@@ -1,11 +1,22 @@
 import { CodeLoc, Token } from '../../shared/parsed'
-import { err, ErrInputData, Parser, ParsingContext, sliceInput, success, withErr, WithErrData } from './base'
+import {
+  err,
+  ErrInputData,
+  Parser,
+  ParserSuccessInfos,
+  ParsingContext,
+  sliceInput,
+  success,
+  withErr,
+  WithErrData,
+} from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
   inter?: Parser<unknown>
   interMatchingMakesExpectation?: boolean
   matchError?: WithErrData
+  dontPropagateInterSkipping?: boolean
 }
 
 export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Parser<Token<T>[]> {
@@ -14,7 +25,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const matched: string[] = []
     let interMadeExpectation = false
     let beforeInterMatching: CodeLoc | null = null
-    let lastWasNeutralError = false
+    let previousInfos: ParserSuccessInfos | null = null
 
     let next = { ...start }
     let iter = 0
@@ -25,8 +36,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         loopData: {
           firstIter: iter === 0,
           iter: iter++,
-          lastWasNeutralError,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
+          soFar: { previous: parsed[parsed.length - 1] ?? null, previousInfos, start, matched, parsed },
         },
       }
 
@@ -45,9 +55,9 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         break
       }
 
-      const { data } = result
+      const { data, infos } = result
 
-      lastWasNeutralError = data.neutralError
+      previousInfos = infos
 
       input = sliceInput(input, next, data.at.next)
       next = data.at.next
@@ -59,15 +69,11 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         break
       }
 
-      if (!data.neutralError && options?.inter) {
+      if (!infos.skipInter && options?.inter) {
         const interResult = options.inter(next, input, iterContext)
 
         if (!interResult.ok) {
-          if (data.neutralError) {
-            continue
-          } else {
-            return success(start, next, parsed, matched.join(''))
-          }
+          break
         }
 
         const { data: interData } = interResult
@@ -84,7 +90,10 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
     }
 
-    return success(start, next, parsed, matched.join(''))
+    return success(start, next, parsed, matched.join(''), {
+      neutralError: false,
+      skipInter: parsed.length === 0 && options?.dontPropagateInterSkipping !== false,
+    })
   }
 }
 

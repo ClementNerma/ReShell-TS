@@ -30,7 +30,7 @@ export const propertyAccess: Parser<PropertyAccess> = map(
     maybe(exact('?')),
     contextualFailure(
       nonNullablePropertyAccess,
-      (ctx) => !ctx.combinationData!.lastWasNeutralError,
+      (ctx) => !ctx.combinationData!.soFar.previousInfos!.neutralError,
       'Expected a property index, key or member name after optional chaining operator (?.)'
     )
   ),

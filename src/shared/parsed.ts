@@ -17,7 +17,7 @@ export type CodeSection = {
   next: CodeLoc
 }
 
-export type Token<T> = { parsed: T; matched: string; neutralError: boolean; at: CodeSection }
+export type Token<T> = { parsed: T; matched: string; at: CodeSection }
 
 // ============== //
 

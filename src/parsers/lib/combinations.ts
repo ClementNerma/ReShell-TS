@@ -1,5 +1,14 @@
-import { Token } from '../../shared/parsed'
-import { Parser, ParserResult, ParserSucess, ParsingContext, sliceInput, success, withErr, WithErrData } from './base'
+import { CodeLoc, Token } from '../../shared/parsed'
+import {
+  Parser,
+  ParserResult,
+  ParserSuccessInfos,
+  ParsingContext,
+  sliceInput,
+  success,
+  withErr,
+  WithErrData,
+} from './base'
 
 type CombineOptions = {
   error?: WithErrData
@@ -36,12 +45,12 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
     typeof parsers[parsers.length - 1] !== 'function' ? (parsers.pop() as any) : null
 
   return (start, input, context): ParserResult<unknown[]> => {
-    let loc = start
-    let lastResult: ParserSucess<unknown> = null as any
     const parsed: Token<unknown>[] = []
     const matched = []
+    let beforeInterMatching: CodeLoc | null = null
+    let next = { ...start }
 
-    let lastWasNeutralError = false
+    let previousInfos: ParserSuccessInfos | null = null
 
     for (let i = 0; i < parsers.length; i++) {
       const combinationContext: ParsingContext = {
@@ -49,49 +58,50 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
         combinationData: {
           firstIter: i === 0,
           iter: i,
-          lastWasNeutralError,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
+          soFar: { previous: parsed[parsed.length - 1] ?? null, previousInfos, start, matched, parsed },
         },
       }
 
-      const result = (parsers[i] as Parser<unknown>)(loc, input, combinationContext)
+      const result = (parsers[i] as Parser<unknown>)(next, input, combinationContext)
 
       if (!result.ok) return withErr(result, context, options?.error)
 
-      const { data } = result
+      const { data, infos } = result
 
-      input = sliceInput(input, loc, data.at.next)
+      previousInfos = infos
+
+      input = sliceInput(input, next, data.at.next)
+      next = data.at.next
 
       parsed.push(data)
       matched.push(data.matched)
 
-      if (data.neutralError) {
-        if (i === parsers.length - 1) {
-          break
+      if (infos.neutralError && i === parsers.length - 1) {
+        if (beforeInterMatching) {
+          next = beforeInterMatching
+          matched.pop()
         }
+
+        break
       }
 
-      lastWasNeutralError = data.neutralError
-
-      loc = data.at.next
-      lastResult = result
-
-      if (!data.neutralError && options?.inter && i < parsers.length - 1) {
-        const interResult = options.inter(loc, input, combinationContext)
+      if (!infos.skipInter && options?.inter && i < parsers.length - 1) {
+        const interResult = options.inter(next, input, combinationContext)
 
         if (!interResult.ok) {
           return withErr(interResult, context, options?.error)
         }
 
-        const { data } = interResult
+        const { data: interData } = interResult
 
-        input = sliceInput(input, loc, data.at.next)
-        loc = data.at.next
+        beforeInterMatching = next
+        input = sliceInput(input, next, interData.at.next)
+        next = interData.at.next
 
-        matched.push(data.matched)
+        matched.push(interData.matched)
       }
     }
 
-    return success(start, lastResult.data.at.next, parsed, matched.join(''))
+    return success(start, next, parsed, matched.join(''))
   }
 }
