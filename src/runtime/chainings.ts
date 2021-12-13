@@ -14,6 +14,10 @@ export const runValueChainings: Runner<{ value: ExecValue; chainings: Token<Valu
 ) => {
   if (chainings.length === 0) return success(value)
 
+  const optimized = optimizeValueChainings(chainings, ctx)
+  if (optimized.ok !== true) return optimized
+  if (optimized.data) return success(optimized.data)
+
   for (const chaining of chainings) {
     const result = runValueChaining({ value, chaining }, ctx)
     if (result.ok !== true) return result
@@ -22,6 +26,37 @@ export const runValueChainings: Runner<{ value: ExecValue; chainings: Token<Valu
   }
 
   return success(value)
+}
+
+/**
+ * This function's purpose is to optimize a list of value chainings
+ * The problem we encouter is the following:
+ * When we call multiple methods in the same expression, e.g `a.b().c()`
+ * What happens is in the precomputed function call, the first argument (self) is set as
+ * `a` for the first function, and `a.b()` for the second one, which means `b` gets called twice.
+ * The number of calls then grows exponentially with the number of methods
+ * To prevent this problem, only the last method in an expression should be evaluated, as its first
+ * argument is an expression containing the whole expression ending just before this call.
+ * So this method is here to perform this optimization, preventing this expentional increase in calls
+ *
+ * If there is no optimization to perform, it simply returns `null`
+ * Otherwise, it performs the method call and returns its result as an execution value
+ */
+const optimizeValueChainings: Runner<Token<ValueChaining>[], ExecValue | null> = (chainings, ctx) => {
+  const methodUsage = [...chainings].reverse().findIndex((chaining) => chaining.parsed.type === 'method')
+
+  if (methodUsage === -1) return success(null)
+
+  const index = chainings.length - 1 - methodUsage
+
+  const method = chainings[index]
+  if (method.parsed.type !== 'method') throw new Error('Method type assertion failed')
+
+  const methodResult = runMethod(method.parsed.call, ctx)
+
+  if (methodResult.ok !== true) return methodResult
+
+  return runValueChainings({ value: methodResult.data, chainings: chainings.slice(index + 1) }, ctx)
 }
 
 const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining> }, ExecValue> = (
