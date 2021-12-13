@@ -25,6 +25,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     elseBlock: map(exact('else'), (_) => ({})),
 
+    tryBlock: map(exact('try'), (_) => ({})),
+
     blockEnd: map(exact('end'), (_) => ({})),
 
     variableDecl: map(
@@ -91,6 +93,15 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ),
 
     fnOpen: map(fnDecl, (fn) => fn),
+
+    catchBlock: map(
+      combine(exact('catch'), failure(identifier, 'Expected an identifier for the "catch" clause'), { inter: s }),
+      ([_, varname]) => ({ varname })
+    ),
+
+    throw: map(combine(exact('throw'), failure(expr, 'Expected a value to throw'), { inter: s }), ([_, expr]) => ({
+      expr,
+    })),
 
     assignment: map(
       combine(

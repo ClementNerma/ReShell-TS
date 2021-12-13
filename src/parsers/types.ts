@@ -2,7 +2,7 @@ import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, maybe, maybeFlatten } from '../lib/conditions'
 import { contextualFailure, failure } from '../lib/errors'
-import { maybe_s_nl, s } from '../lib/littles'
+import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile, takeWhile1N } from '../lib/loops'
 import { exact, word } from '../lib/matchers'
 import { addTipIf } from '../lib/raw'
@@ -151,12 +151,19 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
           ([_, returnType]) => returnType
         )
       ),
+      maybeFlatten(
+        map(
+          combine(maybe_s, exact('throws'), s, failure(valueType, 'Expected a failure type')),
+          ([_, __, ___, failureType]) => failureType
+        )
+      ),
       { inter: maybe_s_nl }
     ),
-    ([named, _, { parsed: args }, __, returnType]) => ({
+    ([named, _, { parsed: args }, __, returnType, failureType]) => ({
       named: flattenMaybeToken(named),
       args,
       returnType: flattenMaybeToken(returnType),
+      failureType: flattenMaybeToken(failureType),
     })
   )
 

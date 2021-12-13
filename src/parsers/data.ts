@@ -44,7 +44,10 @@ export type Statement =
   | { type: 'ifBlock'; cond: Token<Expr> }
   | { type: 'elifBlock'; cond: Token<Expr> }
   | { type: 'elseBlock' }
+  | { type: 'tryBlock' }
+  | { type: 'catchBlock'; varname: Token<string> }
   | { type: 'blockEnd' }
+  | { type: 'throw'; expr: Token<Expr> }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'fnOpen'; name: Token<string>; fnType: FnType }
   | { type: 'return'; expr: Token<Expr | null> }
@@ -60,6 +63,7 @@ export type FnType = {
   named: Token<string> | null
   args: Token<FnArg>[]
   returnType: Token<ValueType> | null
+  failureType: Token<ValueType> | null
 }
 
 export type FnArg = {
