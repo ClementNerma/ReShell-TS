@@ -1,6 +1,7 @@
 import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
-import { notFollowedBy } from '../lib/conditions'
+import { failIfMatches, notFollowedBy } from '../lib/conditions'
+import { lookahead } from '../lib/consumeless'
 import { digit, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile1, takeWhileN } from '../lib/loops'
 import { exact, match, oneOfMap, regex } from '../lib/matchers'
@@ -17,8 +18,13 @@ export const rawPath: Parser<Token<string>[]> = takeWhileN(
 )
 
 export const rawString: Parser<string> = map(
-  combine(exact("'"), match(/([^\\'\n]|\\[^\n])*/), exact("'", 'Opened string has not been closed with a quote (")')),
-  ([_, { parsed: content }, __]) => content
+  combine(
+    exact('"'),
+    match(/([^\\"\$\n]|\\[^\n])+/),
+    failIfMatches(lookahead(exact('$'))),
+    exact('"', 'Opened string has not been closed with a quote (")')
+  ),
+  ([_, { parsed: content }]) => content
 )
 
 export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('type', {
