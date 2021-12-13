@@ -44,14 +44,21 @@ export const fnCall: Parser<FnCall> = map(
                 combine(
                   oneOf(['--', '-']),
                   failure(identifier, 'expected a flag identifier'),
-                  exact('='),
-                  maybe_s_nl,
-                  failure(
-                    withLatelyDeclared(() => expr),
-                    'expected an expression after the flag separator (:) symbol'
+                  maybe(
+                    map(
+                      combine(
+                        exact('='),
+                        maybe_s_nl,
+                        failure(
+                          withLatelyDeclared(() => expr),
+                          'expected an expression after the flag separator (:) symbol'
+                        )
+                      ),
+                      ([_, __, directValue]) => directValue
+                    )
                   )
                 ),
-                ([prefixSym, name, _, __, directValue]) => ({ prefixSym, name, directValue })
+                ([prefixSym, name, { parsed: directValue }]) => ({ prefixSym, name, directValue })
               ),
               expr: toOneProp(
                 'expr',
