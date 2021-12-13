@@ -17,6 +17,8 @@ import { startsWithLetter } from './utils'
 export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<NonNullableValueType>()(
   'type',
   {
+    void: map(word('void'), (_) => ({})),
+
     bool: map(word('bool'), (_) => ({})),
     number: map(word('number'), (_) => ({})),
     string: map(word('string'), (_) => ({})),

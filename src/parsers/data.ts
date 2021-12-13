@@ -110,6 +110,7 @@ export enum CmdRedirOp {
 }
 
 export type NonNullableValueType =
+  | { type: 'void' }
   | { type: 'bool' }
   | { type: 'number' }
   | { type: 'string' }
