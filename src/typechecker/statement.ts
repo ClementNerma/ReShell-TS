@@ -35,11 +35,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
     if (previousStmt?.metadata.neverEnds) {
       return err(stmt.at, {
-        message: 'previous statement always return (or break loop), so this is dead code',
+        message: 'previous statement always returns (or break loop), so this is dead code',
         also: [
           {
             at: previousStmt.at,
-            message: 'this statement always return or break loop',
+            message: 'this statement always returns or break loop',
           },
         ],
       })
@@ -238,7 +238,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return check.data.neverEnds ? err(stmt.at, 'This loop always return or break') : success({ neverEnds: false })
+          return check.data.neverEnds
+            ? err(stmt.at, 'This loop always returns or breaks')
+            : success({ neverEnds: false })
         },
 
         whileLoop: ({ cond, body }) => {
@@ -258,7 +260,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!check.ok) return check
 
-          return check.data.neverEnds ? err(stmt.at, 'This loop always return or break') : success({ neverEnds: false })
+          return check.data.neverEnds
+            ? err(stmt.at, 'This loop always returns or breaks')
+            : success({ neverEnds: false })
         },
 
         break: () => {
