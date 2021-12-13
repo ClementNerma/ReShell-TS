@@ -85,19 +85,18 @@ export const resolveCondOrTypeAssertionType: Typechecker<
         expr.parsed.minimum.parsed,
         'against',
         {
-          null: () => {
-            if (subjectType.type !== 'nullable') {
-              return err(
-                expr.at,
-                `"null" type assertions are only allowed for nullable values, found \`${rebuildType(
-                  subjectType,
-                  true
-                )}\``
-              )
-            }
-
-            return success({ normal: null, inverted: subjectType.inner })
-          },
+          null: () =>
+            subjectType.type === 'nullable'
+              ? success({ normal: null, inverted: subjectType.inner })
+              : subjectType.type === 'unknown'
+              ? success({ normal: null, inverted: null })
+              : err(
+                  expr.at,
+                  `"null" type assertions are only allowed for nullable and \`unknown\` values, found \`${rebuildType(
+                    subjectType,
+                    true
+                  )}\``
+                ),
 
           ok: () => {
             if (subjectType.type !== 'failable') {
