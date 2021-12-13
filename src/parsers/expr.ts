@@ -173,7 +173,7 @@ export const expr: Parser<Expr> = map(
     exprElement,
     takeWhile(
       map(
-        combine(maybe_s, doubleOp, maybe_s, failure(exprElement, 'Expected an expression after operator')),
+        combine(maybe_s, doubleOp, maybe_s_nl, failure(exprElement, 'Expected an expression after operator')),
         ([_, op, __, right]) => ({
           type: 'doubleOp',
           op,
