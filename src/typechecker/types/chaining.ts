@@ -82,16 +82,21 @@ export const resolveValueChainings: Typechecker<
         }
 
         if (!method) {
-          return err(call.name.at, {
-            message: 'method was not found for the provided value type',
-            complements: candidates
-              .map<[string, string]>((method) => [
-                'exists for',
-                (nullable ? '?' : '') + rebuildType(method.forTypeWithoutGenerics),
-              ])
-              .concat([['applied on', rebuildType(developed.data)]])
-              .reverse(),
-          })
+          return err(
+            call.name.at,
+            candidates.length === 0
+              ? 'no method with this name was found in scope'
+              : {
+                  message: 'method was not found for the provided value type',
+                  complements: candidates
+                    .map<[string, string]>((method) => [
+                      'exists for',
+                      (nullable ? '?' : '') + rebuildType(method.forTypeWithoutGenerics),
+                    ])
+                    .concat([['applied on', rebuildType(developed.data)]])
+                    .reverse(),
+                }
+          )
         }
 
         const selfArg: Token<FnDeclArg> = {
