@@ -1,4 +1,4 @@
-import { CodeSection, Token } from './parsed'
+import { CodeLoc, CodeSection, Token } from './parsed'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Statements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
@@ -79,7 +79,7 @@ export type ValueType =
   | { type: 'nullable'; inner: ValueType }
   | { type: 'failable'; successType: Token<ValueType>; failureType: Token<ValueType> }
   | { type: 'unknown' }
-  | { type: 'generic'; name: Token<string>; orig: CodeSection }
+  | { type: 'generic'; name: Token<string>; orig: CodeSection; fromFnCallAt: CodeLoc | null }
   | InternalTypes
 
 export type PrimitiveValueType = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }

@@ -2,12 +2,12 @@ import { ValueType } from '../../shared/ast'
 import { DiagnosticExtract } from '../../shared/diagnostics'
 import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection } from '../../shared/parsed'
-import { err, GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
+import { GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getContextuallyResolvedGeneric, getResolvedGenericInSingleScope } from '../scope/search'
 import { developTypeAliases } from './aliases'
 import { getFnDeclArgType } from './fn'
 import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
-import { rebuildType } from './rebuilder'
+import { errIncompatibleValueType } from './value'
 
 export const isTypeCompatible: Typechecker<
   {
@@ -22,53 +22,21 @@ export const isTypeCompatible: Typechecker<
   void
 > = ({ candidate, at, typeExpectation, fillKnownGenerics, _path, _originalCandidate, _originalReferent }, ctx) => {
   const expectationErr = (message?: string, atOverride?: CodeSection, also?: DiagnosticExtract[]) => {
-    const pathStr = path.length > 0 ? path.join(' > ') + ' > ' : ''
-
     const developedReferent = developTypeAliases(originalReferent, ctx)
     if (!developedReferent.ok) return developedReferent
-
-    const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true })
-    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx))
-
-    const ctxForCandidate = fillKnownGenerics
-      ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) }
-      : ctx
-    const developedCandidate = developTypeAliases(originalCandidate, ctxForCandidate)
+    const developedCandidate = developTypeAliases(originalCandidate, ctx)
     if (!developedCandidate.ok) return developedCandidate
 
-    const foundNoDepth = rebuildType(candidate, { noDepth: true })
-    const found = rebuildType(
-      resolveGenerics(
-        developedCandidate.data,
-        fillKnownGenerics ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) } : ctx
-      )
-    )
-
-    const messageWithFallback =
-      message ??
-      `expected ${
-        ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''
-      }\`${expectedNoDepth}\`, found \`${foundNoDepth}\``
-
-    return err(atOverride ?? at, {
-      message: pathStr + messageWithFallback,
-      complements:
-        expectedNoDepth !== expected || foundNoDepth !== found
-          ? [
-              ['expected', expected],
-              ['found   ', found],
-            ]
-          : [],
-      also: (also ?? []).concat(
-        typeExpectation.from
-          ? [
-              {
-                at: typeExpectation.from,
-                message: 'type expectation originates here',
-              },
-            ]
-          : []
-      ),
+    return errIncompatibleValueType({
+      valueAt: atOverride ?? at,
+      messagePrefix: path.length > 0 ? path.join(' > ') + ' > ' : '',
+      message,
+      typeExpectation: { type: resolveGenerics(developedReferent.data, ctx), from: typeExpectation.from },
+      originalExpected: developedReferent.data,
+      foundType: candidate,
+      originalFound: resolveGenerics(developedCandidate.data, ctx),
+      also,
+      ctx,
     })
   }
 
@@ -113,10 +81,10 @@ export const isTypeCompatible: Typechecker<
   referent = developedReferent.data
 
   if (referent.type === 'generic' && ctx.inFnCallAt) {
-    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, referent)
+    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, referent)
 
     if (generic?.mapped === null) {
-      generic.mapped = candidate
+      generic.mapped = resolveGenerics(candidate, ctx)
       return success(void 0)
     } else if (generic?.mapped) {
       return subCheck({ candidate, referent: generic.mapped })
@@ -125,14 +93,14 @@ export const isTypeCompatible: Typechecker<
 
   if (candidate.type === 'generic' && ctx.inFnCallAt) {
     if (fillKnownGenerics) {
-      const set = getResolvedGenericInSingleScope(fillKnownGenerics, ctx.inFnCallAt, candidate)
+      const set = getResolvedGenericInSingleScope(fillKnownGenerics, candidate)
 
       if (set === undefined) {
         return expectationErr('internal error: candidate generic is unknown although filling map was provided')
       }
 
       if (set.mapped === null) {
-        set.mapped = referent
+        set.mapped = resolveGenerics(referent, ctx)
         return success(void 0)
       } else {
         const compat = subCheck({ candidate: referent, referent: set.mapped, referentAt: at })
@@ -172,7 +140,7 @@ export const isTypeCompatible: Typechecker<
     [type in ValueType['type']]: (
       candidate: Extract<ValueType, { type: type }>,
       referent: Extract<ValueType, { type: type }>
-    ) => TypecheckerResult<void> // | boolean
+    ) => TypecheckerResult<void>
   } = {
     bool: () => success(void 0),
     number: () => success(void 0),

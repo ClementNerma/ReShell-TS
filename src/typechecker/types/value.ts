@@ -1,4 +1,5 @@
 import { PrimitiveValueType, StructTypeMember, Value, ValueType } from '../../shared/ast'
+import { DiagnosticComplementsInput, DiagnosticExtract } from '../../shared/diagnostics'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
@@ -15,7 +16,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   let { typeExpectation } = ctx
 
   if (typeExpectation?.type.type === 'generic' && ctx.inFnCallAt) {
-    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, typeExpectation.type)
+    const generic = getContextuallyResolvedGeneric(ctx.resolvedGenerics, typeExpectation.type)
 
     if (generic?.mapped) {
       typeExpectation = { from: typeExpectation.from, type: generic.mapped }
@@ -560,40 +561,71 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
 export const errIncompatibleValueType = ({
   typeExpectation,
+  originalExpected,
   foundType,
+  originalFound,
   valueAt,
+  messagePrefix,
+  message,
+  also,
   ctx,
 }: {
   typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
+  originalExpected?: ValueType
   foundType: ValueType | ValueType['type']
+  originalFound?: ValueType
   valueAt: CodeSection
+  messagePrefix?: string
+  message?: string
+  also?: DiagnosticExtract[]
   ctx: TypecheckerContext
 }) => {
   const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true })
+  const expected = rebuildType(originalExpected ?? typeExpectation.type)
+
   const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })
+  const found = originalFound
+    ? rebuildType(originalFound)
+    : typeof foundType === 'string'
+    ? foundType
+    : rebuildType(foundType)
 
-  const expected = rebuildType(typeExpectation.type)
-  const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
+  message =
+    (messagePrefix ?? '') +
+    (message ??
+      `expected ${ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
+        typeExpectation.type,
+        { noDepth: true }
+      )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })}\``)
 
-  return err(valueAt, {
-    message: `expected ${ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
-      typeExpectation.type,
-      { noDepth: true }
-    )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })}\``,
-    complements:
-      expectedNoDepth !== expected || foundNoDepth !== found
-        ? [
-            ['expected', rebuildType(typeExpectation.type)],
-            ['found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
-          ]
-        : [],
-    also: typeExpectation.from
-      ? [
-          {
-            at: typeExpectation.from,
-            message: 'type expectation originates here',
-          },
-        ]
-      : [],
-  })
+  const complements: DiagnosticComplementsInput = []
+
+  if (expectedNoDepth !== expected || foundNoDepth !== found) {
+    complements.push(
+      ['expected', rebuildType(typeExpectation.type)],
+      ['found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)]
+    )
+  }
+
+  also ??= []
+
+  if (typeof foundType !== 'string' && foundType.type === 'generic' && foundType.fromFnCallAt) {
+    also.push({
+      at: { start: foundType.fromFnCallAt, next: foundType.fromFnCallAt },
+      message: `generic \`:${foundType.name.parsed}\` comes from this call`,
+    })
+  }
+
+  if (typeExpectation.type.type === 'generic' && typeExpectation.type.fromFnCallAt) {
+    also.push({
+      at: { start: typeExpectation.type.fromFnCallAt, next: typeExpectation.type.fromFnCallAt },
+      message: `generic \`:${typeExpectation.type.name.parsed}\` comes from this call`,
+    })
+  }
+
+  if (typeExpectation.from) {
+    also.push({ at: typeExpectation.from, message: 'type expectation originates here' })
+  }
+
+  return err(valueAt, { message, complements, also })
 }

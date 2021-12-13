@@ -17,7 +17,11 @@ export type DiagnosticExtract = {
   complements?: [string, string][]
 }
 
-export type DiagnosticInput = string | { message: string; complements?: [string, string][]; also?: DiagnosticExtract[] }
+export type DiagnosticInput =
+  | string
+  | { message: string; complements?: DiagnosticComplementsInput; also?: DiagnosticExtract[] }
+
+export type DiagnosticComplementsInput = [string, string][]
 
 export const diagnostic = (at: CodeSection, input: DiagnosticInput, level: DiagnosticLevel): Diagnostic => {
   const stringInput = typeof input === 'string'

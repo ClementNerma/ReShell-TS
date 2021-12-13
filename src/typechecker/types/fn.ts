@@ -325,11 +325,12 @@ export const validateAndRegisterFnCall: Typechecker<
 
       const suppliedFor = fnType.generics[g]
 
-      const scoped = getResolvedGenericInSingleScope(gScope, at.start, {
+      const scoped = getResolvedGenericInSingleScope(gScope, {
         // to remake more properly (set the types during the gScope's creation)
         type: 'generic',
         name: suppliedFor,
         orig: suppliedFor.at,
+        fromFnCallAt: at.start,
       })
 
       if (!scoped) {
@@ -578,10 +579,7 @@ export const validateAndRegisterFnCall: Typechecker<
         candidate: returnType,
         typeExpectation: {
           from: ctx.typeExpectation.from,
-          type: resolveGenerics(ctx.typeExpectation.type, {
-            ...ctx,
-            resolvedGenerics: ctx.resolvedGenerics.concat([gScope]),
-          }),
+          type: resolveGenerics(ctx.typeExpectation.type, ctx),
         },
       },
       ctx

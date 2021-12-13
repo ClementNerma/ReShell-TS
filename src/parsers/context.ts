@@ -48,7 +48,7 @@ export const completeGenericsDefinition = (
 ): FailableMapped<Omit<Extract<ValueType, { type: 'generic' }>, 'type'>> => {
   for (let i = context.genericsDefinitions.length - 1; i >= 0; i--) {
     const orig = context.genericsDefinitions[i].get(name.parsed)
-    if (orig) return { ok: true, data: { name, orig } }
+    if (orig) return { ok: true, data: { name, orig, fromFnCallAt: null } }
   }
 
   return { ok: false, err: 'generic was not found' }

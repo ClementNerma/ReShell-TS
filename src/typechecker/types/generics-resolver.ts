@@ -114,12 +114,13 @@ export function resolveGenerics(type: ValueType, ctx: TypecheckerContext): Value
         const allDeps: { name: Token<string>; orig: CodeSection }[] = [{ name: type.name, orig: type.orig }]
 
         const previous = { ...type }
-        const resolved = getContextuallyResolvedGeneric(ctx.resolvedGenerics, ctx.inFnCallAt, type)
+        const resolved = getContextuallyResolvedGeneric(ctx.resolvedGenerics, type)
 
         type = resolved?.mapped ?? type
 
         if (!isResolvedGenericDifferent(type, previous)) {
-          return [type, []]
+          const sameType = type as Extract<ValueType, { type: 'generic' }>
+          return [sameType.fromFnCallAt ? sameType : { ...sameType, fromFnCallAt: ctx.inFnCallAt }, []]
         }
 
         for (;;) {

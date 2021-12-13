@@ -224,7 +224,7 @@ function _buildNativeLibraryFn<G extends string>({
   const forgedGenerics = fromEntries(
     (generics ?? []).map<[G, _Generic]>((name) => [
       name,
-      { type: 'generic', name: _forgeToken(name), orig: _nativeLibAt() },
+      { type: 'generic', name: _forgeToken(name), orig: _nativeLibAt(), fromFnCallAt: null },
     ])
   )
 
