@@ -22,19 +22,17 @@ export const literalPath: Parser<Token<string>[]> = takeWhileMN(
   }
 )
 
-export const literalString: Parser<LiteralString> = or<LiteralString>([
-  map(
+export const literalString: Parser<LiteralString> = mappedCases<LiteralString>()('type', {
+  raw: map(
     combine(
       exact('r"'),
       match(/([^\\"\n]|\\[^\n])*/),
       exact('"', 'Syntax error: opened string has not been closed with a quote (")')
     ),
-    ([_, content, __]) => ({
-      type: 'raw',
-      content,
-    })
+    ([_, content, __]) => ({ content })
   ),
-  map(
+
+  computed: map(
     combine(
       exact('"'),
       takeWhile(
@@ -56,12 +54,9 @@ export const literalString: Parser<LiteralString> = or<LiteralString>([
       ),
       exact('"', 'Syntax error: opened string has not been closed with a quote (")')
     ),
-    ([_, { parsed: segments }, __]) => ({
-      type: 'computed',
-      segments,
-    })
+    ([_, { parsed: segments }, __]) => ({ segments })
   ),
-])
+})
 
 export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('type', {
   bool: map(
