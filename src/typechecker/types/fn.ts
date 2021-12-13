@@ -167,7 +167,7 @@ export const closureCallValidator: Typechecker<
 > = ({ at, args, restArg, body, expected }, ctx) => {
   const candidateArgs = [...args]
   const aliasedArgs: Token<FnDeclArg>[] = []
-  const scopeMapping = new Map<string, string>()
+  const scopeMapping = new Map<string, string | null>()
 
   for (const arg of expected.args) {
     const c = candidateArgs.shift()
@@ -194,7 +194,7 @@ export const closureCallValidator: Typechecker<
     }
 
     aliasedArgs.push({ at: arg.at, matched: arg.matched, parsed: { ...arg.parsed, name: c.parsed.name } })
-    scopeMapping.set(arg.parsed.name.parsed, c.parsed.name.parsed)
+    scopeMapping.set(arg.parsed.name.parsed, c.parsed.name.parsed === '_' ? null : c.parsed.name.parsed)
   }
 
   if (args.length > expected.args.length) {

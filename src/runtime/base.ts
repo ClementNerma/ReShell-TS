@@ -62,7 +62,7 @@ export type ExecValue =
   | { type: 'struct'; members: Map<string, ExecValue> }
   | { type: 'enum'; variant: string }
   | { type: 'fn'; body: Token<Block> }
-  | { type: 'callback'; body: ClosureBody; argsMapping: Map<string, string> }
+  | { type: 'callback'; body: ClosureBody; argsMapping: Map<string, string | null> }
   | { type: 'failable'; success: boolean; value: ExecValue }
   | { type: 'rest'; content: string[] }
 

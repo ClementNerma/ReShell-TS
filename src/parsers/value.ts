@@ -12,7 +12,7 @@ import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { exact, match } from './lib/matchers'
+import { exact, match, word } from './lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
@@ -185,7 +185,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       takeWhile(
         mappedCases<ClosureCallArg>()('type', {
           flag: withLatelyDeclared(() => cmdFlag),
-          variable: map(identifier, (_, name) => ({ name })),
+          variable: map(or([word('_'), identifier]), (_, name) => ({ name })),
         }),
         {
           inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),

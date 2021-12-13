@@ -34,7 +34,7 @@ export const runPrecompFnCall: Runner<{ name: Token<string>; precomp: PrecompFnC
 ) => {
   let fn: RunnableFnContent | null = null
 
-  let scopeMapping: Map<string, string> | null = null
+  let scopeMapping: Map<string, string | null> | null = null
 
   for (let s = ctx.scopes.length - 1; s >= 0; s--) {
     const entity = ctx.scopes[s].entities.get(name.parsed)
@@ -69,7 +69,7 @@ export const executePrecompFnBody: Runner<
     nameAt: CodeSection
     precomp: PrecompFnCall
     fn: RunnableFnContent
-    scopeMapping: Map<string, string> | null
+    scopeMapping: Map<string, string | null> | null
     methodSelfValue: ExecValue | null
   },
   ExecValue
@@ -95,7 +95,9 @@ export const executePrecompFnBody: Runner<
         return err(nameAt, `internal error: missing callback argument mapping for "${argName}"`)
       }
 
-      fnScope.set(mapping, execValue.data)
+      if (mapping !== null) {
+        fnScope.set(mapping, execValue.data)
+      }
     } else {
       fnScope.set(argName, execValue.data)
     }
