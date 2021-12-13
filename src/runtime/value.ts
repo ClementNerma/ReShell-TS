@@ -1,4 +1,5 @@
 import { Value } from '../shared/ast'
+import { isLocEq } from '../shared/loc-cmp'
 import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
@@ -178,17 +179,26 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       return runExpr(relevantArm.matchWith.parsed, ctx)
     },
 
-    callback: ({ args, restArg, body }) => {
+    callback: ({ body }) => {
       const fnType = getLocatedPrecomp(ctx.callbackTypes, value.at)
 
       if (fnType === undefined) {
         return err(body.at, "internal error: failed to get this function's type from context")
       }
 
+      const argsMapping = ctx.closuresArgsMapping.find(({ at }) => isLocEq(value.at.start, at.start))
+
+      if (!argsMapping) {
+        return err(
+          value.at,
+          'internal error: arguments scope mapping not found for the callback stored in this variable'
+        )
+      }
+
       return success({
         type: 'callback',
-        def: { args: args.map((arg) => arg.parsed.name.parsed), restArg: restArg?.parsed ?? null },
         body: body.parsed,
+        argsMapping: argsMapping.data,
         fnType,
       })
     },

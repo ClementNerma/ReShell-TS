@@ -21,6 +21,7 @@ export type RunnerContext = {
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
+  closuresArgsMapping: PrecompData['closuresArgsMapping']
   platformPathSeparator: string
   argv: string[]
   emitDiagnostic: (diagnostic: Diagnostic) => void
@@ -37,6 +38,7 @@ export const createRunnerContext = (
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
+  closuresArgsMapping: precompData.closuresArgsMapping,
   platformPathSeparator,
   argv,
   emitDiagnostic: diagnosticHandler,
@@ -58,7 +60,7 @@ export type ExecValue =
   | { type: 'struct'; members: Map<string, ExecValue> }
   | { type: 'enum'; variant: string }
   | { type: 'fn'; body: Token<Block> }
-  | { type: 'callback'; body: ClosureBody }
+  | { type: 'callback'; body: ClosureBody; argsMapping: Map<string, string> }
   | { type: 'failable'; success: boolean; value: ExecValue }
   | { type: 'rest'; content: string[] }
 

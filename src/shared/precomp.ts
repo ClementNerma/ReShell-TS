@@ -6,6 +6,7 @@ export type PrecompData = {
   typeAliases: Map<string, { at: CodeSection; content: ValueType }>
   callbackTypes: LocatedPrecomp<FnType>
   fnCalls: LocatedPrecomp<FnCallPrecomp>
+  closuresArgsMapping: LocatedPrecomp<Map<string, string>>
 }
 
 export type FnCallPrecomp = {

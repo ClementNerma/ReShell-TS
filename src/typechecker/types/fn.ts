@@ -167,6 +167,7 @@ export const closureCallValidator: Typechecker<
 > = ({ at, args, restArg, body, expected }, ctx) => {
   const candidateArgs = [...args]
   const aliasedArgs: Token<FnDeclArg>[] = []
+  const scopeMapping = new Map<string, string>()
 
   for (const arg of expected.args) {
     const c = candidateArgs.shift()
@@ -193,6 +194,7 @@ export const closureCallValidator: Typechecker<
     }
 
     aliasedArgs.push({ at: arg.at, matched: arg.matched, parsed: { ...arg.parsed, name: c.parsed.name } })
+    scopeMapping.set(arg.parsed.name.parsed, c.parsed.name.parsed)
   }
 
   if (args.length > expected.args.length) {
@@ -204,6 +206,8 @@ export const closureCallValidator: Typechecker<
   } else if (!restArg && expected.restArg) {
     return err(at, 'function was expected to have a rest argument')
   }
+
+  ctx.closuresArgsMapping.push({ at, data: scopeMapping })
 
   return matchUnion(body.parsed, 'type', {
     block: ({ body }) => validateFnBody({ fnType: { ...expected, args: aliasedArgs }, body }, ctx),

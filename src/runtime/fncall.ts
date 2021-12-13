@@ -22,6 +22,8 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
     | { type: 'native'; exec: NativeFn }
     | null = null
 
+  let scopeMapping: Map<string, string> | null = null
+
   for (let s = ctx.scopes.length - 1; s >= 0; s--) {
     const entity = ctx.scopes[s].entities.get(name.parsed)
 
@@ -30,6 +32,7 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
         fn = { type: 'block', body: entity.body }
       } else if (entity.type === 'callback') {
         fn = entity.body
+        scopeMapping = entity.argsMapping
       } else {
         return err(name.at, `internal error: expected to find a function, found internal type "${entity.type}"`)
       }
@@ -59,7 +62,18 @@ export const executeFnCallByName: Runner<Token<string>, ExecValue> = (name, ctx)
     })
 
     if (execValue.ok !== true) return execValue
-    fnScope.set(argName, execValue.data)
+
+    if (scopeMapping) {
+      const mapping = scopeMapping.get(argName)
+
+      if (mapping === undefined) {
+        return err(name.at, `internal error: missing callback argument mapping for "${argName}"`)
+      }
+
+      fnScope.set(mapping, execValue.data)
+    } else {
+      fnScope.set(argName, execValue.data)
+    }
   }
 
   if (precomp.restArg) {
