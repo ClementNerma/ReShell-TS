@@ -198,10 +198,10 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Token<Sta
   return success(void 0)
 }
 
-export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; args: Token<CmdArg>[] }, void> = (
-  { at, fnType, args },
-  ctx
-) => {
+export const validateFnCallArgs: Typechecker<
+  { at: CodeSection; fnType: FnType; args: Token<CmdArg>[]; declaredCommand?: true },
+  void
+> = ({ at, fnType, args, declaredCommand }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
@@ -220,7 +220,11 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
     }
 
     const resolved: TypecheckerResult<void> = matchUnion(arg.parsed, 'type', {
-      action: ({ name }) => err(name.at, 'non-quoted arguments are only allowed for commands'),
+      action: ({ name }) =>
+        err(
+          name.at,
+          declaredCommand ? 'no signature match this call' : 'non-quoted arguments are only allowed for commands'
+        ),
 
       expr: ({ expr }) => {
         const relatedArg = positional.shift()

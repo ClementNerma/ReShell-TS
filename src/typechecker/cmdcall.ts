@@ -102,6 +102,7 @@ export const cmdSignatureCallValidator: Typechecker<
             returnType: null,
             failureType: null,
           },
+          declaredCommand: true
         },
         ctx
       ),
