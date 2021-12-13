@@ -6,8 +6,8 @@ import chalk = require('chalk')
 import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { install } from 'source-map-support'
-import { parseSource } from './lib/base'
-import { formatErr } from './lib/utils'
+import { err, parseSource } from './lib/base'
+import { ErrorParsingFormatters, formatErr } from './lib/utils'
 import { initContext } from './parsers/context'
 import { program } from './parsers/program'
 import { programChecker } from './typechecker/program'
@@ -35,24 +35,21 @@ const iter = argv[1] && argv[1] !== '--ast' ? parseInt(argv[1]) : 1
 
 const iterSrc = source.repeat(iter)
 
+const errorFormatters: ErrorParsingFormatters = {
+  wrapper: chalk.reset,
+  header: chalk.yellowBright,
+  locationPointer: chalk.redBright,
+  errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
+  failedLine: chalk.cyanBright,
+  tip: chalk.yellowBright,
+}
+
 const started = Date.now()
 const parsed = parseSource(iterSrc, program, initContext())
 const elapsed = Date.now() - started
 
 if (!parsed.ok) {
-  console.error(
-    chalk.redBright(
-      formatErr(parsed, {
-        wrapper: chalk.reset,
-        header: chalk.yellowBright,
-        locationPointer: chalk.redBright,
-        errorMessage: (message) => chalk.redBright('Syntax error: ' + message),
-        failedLine: chalk.cyanBright,
-        tip: chalk.yellowBright,
-      })
-    )
-  )
-
+  console.error(chalk.redBright(formatErr(parsed, errorFormatters)))
   process.exit(1)
 }
 
@@ -72,7 +69,9 @@ const exec = programChecker(parsed.data, void 0)
 const elapsedTypechecker = Date.now() - startedTypechecker
 
 if (!exec.ok) {
-  console.dir(exec.err, { depth: null })
+  console.error(
+    chalk.redBright(formatErr(err(exec.loc, { source: { ref: iterSrc } } as any, exec.err), errorFormatters))
+  )
   process.exit(1)
 }
 
