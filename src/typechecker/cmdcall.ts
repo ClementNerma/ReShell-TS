@@ -58,8 +58,8 @@ export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
   })
 
 function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerResult<void> {
-  if (type.type !== 'string' && type.type !== 'path') {
-    return err(at, `expected \`string\` or \`path\`, found \`${rebuildType(type, true)}\``)
+  if (type.type !== 'string' && type.type !== 'number' && type.type !== 'path') {
+    return err(at, `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, true)}\``)
   }
 
   return success(void 0)
