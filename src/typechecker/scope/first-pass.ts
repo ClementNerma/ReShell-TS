@@ -24,7 +24,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
           const typeUnicity = ensureScopeUnicity({ name: typename, firstPass }, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
-          firstPass.typeAliases.set(typename.parsed, located(typename.start, typename.end, sub.parsed.content.parsed))
+          firstPass.typeAliases.set(typename.parsed, located(typename.start, typename.next, sub.parsed.content.parsed))
           break
 
         case 'fnDecl':
@@ -33,7 +33,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
           const fnUnicity = ensureScopeUnicity({ name: fnName, firstPass }, ctx)
           if (!fnUnicity.ok) return fnUnicity
 
-          firstPass.functions.set(fnName.parsed, located(fnName.start, fnName.end, sub.parsed.fnType))
+          firstPass.functions.set(fnName.parsed, located(fnName.start, fnName.next, sub.parsed.fnType))
           break
       }
     }

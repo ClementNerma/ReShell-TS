@@ -34,13 +34,13 @@ export function failIf(
   error?: ErrInputData
 ): Parser<void> {
   return (start, input, context) =>
-    cond(input, context, start) ? err(start, start, context, error) : success(start, start, start, void 0, '')
+    cond(input, context, start) ? err(start, start, context, error) : success(start, start, void 0, '')
 }
 
 export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(start, start, context, error) : success(start, start, start, void 0, '')
+    return parsed.ok ? err(start, start, context, error) : success(start, start, void 0, '')
   }
 }
 

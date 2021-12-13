@@ -103,7 +103,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, conte
 
         leftExpr = {
           start: leftExpr.start,
-          end: rightExpr.end,
+          next: rightExpr.next,
         }
 
         leftExprType = typeof producedType === 'function' ? producedType(rightExprType.data) : rightExprType.data

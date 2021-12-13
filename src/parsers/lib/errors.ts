@@ -28,7 +28,7 @@ export function contextualFailIf(
     return parsed.ok
       ? cond(context)
         ? err(start, start, context, error)
-        : success(start, start, start, void 0, '')
+        : success(start, start, void 0, '')
       : neutralError(start)
   }
 }

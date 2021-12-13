@@ -64,7 +64,7 @@ export const generateDuplicateDeclError = (
   err(`A ${category} with this name was previously declared in this scope`, duplicate, [
     {
       start: original.start,
-      end: original.end,
+      next: original.end,
       message: 'Original declaration occurs here',
     },
   ])

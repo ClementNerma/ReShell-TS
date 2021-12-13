@@ -1,10 +1,11 @@
 import { CodeLoc, CodeSection } from './parsed'
+import { computeCodeSectionEnd } from './utils'
 
 export type FormatableError = { error: FormatableExtract; also: FormatableExtract[] }
 
 export type FormatableExtract = {
   start: CodeLoc
-  end: CodeLoc
+  next: CodeLoc
   message: string
   complements?: [string, string][]
 }
@@ -16,19 +17,19 @@ export const formattableExtract = (at: CodeSection, input: FormatableExtractsInp
   return typeof input === 'string'
     ? {
         start: at.start,
-        end: at.end,
+        next: at.next,
         message: input,
       }
     : input.complements
     ? {
         start: at.start,
-        end: at.end,
+        next: at.next,
         message: input.message,
         complements: input.complements,
       }
     : {
         start: at.start,
-        end: at.end,
+        next: at.next,
         message: input.message,
       }
 }
@@ -54,8 +55,10 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
   const text = [err.error]
     .concat(err.also)
-    .map(({ start: loc, end, message, complements }) => {
-      const { line, col } = loc
+    .map(({ start, next, message, complements }) => {
+      const { line, col } = start
+
+      const end = computeCodeSectionEnd({ start, next }, source)
 
       const addLines = end.line - line
       const addLinesPadding = addLines ? '  ' : ''
@@ -72,7 +75,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
 
       const rawLocPtr =
         addLines === 0
-          ? ' '.repeat(col) + '^'.repeat(end.col - loc.col + 1)
+          ? ' '.repeat(col) + '^'.repeat(end.col - col + 1)
           : '_'.repeat(col + 1) + '^' /*.repeat(failedLine.substr(failedLine.length - col + 1).length)*/
 
       const locPtr = format('locationPointer', rawLocPtr)

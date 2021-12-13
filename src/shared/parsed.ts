@@ -14,7 +14,7 @@ export type CodeLoc = {
 
 export type CodeSection = {
   start: CodeLoc
-  end: CodeLoc
+  next: CodeLoc
 }
 
 export type Token<T> = { parsed: T; matched: string; neutralError: boolean } & CodeSection & { next: CodeLoc }

@@ -92,6 +92,6 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
       }
     }
 
-    return success(start, lastResult.data.end, lastResult.data.next, parsed, matched.join(''))
+    return success(start, lastResult.data.next, parsed, matched.join(''))
   }
 }

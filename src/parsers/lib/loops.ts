@@ -13,10 +13,9 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const parsed: Token<T>[] = []
     const matched: string[] = []
     let interMadeExpectation = false
-    let beforeInterMatching: { next: CodeLoc; end: CodeLoc } | null = null
+    let beforeInterMatching: CodeLoc | null = null
     let lastWasNeutralError = false
 
-    let end = { ...start }
     let next = { ...start }
     let iter = 0
 
@@ -39,8 +38,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         }
 
         if (beforeInterMatching) {
-          next = beforeInterMatching.next
-          end = beforeInterMatching.end
+          next = beforeInterMatching
           matched.pop()
         }
 
@@ -68,15 +66,14 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
           if (data.neutralError) {
             continue
           } else {
-            return success(start, end, next, parsed, matched.join(''))
+            return success(start, next, parsed, matched.join(''))
           }
         }
 
         const { data: interData } = interResult
 
-        beforeInterMatching = { end, next }
+        beforeInterMatching = next
         input = sliceInput(input, next, interData.next)
-        end = interData.end
         next = interData.next
 
         matched.push(interData.matched)
@@ -87,7 +84,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
     }
 
-    return success(start, end, next, parsed, matched.join(''))
+    return success(start, next, parsed, matched.join(''))
   }
 }
 
@@ -96,7 +93,7 @@ export function takeWhile1<T>(
   options?: TakeWhileOptions & { noMatchError?: ErrInputData }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
-    parsed.data.parsed.length === 0 ? err(parsed.data.start, parsed.data.end, context, options?.noMatchError) : parsed
+    parsed.data.parsed.length === 0 ? err(parsed.data.start, parsed.data.next, context, options?.noMatchError) : parsed
   )
 }
 
@@ -106,7 +103,7 @@ export function takeWhileN<T>(
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
     parsed.data.parsed.length < options.minimum
-      ? err(parsed.data.start, parsed.data.end, context, options?.noMatchError)
+      ? err(parsed.data.start, parsed.data.next, context, options?.noMatchError)
       : parsed
   )
 }

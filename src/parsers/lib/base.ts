@@ -13,7 +13,7 @@ export type ParserErr = {
   stack: ParserErrStackEntry[]
   precedence: boolean
   start: CodeLoc
-  end: CodeLoc
+  next: CodeLoc
   context: ParsingContext
 }
 
@@ -48,7 +48,6 @@ export type Parser<T> = (start: CodeLoc, input: string, ctx: ParsingContext) => 
 
 export function success<T>(
   start: CodeLoc,
-  end: CodeLoc,
   next: CodeLoc,
   parsed: T,
   matched: string,
@@ -56,7 +55,7 @@ export function success<T>(
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
-    data: { matched, parsed, neutralError: neutralError ?? false, start, end, next },
+    data: { matched, parsed, neutralError: neutralError ?? false, start, next },
   }
 }
 
@@ -70,7 +69,6 @@ export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<Parse
       parsed: neutralValue!,
       neutralError: true,
       start,
-      end: start,
       next: start,
     },
   }
@@ -80,7 +78,7 @@ export type ErrInputData = null | FormatableExtractsInput | ParserErr['stack']
 
 export function err(
   start: CodeLoc,
-  end: CodeLoc,
+  next: CodeLoc,
   context: ParsingContext,
   errData?: ErrInputData,
   also?: FormatableExtract[],
@@ -93,10 +91,10 @@ export function err(
         ? []
         : Array.isArray(errData)
         ? errData
-        : [{ context, error: formattableExtract({ start, end }, errData), also: also ?? [] }],
+        : [{ context, error: formattableExtract({ start, next }, errData), also: also ?? [] }],
     precedence: precedence ?? (errData !== undefined && errData !== null),
     start,
-    end,
+    next,
     context,
   }
 }
@@ -139,8 +137,8 @@ export function withErr(error: ParserErr, context: ParsingContext, mapping: With
 
     error.stack.push(
       typeof data === 'object' && 'also' in data
-        ? { context, error: formattableExtract({ start: error.start, end: error.end }, data.error), also: data.also }
-        : { context, error: formattableExtract({ start: error.start, end: error.end }, data), also: [] }
+        ? { context, error: formattableExtract({ start: error.start, next: error.next }, data.error), also: data.also }
+        : { context, error: formattableExtract({ start: error.start, next: error.next }, data), also: [] }
     )
 
     error.precedence = true

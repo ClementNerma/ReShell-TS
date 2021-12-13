@@ -39,7 +39,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           scope.variables.set(
             varname.parsed,
-            located(varname.start, varname.end, { mutable: mutable.parsed, type: validation.data })
+            located(varname.start, varname.next, { mutable: mutable.parsed, type: validation.data })
           )
 
           return false
