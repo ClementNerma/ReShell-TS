@@ -39,13 +39,15 @@ const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
 
 const iterSrc = iter > 1 ? `if true { ${source} }\n`.repeat(iter) : source
 
-const errorFormatters: (level: DiagnosticLevel) => DiagnosticFormatters = (level) => ({
+const errorFormatters: (cat: string | null) => (level: DiagnosticLevel) => DiagnosticFormatters = (cat) => (level) => ({
   header: chalk.yellowBright,
   filePath: chalk.cyanBright,
   location: chalk.magentaBright,
   gutter: chalk.cyanBright,
   locationPointer: level === DiagnosticLevel.Warning ? chalk.yellowBright : chalk.redBright,
-  message: level === DiagnosticLevel.Warning ? chalk.yellowBright : chalk.redBright,
+  message: (msg) =>
+    (cat === null ? '' : chalk.cyanBright(`[${cat}] `)) +
+    (level === DiagnosticLevel.Warning ? chalk.yellowBright : chalk.redBright)(msg),
 })
 
 const kb = (bytes: number) => (bytes / 1024).toFixed(2).padStart(8, ' ') + ' kB'
@@ -69,7 +71,7 @@ const [parsingDuration, parsed] = measurePerf(() => parseSource(sourceServer, la
 
 if (!parsed.ok) {
   const error = parsed.history[0] ?? '<no error provided>'
-  console.error(formatErr(error, sourceServer, errorFormatters))
+  console.error(formatErr(error, sourceServer, errorFormatters(null)))
   process.exit(1)
 }
 
@@ -134,13 +136,13 @@ const typecheckerContext = createTypecheckerContext(
 
     return false
   },
-  (diag) => console.error(formatErr(diag, sourceServer, errorFormatters))
+  (diag) => console.error(formatErr(diag, sourceServer, errorFormatters(null)))
 )
 
 const [typecheckerDuration, typechecked] = measurePerf(() => langTypechecker(parsed.data, typecheckerContext))
 
 if (!typechecked.ok) {
-  console.error(formatErr(typechecked, sourceServer, errorFormatters))
+  console.error(formatErr(typechecked, sourceServer, errorFormatters(null)))
   process.exit(1)
 }
 
@@ -156,7 +158,7 @@ if (argv.includes('--exec')) {
   const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 
   if (!result.ok) {
-    console.error(formatErr(result.diag, sourceServer, errorFormatters))
+    console.error(formatErr(result.diag, sourceServer, errorFormatters('runtime')))
     process.exit(1)
   }
 
