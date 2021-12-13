@@ -123,15 +123,11 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             ),
             ([_, key, __, value]) => ({ key, value })
           ),
-          {
-            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
         )
       ),
       exact(')', "Expected a closing parenthesis ')' to close the map's content"),
-      {
-        inter: maybe_s_nl,
-      }
+      { inter: maybe_s_nl }
     ),
     ([_, { parsed: entries }, __]) => ({ entries })
   ),

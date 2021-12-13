@@ -42,9 +42,7 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
             'Expected an expression after an opening parenthesis'
           ),
           exact(')'),
-          {
-            inter: maybe_s_nl,
-          }
+          { inter: maybe_s_nl }
         ),
         ([_, inner, __]) => ({
           inner,

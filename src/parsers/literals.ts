@@ -11,10 +11,7 @@ import { map, toOneProp, unify } from './lib/transform'
 
 export const rawPath: Parser<Token<string>[]> = takeWhileN(
   unify(takeWhile1(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
-  {
-    inter: exact('/'),
-    minimum: 2,
-  }
+  { inter: exact('/'), minimum: 2 }
 )
 
 export const rawString: Parser<string> = map(
