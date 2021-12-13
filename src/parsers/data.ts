@@ -39,19 +39,28 @@ export type Statement =
       prefixOp: Token<DoubleArithOp> | null
       expr: Token<Expr>
     }
-  | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr> }
-  | { type: 'whileLoop'; cond: Token<Expr> }
-  | { type: 'ifBlock'; cond: Token<Expr> }
-  | { type: 'elifBlock'; cond: Token<Expr> }
-  | { type: 'elseBlock' }
-  | { type: 'tryBlock' }
-  | { type: 'catchBlock'; varname: Token<string> }
-  | { type: 'blockEnd' }
+  | {
+      type: 'ifBlock'
+      cond: Token<Expr>
+      body: Token<StatementChain>[]
+      elif: Token<ElIfBlock>[]
+      els: Token<StatementChain>[] | null
+    }
+  | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr>; body: Token<StatementChain>[] }
+  | { type: 'whileLoop'; cond: Token<Expr>; body: Token<StatementChain>[] }
+  | {
+      type: 'tryBlock'
+      body: Token<StatementChain>[]
+      catchVarname: Token<string>
+      catchBody: Token<StatementChain>[]
+    }
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
-  | { type: 'fnOpen'; name: Token<string>; fnType: FnType }
+  | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'return'; expr: Token<Expr | null> }
   | ({ type: 'cmdCall' } & CmdCall)
+
+export type ElIfBlock = { cond: Token<Expr>; body: Token<StatementChain>[] }
 
 export type NonNullablePropertyAccess =
   | { type: 'refIndexOrKey'; indexOrKey: Token<Expr> }

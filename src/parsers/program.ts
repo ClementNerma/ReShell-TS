@@ -10,5 +10,8 @@ import { statementChain } from './statements'
 const strippedProgram: Parser<Program> = takeForever(statementChain)
 
 export const program: Parser<Program> = withNormalizedNewlines(
-  fullSource(then(commentStripper, ({ data: { start, parsed } }, context) => strippedProgram(start, parsed, context)))
+  fullSource(
+    then(commentStripper, ({ data: { start, parsed } }, context) => strippedProgram(start, parsed, context)),
+    { eos: 'Expected statement' }
+  )
 )
