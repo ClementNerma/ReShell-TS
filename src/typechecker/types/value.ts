@@ -256,16 +256,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           : err(value.at, 'Unable to determine the type of this struct')
       }
 
+      const expectedStructType = assert.data
+
       let expectedMembers: Map<string, ValueType> | null = null
 
-      if (typeExpectation) {
-        if (typeExpectation.type.type !== 'struct') {
-          return errIncompatibleValueType({ typeExpectation, foundType: 'struct', valueAt: value.at, ctx })
-        }
-
+      if (expectedStructType) {
         expectedMembers = new Map()
 
-        for (const { name, type } of typeExpectation.type.members) {
+        for (const { name, type } of expectedStructType.members) {
           expectedMembers.set(name, type)
         }
       }
