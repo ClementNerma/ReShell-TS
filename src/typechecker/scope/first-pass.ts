@@ -36,8 +36,8 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
         // which would result in the types always being shown as compatible even if they weren't.
         //
         // Eventually, we don't need this check as there is no way to leak a value which uses a scoped type alias
-        // to the parent scope: generics are not supported, values of the universal `unknown` type are typed as such
-        // and not as their underlying type, so we don't need to perform an additional check here.
+        // to the parent scope: values of the universal `unknown` type are typed as such and not as their underlying type,
+        // so we don't need to perform an additional check here.
         //
         // There is a specific case though which is best illustrated with the following code:
         //
