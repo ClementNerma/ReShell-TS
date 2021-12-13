@@ -16,39 +16,41 @@ export const resolveDoubleOpSequenceType: Typechecker<
 
   const precedence = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
 
-  if (precedence.find((p) => p === 3)) {
-    for (let i = seq.length - 1; i >= 0; i--) {
-      if (precedence[i] === 3) {
-        const leftExprAt = {
-          start: baseElement.at.start,
-          next: seq[i].at.next,
-        }
+  for (let g = 4; g >= 3; g--) {
+    if (precedence.find((p) => p === g)) {
+      for (let i = seq.length - 1; i >= 0; i--) {
+        if (precedence[i] === g) {
+          const leftExprAt = {
+            start: baseElement.at.start,
+            next: seq[i].at.next,
+          }
 
-        const leftExprType = resolveExprType(
-          {
-            at: leftExprAt,
-            matched: '// TODO',
-            parsed: {
-              from: baseElement,
-              doubleOps: seq.slice(0, i),
+          const leftExprType = resolveExprType(
+            {
+              at: leftExprAt,
+              matched: '// TODO',
+              parsed: {
+                from: baseElement,
+                doubleOps: seq.slice(0, i),
+              },
             },
-          },
-          { ...ctx, typeExpectation: null }
-        )
+            { ...ctx, typeExpectation: null }
+          )
 
-        if (!leftExprType.ok) return leftExprType
+          if (!leftExprType.ok) return leftExprType
 
-        const rightExprAt = {
-          start: seq[i].parsed.right.at.start,
-          next: seq[seq.length - 1].at.next,
+          const rightExprAt = {
+            start: seq[i].parsed.right.at.start,
+            next: seq[seq.length - 1].at.next,
+          }
+
+          const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, seq.slice(i + 1))
+
+          return resolveDoubleOpType(
+            { leftExprAt, leftExprType: leftExprType.data, op },
+            { ...ctx, typeExpectation: null }
+          )
         }
-
-        const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, seq.slice(i + 1))
-
-        return resolveDoubleOpType(
-          { leftExprAt, leftExprType: leftExprType.data, op },
-          { ...ctx, typeExpectation: null }
-        )
       }
     }
   }
@@ -205,7 +207,7 @@ export const resolveDoubleOpType: Typechecker<
   return success(resultType)
 }
 
-const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 =>
+const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 | 4 =>
   matchStr(op, {
     Add: () => 1,
     Sub: () => 1,
@@ -214,8 +216,8 @@ const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 =>
     Rem: () => 1,
     Null: () => 2,
     And: () => 2,
-    Or: () => 2,
-    Xor: () => 2,
+    Or: () => 4,
+    Xor: () => 4,
     Eq: () => 3,
     NotEq: () => 3,
     GreaterThanOrEqualTo: () => 3,
