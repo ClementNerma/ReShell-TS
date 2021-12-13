@@ -100,6 +100,7 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   join: _buildNativeLibraryFn({
+    methodFor: () => ({ type: 'list', itemsType: { type: 'string' } }),
     args: () => [{ name: 'glue', type: 'string' }],
     returnType: () => 'string',
   }),
