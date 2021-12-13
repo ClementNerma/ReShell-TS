@@ -46,6 +46,22 @@ export function logUsageD<F extends Function>(alias: string, fn: F & Parser<any>
   return _logUsageHandler(fn, fn, alias) as any as F
 }
 
+export function withNormalizedNewlines<T>(parser: Parser<T>): Parser<T> {
+  return (start, input, context) => parser(start, input.replace(/\r\n|\r/g, '\n'), context)
+}
+
+export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<T>) => U): Token<U> {
+  return { ...token, parsed: mapper(token.parsed, token) }
+}
+
+export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
+  return token.parsed !== null ? { ...token, parsed: token.parsed } : null
+}
+
+export function getErrorInput(err: ParserErr): string {
+  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.loc)
+}
+
 export type ErrorParsingFormatters = {
   noErrorMessageFallback?: (text: string) => string
   wrapper?: (error: string) => string
@@ -107,20 +123,4 @@ export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
     .join('\n\n')
 
   return f?.wrapper?.(text) ?? text
-}
-
-export function withNormalizedNewlines<T>(parser: Parser<T>): Parser<T> {
-  return (start, input, context) => parser(start, input.replace(/\r\n|\r/g, '\n'), context)
-}
-
-export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<T>) => U): Token<U> {
-  return { ...token, parsed: mapper(token.parsed, token) }
-}
-
-export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
-  return token.parsed !== null ? { ...token, parsed: token.parsed } : null
-}
-
-export function getErrorInput(err: ParserErr): string {
-  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.loc)
 }
