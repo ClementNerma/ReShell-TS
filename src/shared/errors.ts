@@ -53,7 +53,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
     .map(({ loc, length, message, complements }) => {
       const { line, col } = loc
 
-      const lineLen = line.toString().length
+      const lineLen = (line + 1).toString().length
       const linePad = ' '.repeat(lineLen)
 
       const header = `--> At ${format('location', `${line + 1}:${col + 1}`)}:`
