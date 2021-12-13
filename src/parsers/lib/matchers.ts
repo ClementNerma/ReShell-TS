@@ -83,7 +83,7 @@ export function regexRaw(regex: RegExp, error?: ErrInputData): Parser<RegExpMatc
   }
 }
 
-export function oneOf(candidates: string[], error?: ErrInputData): Parser<string> {
+export function oneOf<S extends string>(candidates: S[], error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     for (const candidate of candidates) {
       if (input.startsWith(candidate)) {
