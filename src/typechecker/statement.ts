@@ -1,6 +1,6 @@
 import { Statement, ValueType } from '../shared/ast'
 import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
-import { Token } from '../shared/parsed'
+import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
 import { blockChecker, StatementChainMetadata } from './block'
@@ -76,10 +76,15 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
 
       let expectedType: ValueType = tryScopedVar.data.varType
 
+      const leftAt: CodeSection = {
+        start: varname.at.start,
+        next: propAccesses.length > 0 ? propAccesses[propAccesses.length - 1].at.next : varname.at.next,
+      }
+
       if (propAccesses.length > 0) {
         const check = resolvePropAccessType(
           {
-            leftAt: varname.at,
+            leftAt,
             leftType: expectedType,
             propAccesses: propAccesses.map(({ at, matched, parsed }) => ({
               at,
@@ -112,7 +117,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       const check: TypecheckerResult<unknown> = prefixOp
         ? resolveDoubleOpType(
             {
-              leftExprAt: varname.at,
+              leftExprAt: leftAt,
               leftExprType: expectedType,
               op: buildExprDoubleOp(prefixOp, expr.at, expr.parsed.from, expr.parsed.doubleOps),
             },
@@ -122,7 +127,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
             ...ctx,
             typeExpectation: {
               type: listPushType ?? expectedType,
-              from: varname.at,
+              from: leftAt,
             },
           })
 
