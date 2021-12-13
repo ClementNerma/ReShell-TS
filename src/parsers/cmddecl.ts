@@ -7,7 +7,7 @@ import {
 import { fnArg } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { maybe } from './lib/conditions'
+import { failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
@@ -45,14 +45,27 @@ const cmdDeclSubCommandVariantSignature: Parser<CmdDeclSubCommandVariantSignatur
       combine(
         exact('('),
         maybe_s_nl,
-        takeWhile(
-          withLatelyDeclared(() => fnArg),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument' }
+        useSeparatorIf(
+          takeWhile(
+            withLatelyDeclared(() => fnArg),
+            {
+              inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
+              interExpect: 'expected another argument',
+            }
+          ),
+          combine(maybe_s_nl, exact(','), maybe_s_nl),
+          exact('...')
         ),
         maybe_s_nl,
         exact(')', 'expected a closing parenthesis ")" after the arguments list')
       ),
-      ([_, __, { parsed: args }]) => ({ args })
+      ([
+        _,
+        __,
+        {
+          parsed: [{ parsed: args }, rest],
+        },
+      ]) => ({ args, rest: rest !== null })
     ),
   })
 

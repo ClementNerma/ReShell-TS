@@ -210,8 +210,6 @@ export type CmdCall = { unaliased: boolean; name: Token<string>; args: Token<Cmd
 export type CmdFlag = { short: Token<boolean>; name: Token<string>; directValue: Token<Expr> | null }
 
 export type CmdArg =
-  // Backslash followed by a newline
-  | { type: 'escape' }
   // NOTE: flags may have a non-direct value, e.g. `--arg value` will be parsed as a long 'arg' flag without direct value,
   // followed by a 'value' expr
   | ({ type: 'flag' } & CmdFlag)

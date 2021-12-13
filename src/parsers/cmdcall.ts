@@ -1,12 +1,12 @@
-import { CmdCall, CmdRedir } from '../shared/ast'
+import { CmdArg, CmdCall, CmdRedir } from '../shared/ast'
 import { cmdArg } from './cmdarg'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
+import { failIfMatches, failIfMatchesElse, filterNullables, maybe } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
-import { exact } from './lib/matchers'
+import { eol, exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
@@ -30,15 +30,17 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
           combine(
             identifier,
             s,
-            takeWhile(
-              failIfMatchesElse(
-                callEndDetector,
-                failure(
-                  withLatelyDeclared(() => cmdArg),
-                  'invalid argument provided'
-                )
-              ),
-              { inter: s, interExpect: false }
+            filterNullables(
+              takeWhile<CmdArg | null>(
+                failIfMatchesElse(
+                  callEndDetector,
+                  failure(
+                    or([map(combine(exact('\\'), maybe_s, eol()), () => null), withLatelyDeclared(() => cmdArg)]),
+                    'invalid argument provided'
+                  )
+                ),
+                { inter: s, interExpect: false }
+              )
             )
           ),
           ([name, _, { parsed: args }]) => ({ name, args })

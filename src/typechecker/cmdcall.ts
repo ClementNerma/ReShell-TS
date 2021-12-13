@@ -29,8 +29,6 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ unaliased, name
 
 export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
   matchUnion(arg.parsed, 'type', {
-    escape: () => success(void 0),
-
     expr: ({ expr }) => {
       const resolved = resolveExprType(expr, ctx)
       return resolved.ok ? cmdArgExprTypeValidator(expr.at, resolved.data) : resolved
