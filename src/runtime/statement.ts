@@ -1,9 +1,13 @@
+import { spawnSync } from 'child_process'
 import { Statement } from '../shared/ast'
 import { CodeSection } from '../shared/parsed'
+import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
 import { runBlock } from './block'
+import { escapeCmdArg, runCmdArg } from './cmdarg'
 import { runCondOrTypeAssertion, runDoubleOp, runExpr, runNonNullablePropertyAccess } from './expr'
+import { executeFnCall } from './fncall'
 import { runProgram } from './program'
 import { expectValueType } from './value'
 
@@ -285,12 +289,12 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
     },
 
     return: ({ expr }) => {
-      if (!expr) return { ok: null, breaking: 'return', value: null }
+      if (!expr) return { ok: null, breaking: 'return' as const, value: null }
 
       const evalRetExpr = runExpr(expr.parsed, ctx)
       if (evalRetExpr.ok !== true) return evalRetExpr
 
-      return { ok: null, breaking: 'return', value: evalRetExpr.data }
+      return { ok: null, breaking: 'return' as const, value: evalRetExpr.data }
     },
 
     panic: ({ message }) => {
@@ -303,9 +307,46 @@ export const runStatement: Runner<Statement> = (stmt, ctx) =>
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
 
-    cmdCall: (/*{ content: { base, pipes, redir } }*/) => {
-      throw new Error('TODO: command calls')
-      // TODO: generics resolution
+    cmdCall: ({ content: { base, pipes /*, redir*/ } }) => {
+      if (!base.parsed.unaliased) {
+        const fnCall = getLocatedPrecomp(ctx.fnCalls, base.parsed.name.at)
+
+        if (fnCall) {
+          const exec = executeFnCall({ name: base.parsed.name, precomp: fnCall }, ctx)
+          return exec.ok === true ? success(void 0) : exec
+        }
+      }
+
+      const commands: [string, string[]][] = []
+
+      for (const { parsed: sub } of [base].concat(pipes)) {
+        const strArgs: string[] = []
+
+        for (const arg of sub.args) {
+          const execArg = runCmdArg(arg.parsed, ctx)
+          if (execArg.ok !== true) return execArg
+
+          strArgs.push(execArg.data)
+        }
+
+        commands.push([sub.name.parsed, strArgs])
+      }
+
+      const generated = commands
+        .map(([name, args]) => `${name} ${args.map((arg) => escapeCmdArg(arg)).join(' ')}`)
+        .join(' | ')
+
+      const cmd = spawnSync('sh', ['-c', generated], { stdio: 'inherit' })
+
+      if (cmd.error) {
+        console.log('SPAWNERR')
+      } else if (cmd.status !== null && cmd.status !== 0) {
+        console.log('FAILED ' + cmd.status.toString())
+      } else {
+        // console.log('OK')
+      }
+
+      return success(void 0)
     },
 
     cmdDecl: () => success(void 0),

@@ -1,3 +1,4 @@
+import { Stream } from 'stream'
 import { Block, ClosureBody, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
@@ -17,14 +18,26 @@ export type RunnerContext = {
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
   platformPathSeparator: string
+  syncNoWorkSleep: (milliseconds: number) => void
+  stdin: Stream
+  stdout: Stream
+  stderr: Stream
 }
 
-export const createRunnerContext = (precompData: PrecompData, platformPathSeparator: string): RunnerContext => ({
+export const createRunnerContext = (
+  precompData: PrecompData,
+  platformPathSeparator: string,
+  syncNoWorkSleep: RunnerContext['syncNoWorkSleep']
+): RunnerContext => ({
   scopes: [],
   typeAliases: precompData.typeAliases,
   callbackTypes: precompData.callbackTypes,
   fnCalls: precompData.fnCalls,
   platformPathSeparator,
+  stdin: process.stdin,
+  stdout: process.stdout,
+  stderr: process.stderr,
+  syncNoWorkSleep,
 })
 
 export type Scope = {

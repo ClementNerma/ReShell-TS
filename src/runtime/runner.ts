@@ -6,7 +6,7 @@ import { runProgram } from './program'
 
 export type ExecResult = { ok: true } | { ok: false; diag: Diagnostic }
 
-export function execProgram(program: Token<Program>, ctx: RunnerContext): ExecResult {
-  const result = runProgram(program.parsed, ctx)
+export async function execProgram(program: Token<Program>, ctx: RunnerContext): Promise<ExecResult> {
+  const result = await runProgram(program.parsed, ctx)
   return result.ok === false ? result : { ok: true }
 }

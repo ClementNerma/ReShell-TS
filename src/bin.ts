@@ -60,6 +60,13 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
   return [elapsed, out]
 }
 
+const measurePerfAsync = async <T>(runner: () => Promise<T>): Promise<[number, T]> => {
+  const started = Date.now()
+  const out = await runner()
+  const elapsed = Date.now() - started
+  return [elapsed, out]
+}
+
 const sourceServer = new SourceFilesServer(
   (path) => (existsSync(path) ? readFileSync(path, 'utf8') : false),
   (path, relativeTo) => join(dirname(relativeTo), path),
@@ -153,14 +160,30 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
 
-  const runnerContext = createRunnerContext(typechecked.data, sep)
+  const runnerContext = createRunnerContext(typechecked.data, sep, (ms) =>
+    Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+  )
 
-  const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
+  // const [execDuration, result] = await measurePerfAsync(() => execProgram(parsed.data, runnerContext))
 
-  if (!result.ok) {
-    console.error(formatErr(result.diag, sourceServer, errorFormatters('runtime')))
-    process.exit(1)
-  }
+  // if (!result.ok) {
+  //   console.error(formatErr(result.diag, sourceServer, errorFormatters('runtime')))
+  //   process.exit(1)
+  // }
 
-  console.log(chalk.greenBright(`SUCCESS in ${execDuration} ms.`))
+  // console.log(chalk.greenBright(`SUCCESS in ${execDuration} ms.`))
+
+  measurePerfAsync(() => execProgram(parsed.data, runnerContext)).then(
+    ([execDuration, result]) => {
+      if (!result.ok) {
+        console.error(formatErr(result.diag, sourceServer, errorFormatters('runtime')))
+        process.exit(1)
+      }
+
+      console.log(chalk.greenBright(`SUCCESS in ${execDuration} ms.`))
+    },
+    (_) => {
+      throw new Error('Main promise rejected :(')
+    }
+  )
 }

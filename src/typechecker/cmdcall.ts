@@ -9,20 +9,29 @@ import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
 export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ base, pipes }, ctx) => {
-  const baseCheck = cmdCallSubTypechecker(base, ctx)
+  const baseCheck = cmdCallSubTypechecker(base.parsed, ctx)
   if (!baseCheck.ok) return baseCheck
 
-  if (pipes) {
-    for (const pipe of pipes) {
-      const pipeCheck = cmdCallSubTypechecker(pipe.parsed, ctx)
-      if (!pipeCheck.ok) return pipeCheck
+  if (pipes.length > 0 && baseCheck.data.found === 'fn') {
+    return err(base.at, 'cannot use pipes on functions')
+  }
+
+  for (const pipe of pipes) {
+    const pipeCheck = cmdCallSubTypechecker(pipe.parsed, ctx)
+    if (!pipeCheck.ok) return pipeCheck
+
+    if (pipeCheck.data.found === 'fn') {
+      return err(base.at, 'cannot pipe data to a function')
     }
   }
 
   return success(void 0)
 }
 
-export const cmdCallSubTypechecker: Typechecker<CmdCallSub, void> = ({ unaliased, name, args }, ctx) => {
+export const cmdCallSubTypechecker: Typechecker<CmdCallSub, { found: 'fn' | 'cmd' }> = (
+  { unaliased, name, args },
+  ctx
+) => {
   const fn = getTypedEntityInScope(name, 'fn', ctx)
 
   if (fn.ok && !unaliased) {
@@ -30,12 +39,13 @@ export const cmdCallSubTypechecker: Typechecker<CmdCallSub, void> = ({ unaliased
       { at: name.at, nameAt: name.at, generics: null, args, fnType: fn.data.content },
       ctx
     )
-    return check.ok ? success(void 0) : check
+    return check.ok ? success({ found: 'fn' }) : check
   } else {
     const decl = ctx.commandDeclarations.get(name.parsed)
 
     if (decl) {
-      return cmdDeclSubCmdCallTypechecker({ at: name.at, nameAt: name.at, subCmd: decl.content, args }, ctx)
+      const check = cmdDeclSubCmdCallTypechecker({ at: name.at, nameAt: name.at, subCmd: decl.content, args }, ctx)
+      return check.ok ? success({ found: 'cmd' }) : check
     }
 
     if (!ctx.checkIfCommandExists(name.parsed)) {
@@ -47,7 +57,7 @@ export const cmdCallSubTypechecker: Typechecker<CmdCallSub, void> = ({ unaliased
       if (!check.ok) return check
     }
 
-    return success(void 0)
+    return success({ found: 'cmd' })
   }
 }
 

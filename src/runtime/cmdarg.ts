@@ -24,15 +24,19 @@ export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
 
       return success(out.join(''))
     },
+
     action: ({ name }) => success(name.parsed),
+
     expr: ({ expr }) => {
       const execExpr = runExpr(expr.parsed, ctx)
       return execExpr.ok === true ? stringifyExecValue(expr.at, execExpr.data, ctx) : execExpr
     },
+
     value: ({ value }) => {
       const execValue = runValue(value, ctx)
       return execValue.ok === true ? stringifyExecValue(value.at, execValue.data, ctx) : execValue
     },
+
     rest: ({ varname }) => {
       for (const scope of ctx.scopes.reverse()) {
         const entity = scope.entities.get(varname.parsed)
@@ -63,4 +67,8 @@ function stringifyExecValue(at: CodeSection, value: ExecValue, ctx: RunnerContex
         `internal error: expected command argument to be either "number", "string" or "path", found internal type "${value.type}`
       )
   }
+}
+
+export function escapeCmdArg(content: string): string {
+  return content.replace(/[^a-zA-Z0-9_]/g, (c) => '\\' + c)
 }

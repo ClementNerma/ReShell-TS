@@ -217,8 +217,8 @@ export type FnArg = {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type CmdCall = {
-  base: CmdCallSub
-  pipes: Token<CmdCallSub>[] | null
+  base: Token<CmdCallSub>
+  pipes: Token<CmdCallSub>[]
   redir: Token<CmdRedir> | null
 }
 

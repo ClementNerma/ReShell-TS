@@ -537,6 +537,7 @@ export const runCondOrTypeAssertion: Runner<
 export const runExprOrNever: Runner<ExprOrNever, ExecValue> = (expr, ctx) =>
   matchUnion(expr, 'type', {
     expr: ({ content }) => runExpr(content.parsed, ctx),
+
     panic: ({ message }) => {
       const expr = runExpr(message.parsed, ctx)
       if (expr.ok !== true) return expr
@@ -546,6 +547,7 @@ export const runExprOrNever: Runner<ExprOrNever, ExecValue> = (expr, ctx) =>
 
       return err(message.at, `Panicked: ${messageStr.data.value}`)
     },
+
     return: ({ expr }) => {
       if (!expr) return { ok: null, breaking: 'return', value: null }
 

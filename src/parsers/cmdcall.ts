@@ -47,7 +47,11 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
         )
       )
     ),
-    ([{ parsed: base }, _, { parsed: pipes }, __, redir]) => ({ base, pipes, redir: flattenMaybeToken(redir) })
+    ([base, _, { parsed: pipes }, __, redir]) => ({
+      base,
+      pipes: pipes ?? [],
+      redir: flattenMaybeToken(redir),
+    })
   )
 
 export const cmdCallSub: (callEndDetector: Parser<void>) => Parser<CmdCallSub> = (callEndDetector) =>
