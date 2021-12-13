@@ -54,7 +54,6 @@ export function getTypedEntityInScope<C extends ScopeEntity['type']>(
 
 export function getEntityCategoryName(type: ScopeEntity['type']): string {
   return matchStr(type, {
-    typeAlias: () => 'type alias',
     generic: () => 'generic',
     fn: () => 'function',
     var: () => 'variable',

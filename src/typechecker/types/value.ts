@@ -3,7 +3,7 @@ import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { cmdCallTypechecker } from '../cmdcall'
-import { getEntityInScope, getTypedEntityInScope } from '../scope/search'
+import { getEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureTypeValidator, validateFnCallArgs } from './fn'
@@ -30,13 +30,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   }
 
   while (typeExpectation?.type?.type === 'aliasRef') {
-    const alias = getTypedEntityInScope(typeExpectation.type.typeAliasName, 'typeAlias', ctx)
+    const alias = ctx.typeAliases.get(typeExpectation.type.typeAliasName.parsed)
 
-    if (!alias.ok) {
+    if (!alias) {
       return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
     }
 
-    typeExpectation = { from: typeExpectation.from, type: alias.data.content }
+    typeExpectation = { from: typeExpectation.from, type: alias.content }
   }
 
   const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {
@@ -48,13 +48,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
-        const alias = getTypedEntityInScope(expected.typeAliasName, 'typeAlias', ctx)
+        const alias = ctx.typeAliases.get(expected.typeAliasName.parsed)
 
-        if (!alias.ok) {
+        if (!alias) {
           return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
         }
 
-        expected = alias.data.content
+        expected = alias.content
       } else {
         break
       }
@@ -81,13 +81,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (expected.type === 'nullable') {
         expected = expected.inner
       } else if (expected.type === 'aliasRef') {
-        const alias = getTypedEntityInScope(expected.typeAliasName, 'typeAlias', ctx)
+        const alias = ctx.typeAliases.get(expected.typeAliasName.parsed)
 
-        if (!alias.ok) {
+        if (!alias) {
           return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
         }
 
-        expected = alias.data.content
+        expected = alias.content
       } else {
         break
       }
@@ -376,17 +376,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       let variants: Token<string>[]
 
       if (enumName) {
-        const enumTypeEntity = getTypedEntityInScope(enumName, 'typeAlias', ctx)
-        if (!enumTypeEntity.ok) return enumTypeEntity
+        const enumTypeEntity = ctx.typeAliases.get(enumName.parsed)
+        if (!enumTypeEntity) return err(enumName.at, `type alias \`${enumName.parsed}\` was not found`)
 
-        if (enumTypeEntity.data.content.type !== 'enum') {
+        if (enumTypeEntity.content.type !== 'enum') {
           return err(
             enumName.at,
-            `this type is not an enumeration (found \`${rebuildType(enumTypeEntity.data.content, true)}\`)`
+            `this type is not an enumeration (found \`${rebuildType(enumTypeEntity.content, true)}\`)`
           )
         }
 
-        variants = enumTypeEntity.data.content.variants
+        variants = enumTypeEntity.content.variants
       } else if (assert.data) {
         if (assert.data.type !== 'enum') {
           return err(variant.at, `expected type is not an enumeration (found \`${rebuildType(assert.data, true)}\`)`)
@@ -477,7 +477,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       const entity = getEntityInScope(name, ctx)
 
-      if (!entity.ok || entity.data.type === 'typeAlias' || entity.data.type === 'generic') {
+      if (!entity.ok || entity.data.type === 'generic') {
         return err(name.at, `function \`${name.parsed}\` was not found in this scope`)
       }
 
@@ -487,13 +487,13 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         let type = entity.data.varType
 
         if (type.type === 'aliasRef') {
-          const alias = getTypedEntityInScope(type.typeAliasName, 'typeAlias', ctx)
+          const alias = ctx.typeAliases.get(type.typeAliasName.parsed)
 
-          if (!alias.ok) {
+          if (!alias) {
             return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
           }
 
-          type = alias.data.content
+          type = alias.content
         }
 
         if (type.type !== 'fn') {

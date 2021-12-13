@@ -1,7 +1,6 @@
 import { PropertyAccess, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker } from '../base'
-import { getTypedEntityInScope } from '../scope/search'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
@@ -15,27 +14,27 @@ export const resolvePropAccessType: Typechecker<
   for (const propAccess of propAccesses) {
     while (true) {
       if (previousIterType.type === 'aliasRef') {
-        const alias = getTypedEntityInScope(previousIterType.typeAliasName, 'typeAlias', ctx)
+        const alias = ctx.typeAliases.get(previousIterType.typeAliasName.parsed)
 
-        if (!alias.ok) {
+        if (!alias) {
           return err(
             leftAt,
             'internal error: candidate type alias reference not found in scope while checking for type compatibility'
           )
         }
 
-        previousIterType = alias.data.content
+        previousIterType = alias.content
       } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
-        const alias = getTypedEntityInScope(previousIterType.inner.typeAliasName, 'typeAlias', ctx)
+        const alias = ctx.typeAliases.get(previousIterType.inner.typeAliasName.parsed)
 
-        if (!alias.ok) {
+        if (!alias) {
           return err(
             leftAt,
             'internal error: candidate type alias reference not found in scope while checking for type compatibility'
           )
         }
 
-        previousIterType = { type: 'nullable', inner: alias.data.content }
+        previousIterType = { type: 'nullable', inner: alias.content }
       } else {
         break
       }

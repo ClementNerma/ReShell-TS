@@ -7,6 +7,7 @@ export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => Typec
 
 export type TypecheckerContext = {
   scopes: Scope[]
+  typeAliases: Map<string, { at: CodeSection; content: ValueType }>
   resolvedGenerics: GenericResolutionScope[]
   inLoop: boolean
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
@@ -28,6 +29,7 @@ export function createTypecheckerContext(
 ): TypecheckerContext {
   return {
     scopes: [nativeLibraryScope()],
+    typeAliases: new Map(),
     resolvedGenerics: [],
     inLoop: false,
     typeExpectation: null,
@@ -50,7 +52,6 @@ export type TypecheckerErr = { ok: false } & Diagnostic
 export type Scope = Map<string, ScopeEntity>
 
 export type ScopeEntity =
-  | { type: 'typeAlias'; at: CodeSection; content: ValueType }
   | { type: 'fn'; at: CodeSection; content: FnType }
   | { type: 'generic'; at: CodeSection; name: Token<string> }
   | ({ type: 'var'; at: CodeSection } & ScopeVar)

@@ -3,7 +3,7 @@
 
 import { Statement, StatementChain } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
-import { Scope, success, Typechecker } from '../base'
+import { err, Scope, success, Typechecker } from '../base'
 import { fnTypeValidator } from '../types/fn'
 import { ensureScopeUnicity } from './search'
 
@@ -20,54 +20,21 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chai
       case 'typeAlias':
         const typename = stmt.parsed.typename
 
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Notes on scoped type aliases leaking ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-        //
-        // The following check was originally implemented:
-        //
-        // ```
-        // if (ctx.scopes.length > 0) {
-        //   return err(typename.at, 'type aliases can only be defined at top level')
-        // }
-        // ```
-        //
-        // It was required for the case where a value of a type named e.g. `X` defined in a scope would be
-        // returned to the parent scope, and then used in another sub scope defining another type named `X`
-        // Given the informations we have in the AST, this would lead the types to be resolved as the same one,
-        // which would result in the types always being shown as compatible even if they weren't.
-        //
-        // Eventually, we don't need this check as there is no way to leak a value which uses a scoped type alias
-        // to the parent scope: values of the universal `unknown` type are typed as such and not as their underlying type,
-        // so we don't need to perform an additional check here.
-        //
-        // There is a specific case though which is best illustrated with the following code:
-        //
-        // ```
-        // let data: list[ { member: string } ] = []
-        //
-        // if rand() {
-        //     type A = { member: string }
-        //     let value: A = { member: "Hello" }
-        //
-        //     data[] = value
-        // } else {
-        //     type B = { member: string }
-        //     let value: B = { member: "Hello" }
-        //
-        //     data[] = value
-        // }
-        // ```
-        //
-        // This is a specific leak case, but it is solved by the way types are resolved:
-        // In this code example, when the value is pushed to the list, an expected type (`{ member: string }`)
-        // is provided to the type resolver, which will use it to type the underlying value.
-        // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        if (ctx.scopes.length > 2 /* native library has its own scope */) {
+          return err(stmt.at, 'type aliases must be defined in the top scope')
+        }
 
-        const typeUnicity = ensureScopeUnicity(typename, ctx)
-        if (!typeUnicity.ok) return typeUnicity
+        const orig = ctx.typeAliases.get(typename.parsed)
 
-        firstPass.set(typename.parsed, {
+        if (orig) {
+          return err(typename.at, {
+            message: 'a type alias has already been declared with this name',
+            also: [{ at: orig.at, message: 'original declaration occurs here' }],
+          })
+        }
+
+        ctx.typeAliases.set(typename.parsed, {
           at: typename.at,
-          type: 'typeAlias',
           content: stmt.parsed.content.parsed,
         })
 

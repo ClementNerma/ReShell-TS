@@ -1,7 +1,6 @@
 import { ValueType } from '../../shared/ast'
 import { CodeSection } from '../../shared/parsed'
-import { err, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { getTypedEntityInScope } from '../scope/search'
+import { err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { rebuildType } from './rebuilder'
 
 export const isTypeCompatible: Typechecker<
@@ -92,37 +91,27 @@ export const isTypeCompatible: Typechecker<
   }
 
   while (candidate.type === 'aliasRef') {
-    // FIXME: bug with TypeScript compiler with refuses to compile this code part without explicit typing
-    const alias: TypecheckerResult<Extract<ScopeEntity, { type: 'typeAlias' }>> = getTypedEntityInScope(
-      candidate.typeAliasName,
-      'typeAlias',
-      ctx
-    )
+    const alias = ctx.typeAliases.get(candidate.typeAliasName.parsed)
 
-    if (!alias.ok) {
+    if (!alias) {
       return expectationErr(
         'internal error: candidate type alias reference not found in scope while checking for type compatibility'
       )
     }
 
-    candidate = alias.data.content
+    candidate = alias.content
   }
 
   while (referent.type === 'aliasRef') {
-    // FIXME: bug with TypeScript compiler with refuses to compile this code part without explicit typing
-    const alias: TypecheckerResult<Extract<ScopeEntity, { type: 'typeAlias' }>> = getTypedEntityInScope(
-      referent.typeAliasName,
-      'typeAlias',
-      ctx
-    )
+    const alias = ctx.typeAliases.get(referent.typeAliasName.parsed)
 
-    if (!alias.ok) {
+    if (!alias) {
       return expectationErr(
         'internal error: referent type alias reference not found in scope while checking for type compatibility'
       )
     }
 
-    referent = alias.data.content
+    referent = alias.content
   }
 
   if (referent.type === 'generic') {
