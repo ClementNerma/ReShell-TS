@@ -316,17 +316,31 @@ const errIncompatibleValueType = (
     foundType,
   }: { text?: string; expectedType: ValueType; foundType: ValueType | ValueType['inner']['type'] },
   value: Token<Value>
-) =>
-  err(
+) => {
+  const expectedNoDepth = rebuildType(expectedType, true)
+  const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
+
+  const expected = rebuildType(expectedType)
+  const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
+
+  return err(
     {
-      message: text ?? 'Incompatible value type found',
-      complements: [
-        ['Expected', rebuildType(expectedType)],
-        ['Found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
-      ],
+      message:
+        text ??
+        `expected \`${rebuildType(expectedType, true)}\`, found \`${
+          typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
+        }\``,
+      complements:
+        expectedNoDepth !== expected || foundNoDepth !== found
+          ? [
+              ['Expected', rebuildType(expectedType)],
+              ['Found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
+            ]
+          : [],
     },
     value
   )
+}
 
 // export const isStringifyableType = ({ nullable, inner: { type: typeType } }: ValueType) =>
 //   !nullable && (typeType === 'number' || typeType === 'string')
