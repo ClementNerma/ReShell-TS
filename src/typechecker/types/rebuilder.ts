@@ -11,6 +11,7 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
     map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
     struct: ({ members }) =>
       noDepth ? 'struct' : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
+    enum: ({ variants }) => (noDepth ? 'enum' : `enum { ${variants.map((variant) => variant.parsed).join(', ')} }`),
     fn: ({ fnType: { args, returnType, failureType } }) =>
       noDepth
         ? 'fn'

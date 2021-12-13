@@ -424,6 +424,7 @@ function resolveGenerics(type: ValueType, gScopes: GenericResolutionScope[]): Va
     case 'number':
     case 'string':
     case 'path':
+    case 'enum':
     case 'aliasRef': // TODO: check this
     case 'unknown':
     case 'void':

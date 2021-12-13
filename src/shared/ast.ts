@@ -71,6 +71,7 @@ export type ValueType =
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
   | { type: 'struct'; members: StructTypeMember[] }
+  | { type: 'enum'; variants: Token<string>[] }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'nullable'; inner: ValueType }

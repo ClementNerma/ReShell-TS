@@ -75,6 +75,19 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
         ([_, { parsed: members }, __]) => ({ members })
       ),
 
+      enum: map(
+        combine(
+          combine(exact('enum'), maybe_s_nl, exact('{', 'expected an opening brace'), maybe_s_nl),
+          takeWhile1(identifier, {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+            interExpect: 'expected another variant name',
+          }),
+          maybe_s_nl,
+          exact('}', 'expected a closing brace (})')
+        ),
+        ([_, { parsed: variants }]) => ({ variants })
+      ),
+
       fn: map(
         withLatelyDeclared(() => fnType),
         (fnType) => ({ fnType })

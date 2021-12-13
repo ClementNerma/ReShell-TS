@@ -24,6 +24,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
         members.map(({ type }) => type),
         ctx
       ),
+    enum: () => success(void 0),
     aliasRef: ({ typeAliasName }) => {
       const typeAlias = getTypedEntityInScope(typeAliasName, 'typeAlias', ctx)
       return typeAlias.ok ? success(void 0) : typeAlias

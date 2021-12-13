@@ -202,6 +202,22 @@ export const isTypeCompatible: Typechecker<
       return success(void 0)
     },
 
+    enum: (c, r) => {
+      for (const name of r.variants) {
+        if (!c.variants.find((variant) => variant.parsed === name.parsed)) {
+          return expectationErr(`missing variant \`${name}\``)
+        }
+      }
+
+      for (const name of c.variants) {
+        if (!r.variants.find((variant) => variant.parsed === name.parsed)) {
+          return expectationErr(`member \`${name}\` is provided but not expected`)
+        }
+      }
+
+      return success(void 0)
+    },
+
     fn: (c, r) => {
       for (let i = 0; i < c.fnType.args.length; i++) {
         const { at, parsed: cArg } = c.fnType.args[i]
