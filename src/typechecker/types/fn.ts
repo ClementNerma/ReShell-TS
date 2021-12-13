@@ -1,5 +1,5 @@
 import { UNICODE_LETTER } from '../../parsers/lib/littles'
-import { Block, ClosureArg, ClosureBody, CmdArg, FnDeclArg, FnType, ValueType } from '../../shared/ast'
+import { Block, ClosureBody, ClosureCallArg, CmdArg, FnDeclArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { FnCallGeneric, FnCallPrecompArg } from '../../shared/precomp'
 import { matchUnion } from '../../shared/utils'
@@ -156,7 +156,7 @@ export const fnTypeArgsValidator: Typechecker<Token<FnDeclArg>[], Map<string, { 
 export const closureCallValidator: Typechecker<
   {
     at: CodeSection
-    args: Token<ClosureArg>[]
+    args: Token<ClosureCallArg>[]
     restArg: Token<string> | null
     body: Token<ClosureBody>
     expected: FnType

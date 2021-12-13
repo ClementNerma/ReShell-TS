@@ -1,6 +1,6 @@
 import {
-  ClosureArg,
   ClosureBody,
+  ClosureCallArg,
   ComputedPathSegment,
   ComputedStringSegment,
   FnCallArg,
@@ -197,7 +197,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
     combine(
       combine(exact('fn'), maybe_s, exact('('), maybe_s_nl),
       takeWhile(
-        mappedCases<ClosureArg>()('type', {
+        mappedCases<ClosureCallArg>()('type', {
           flag: withLatelyDeclared(() => cmdFlag),
           variable: map(identifier, (_, name) => ({ name })),
         }),

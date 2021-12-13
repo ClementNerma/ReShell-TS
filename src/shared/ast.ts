@@ -161,7 +161,7 @@ export type Value =
   | { type: 'enumVariant'; enumName: Token<string> | null; variant: Token<string> }
   | { type: 'match'; subject: Token<Expr>; arms: Token<{ variant: Token<string>; matchWith: Token<Expr> }[]> }
   // | { type: 'closure'; fnType: FnType; body: Token<Block> }
-  | { type: 'callback'; args: Token<ClosureArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
+  | { type: 'callback'; args: Token<ClosureCallArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; generics: Token<Token<ValueType | null>[]> | null; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'
@@ -187,7 +187,7 @@ export type ComputedPathSegment =
 
 export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
 
-export type ClosureArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
+export type ClosureCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
 
 export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Block> }
 
