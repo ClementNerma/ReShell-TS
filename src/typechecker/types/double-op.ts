@@ -157,7 +157,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'NotEq': {
           const type = leftExprType.type
 
-          if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path') {
+          if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path' && type !== 'enum') {
             return errCannotApplyOperator(op.at, 'number', leftExprType, leftExprAt)
           }
 
