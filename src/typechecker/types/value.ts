@@ -6,7 +6,7 @@ import { ensureCoverage, err, success, Typechecker, TypecheckerContext, Typechec
 import { inlineCmdCallChecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
 import { getContextuallyResolvedGeneric, getEntityInScope } from '../scope/search'
-import { developTypeAliases, developTypeAliasesAndNullables } from './aliases'
+import { developTypeAliasesAndNullables } from './aliases'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { closureCallValidator, resolveFnCallType } from './fn'
@@ -30,18 +30,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   }
 
   if (typeExpectation) {
-    const developed = developTypeAliases(typeExpectation.type, ctx)
+    const developed = developTypeAliasesAndNullables(typeExpectation.type, ctx)
     if (!developed.ok) return developed
+
     typeExpectation = { from: typeExpectation.from, type: developed.data }
   }
 
   let developedExpectedType: ValueType | null = null
 
   if (typeExpectation) {
-    const developed = developTypeAliasesAndNullables(typeExpectation.type, ctx)
-    if (!developed.ok) return developed
+    developedExpectedType = typeExpectation.type
 
-    developedExpectedType = developed.data
+    while (developedExpectedType.type === 'nullable') {
+      developedExpectedType = developedExpectedType.inner
+    }
   }
 
   const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {

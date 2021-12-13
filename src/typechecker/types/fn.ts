@@ -434,7 +434,7 @@ export const validateAndRegisterFnCall: Typechecker<
         if (!relatedArg) return err(expr.at, 'argument was not expected (all arguments have already been supplied)')
 
         const typeExpectation: TypecheckerContext['typeExpectation'] = {
-          type: resolveGenerics(relatedArg.parsed.type.parsed, ctx, max),
+          type: resolveGenerics(getFnDeclArgType(relatedArg.parsed), ctx, max),
           from: relatedArg.at,
         }
 
