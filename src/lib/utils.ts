@@ -1,4 +1,4 @@
-import { Parser, ParserErr, Token } from './base'
+import { Parser, ParserErr, sliceInput, Token } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
   const parser = producer((start, input, context) => parser(start, input, context))
@@ -119,4 +119,8 @@ export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<
 
 export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
   return token.parsed !== null ? { ...token, parsed: token.parsed } : null
+}
+
+export function getErrorInput(err: ParserErr): string {
+  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.loc)
 }
