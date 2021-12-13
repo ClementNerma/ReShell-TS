@@ -9,7 +9,7 @@ import {
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, failIfMatchesElse, flatten, maybe, maybeFlatten } from './lib/conditions'
+import { extract, failIfMatches, failIfMatchesElse, maybe } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -26,9 +26,12 @@ import { fnDecl, valueType } from './types'
 export const statement: Parser<Statement> = mappedCases<Statement>()(
   'type',
   {
-    return: map(combine(exact('return'), maybeFlatten(map(combine(s, expr), ([_, expr]) => expr))), ([_, expr]) => ({
-      expr,
-    })),
+    return: map(
+      combine(exact('return'), maybe(map(combine(s, expr), ([_, expr]) => expr))),
+      ([_, { parsed: expr }]) => ({
+        expr,
+      })
+    ),
 
     variableDecl: map(
       combine(
@@ -41,7 +44,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           ),
           ([_, mutable, __, varname]) => ({ mutable, varname })
         ),
-        maybeFlatten(
+        maybe(
           map(
             combine(combine(maybe_s, exact(':'), maybe_s), failure(valueType, 'Expected a type annotation')),
             ([_, type]) => type
@@ -51,10 +54,10 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         failure(expr, 'Expected an expression')
       ),
 
-      ([mv, vartype, _, expr]) => ({
+      ([mv, { parsed: vartype }, _, expr]) => ({
         mutable: mapToken(mv.parsed.mutable, (str) => !!str),
         varname: mv.parsed.varname,
-        vartype: flattenMaybeToken(vartype),
+        vartype,
         expr,
       })
     ),
@@ -303,7 +306,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   map(combine(bol('Internal error: statement chain must start at BOL'), maybe_s, eol()), (_, __) => ({
     type: 'empty',
   })),
-  flatten(map(combine(bol(), statementChainFree), ([, chain]) => chain)),
+  map(combine(bol(), statementChainFree), ([, { parsed: chain }]) => chain),
 ])
 
 export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(

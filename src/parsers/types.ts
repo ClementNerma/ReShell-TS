@@ -1,7 +1,7 @@
 import { FnArg, FnType, NonNullableValueType, Token, ValueType } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, maybe, maybeFlatten } from './lib/conditions'
+import { extract, maybe } from './lib/conditions'
 import { never } from './lib/consumeless'
 import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
@@ -165,13 +165,13 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         )
       ),
       combine(maybe_s_nl, exact(')', "Expected a closing paren ')'")),
-      maybeFlatten(
+      maybe(
         map(
           combine(maybe_s, exact('->'), maybe_s, failure(valueType, 'Expected a return type')),
           ([_, __, ___, returnType]) => returnType
         )
       ),
-      maybeFlatten(
+      maybe(
         map(
           combine(maybe_s, exact('throws'), s, failure(valueType, 'Expected a failure type')),
           ([_, __, ___, failureType]) => failureType

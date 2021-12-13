@@ -15,8 +15,8 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
       multiTypeValidator(
         fnType.args
           .map((arg) => arg.type)
-          .concat(fnType.returnType ? [fnType.returnType] : [])
-          .concat(fnType.failureType ? [fnType.failureType] : []),
+          .concat(fnType.returnType ? [fnType.returnType.parsed] : [])
+          .concat(fnType.failureType ? [fnType.failureType.parsed] : []),
         ctx
       ),
     struct: ({ members }) =>

@@ -2,10 +2,10 @@ import { CodeSection, ValueType } from '../../shared/parsed'
 import { err, success, Typechecker, TypecheckerResult } from '../base'
 import { rebuildType } from './rebuilder'
 
-export const isTypeCompatible: Typechecker<
-  { candidate: ValueType; referent: ValueType; at: CodeSection; _path?: string[] },
-  void
-> = ({ candidate, referent, at, _path }, context) => {
+export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSection; _path?: string[] }, void> = (
+  { candidate, at, _path },
+  context
+) => {
   const expectationErr = (message?: string) => {
     const rebuiltReferentTypeNoDepth = rebuildType(referent, true)
     const rebuiltCandidateTypeNoDepth = rebuildType(candidate, true)
@@ -24,11 +24,30 @@ export const isTypeCompatible: Typechecker<
               ['Found   ', rebuildType(candidate)],
             ]
           : [],
+      also: from
+        ? [
+            {
+              at: from,
+              message: 'type expectation originates here',
+            },
+          ]
+        : [],
     })
   }
 
   const subCheck = (addPath: string, candidate: ValueType, referent: ValueType) =>
-    isTypeCompatible({ candidate, referent, at, _path: path.concat([addPath]) }, context)
+    isTypeCompatible(
+      { candidate, at, _path: path.concat([addPath]) },
+      { scopes: context.scopes, typeExpectation: { from, type: referent } }
+    )
+
+  if (!context.typeExpectation) {
+    return err(at, 'Internal error: type expectation is not defined in context when checking for type compatibility')
+  }
+
+  const {
+    typeExpectation: { from, type: referent },
+  } = context
 
   const path = _path ?? []
 

@@ -64,7 +64,7 @@ export type Statement =
   | { type: 'throw'; expr: Token<Expr> }
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'fnDecl'; name: Token<string>; fnType: FnType; body: Token<StatementChain>[] }
-  | { type: 'return'; expr: Token<Expr | null> }
+  | { type: 'return'; expr: Token<Expr> | null }
   | ({ type: 'cmdCall' } & CmdCall)
 
 export type ElIfBlock = { cond: Token<Expr>; body: Token<StatementChain>[] }
@@ -78,8 +78,8 @@ export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAcc
 export type FnType = {
   named: Token<string> | null
   args: FnArg[]
-  returnType: ValueType | null
-  failureType: ValueType | null
+  returnType: Token<ValueType> | null
+  failureType: Token<ValueType> | null
 }
 
 export type FnArg = {

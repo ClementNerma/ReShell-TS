@@ -5,5 +5,5 @@ import { statementChainChecker } from './statement'
 export const typecheckProgram = (program: Token<Program>): TypecheckerResult<void> =>
   statementChainChecker(program.parsed, {
     scopes: [],
-    expectedType: null,
+    typeExpectation: null,
   })

@@ -1,23 +1,23 @@
 import { PrimitiveTypes, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
+import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
-  const { expectedType } = ctx
+  const { typeExpectation } = ctx
 
-  if (expectedType?.inner.type === 'aliasRef') {
+  if (typeExpectation?.type?.inner.type === 'aliasRef') {
     throw new Error('// TODO: type alias development')
   }
 
   const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> =>
-    expectedType && expectedType.inner.type !== value.parsed.type
+    typeExpectation && typeExpectation.type.inner.type !== value.parsed.type
       ? errIncompatibleValueType(
           {
-            expectedType,
+            typeExpectation,
             foundType: type,
           },
           value
@@ -27,21 +27,21 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['inner']['type'], PrimitiveTypes['type']>>(
     type: T
   ): TypecheckerResult<Extract<ValueType['inner'], { type: T }> | void> =>
-    expectedType
-      ? expectedType.inner.type !== type
+    typeExpectation
+      ? typeExpectation.type.inner.type !== type
         ? errIncompatibleValueType(
             {
-              expectedType,
+              typeExpectation,
               foundType: type,
             },
             value
           )
-        : success(expectedType.inner as Extract<ValueType['inner'], { type: T }>)
+        : success(typeExpectation.type.inner as Extract<ValueType['inner'], { type: T }>)
       : success(void 0)
 
   return matchUnion(value.parsed, 'type', {
     null: () => {
-      if (!expectedType) {
+      if (!typeExpectation) {
         return err(value.at, {
           message: 'Cannot determine the type of this value',
           complements: [
@@ -50,16 +50,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         })
       }
 
-      if (!expectedType.nullable) {
+      if (!typeExpectation.type.nullable) {
         return err(value.at, {
           message: 'Unexpected usage of "null" value ; type is not nullable',
           complements: [
-            ['Expected', rebuildType(expectedType)],
+            ['Expected', rebuildType(typeExpectation.type)],
             ['Found', 'void'],
           ],
         })
       }
-      return success(expectedType)
+
+      return success(typeExpectation.type)
     },
 
     bool: ({ type }) => assertExpectedType(type),
@@ -81,7 +82,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           case 'expr':
             const exprType = resolveExprType(segment.parsed.expr, {
               scopes: ctx.scopes,
-              expectedType: foundType,
+              typeExpectation: {
+                type: foundType,
+                from: null,
+              },
             })
 
             if (!exprType.ok) return exprType
@@ -110,7 +114,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           case 'expr':
             const exprType = resolveExprType(segment.parsed.expr, {
               scopes: ctx.scopes,
-              expectedType: foundType,
+              typeExpectation: {
+                type: foundType,
+                from: null,
+              },
             })
 
             if (!exprType.ok) return exprType
@@ -131,21 +138,39 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const expectedListType = assert.data
 
       if (items.length === 0) {
-        return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this list')
+        return typeExpectation
+          ? success(typeExpectation.type)
+          : err(value.at, 'Unable to determine the type of this list')
       }
 
       const expectedItemType: ValueType | null = expectedListType?.itemsType ?? null
 
-      const referenceType = resolveExprType(items[0], { scopes: ctx.scopes, expectedType: expectedItemType })
+      const referenceType = resolveExprType(items[0], {
+        scopes: ctx.scopes,
+        typeExpectation: expectedItemType
+          ? {
+              type: expectedItemType,
+              from: typeExpectation?.from ?? null,
+            }
+          : null,
+      })
       if (!referenceType.ok) return referenceType
 
       for (const item of items.slice(1)) {
-        const itemType = resolveExprType(item, { scopes: ctx.scopes, expectedType: referenceType.data })
+        const itemType = resolveExprType(item, {
+          scopes: ctx.scopes,
+          typeExpectation: expectedItemType
+            ? {
+                type: referenceType.data,
+                from: typeExpectation?.from ?? null,
+              }
+            : null,
+        })
         if (!itemType.ok) return itemType
       }
 
       return success<ValueType>(
-        expectedType ?? { nullable: false, inner: { type: 'list', itemsType: referenceType.data } }
+        typeExpectation?.type ?? { nullable: false, inner: { type: 'list', itemsType: referenceType.data } }
       )
     },
 
@@ -156,12 +181,22 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       const expectedMapType = assert.data
 
       if (entries.length === 0) {
-        return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this map')
+        return typeExpectation
+          ? success(typeExpectation.type)
+          : err(value.at, 'Unable to determine the type of this map')
       }
 
       const expectedItemType: ValueType | null = expectedMapType?.itemsType ?? null
 
-      const referenceType = resolveExprType(entries[0].value, { scopes: ctx.scopes, expectedType: expectedItemType })
+      const referenceType = resolveExprType(entries[0].value, {
+        scopes: ctx.scopes,
+        typeExpectation: expectedItemType
+          ? {
+              type: expectedItemType,
+              from: typeExpectation?.from ?? null,
+            }
+          : null,
+      })
       if (!referenceType.ok) return referenceType
 
       const keys = new Map([[entries[0].key.parsed, entries[0].key]])
@@ -178,12 +213,20 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         keys.set(key.parsed, key)
 
-        const itemType = resolveExprType(value, { scopes: ctx.scopes, expectedType: referenceType.data })
+        const itemType = resolveExprType(value, {
+          scopes: ctx.scopes,
+          typeExpectation: expectedItemType
+            ? {
+                type: referenceType.data,
+                from: typeExpectation?.from ?? null,
+              }
+            : null,
+        })
         if (!itemType.ok) return itemType
       }
 
       return success<ValueType>(
-        expectedType ?? { nullable: false, inner: { type: 'map', itemsType: referenceType.data } }
+        typeExpectation?.type ?? { nullable: false, inner: { type: 'map', itemsType: referenceType.data } }
       )
     },
 
@@ -192,19 +235,21 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (!assert.ok) return assert
 
       if (members.length === 0) {
-        return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this struct')
+        return typeExpectation
+          ? success(typeExpectation.type)
+          : err(value.at, 'Unable to determine the type of this struct')
       }
 
       let expectedMembers: Map<string, ValueType> | null = null
 
-      if (expectedType) {
-        if (expectedType.inner.type !== 'struct') {
-          return errIncompatibleValueType({ expectedType, foundType: 'struct' }, value)
+      if (typeExpectation) {
+        if (typeExpectation.type.inner.type !== 'struct') {
+          return errIncompatibleValueType({ typeExpectation, foundType: 'struct' }, value)
         }
 
         expectedMembers = new Map()
 
-        for (const { name, type } of expectedType.inner.members) {
+        for (const { name, type } of typeExpectation.type.inner.members) {
           expectedMembers.set(name, type)
         }
       }
@@ -232,13 +277,27 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           if (!expectedMemberType) {
             return err(name.at, {
               message: `Unknown member "${name.parsed}"`,
-              complements: [['Expected', rebuildType(expectedType!)]],
+              complements: [['Expected', rebuildType(typeExpectation!.type)]],
+              also: typeExpectation!.from
+                ? [
+                    {
+                      at: typeExpectation!.from,
+                      message: 'type expectation originates here',
+                    },
+                  ]
+                : [],
             })
           }
 
-          resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: expectedMemberType })
+          resolvedType = resolveExprType(value, {
+            scopes: ctx.scopes,
+            typeExpectation: {
+              type: expectedMemberType,
+              from: typeExpectation?.from ?? null,
+            },
+          })
         } else {
-          resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: null })
+          resolvedType = resolveExprType(value, { scopes: ctx.scopes, typeExpectation: null })
         }
 
         if (!resolvedType.ok) return resolvedType
@@ -253,7 +312,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         }
       }
 
-      return success<ValueType>(expectedType ?? { nullable: false, inner: { type: 'struct', members: outputTypes } })
+      return success<ValueType>(
+        typeExpectation?.type ?? { nullable: false, inner: { type: 'struct', members: outputTypes } }
+      )
     },
 
     closure: ({ type, fnType, body }) => {
@@ -285,14 +346,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return err(value.at, `Referenced variable "${varname.parsed}" was not found in this scope`)
       }
 
-      if (!expectedType) {
+      if (!typeExpectation) {
         return success(foundType)
       }
 
-      const compat = isTypeCompatible({ candidate: foundType, referent: expectedType, at: varname.at }, ctx)
+      const compat = isTypeCompatible({ candidate: foundType, at: varname.at }, ctx)
       if (!compat.ok) return compat
 
-      return success(expectedType)
+      return success(typeExpectation.type)
     },
   })
 }
@@ -300,30 +361,42 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 const errIncompatibleValueType = (
   {
     text,
-    expectedType,
+    typeExpectation,
     foundType,
-  }: { text?: string; expectedType: ValueType; foundType: ValueType | ValueType['inner']['type'] },
+  }: {
+    text?: string
+    typeExpectation: Exclude<TypecheckerContext['typeExpectation'], null>
+    foundType: ValueType | ValueType['inner']['type']
+  },
   value: Token<Value>
 ) => {
-  const expectedNoDepth = rebuildType(expectedType, true)
+  const expectedNoDepth = rebuildType(typeExpectation.type, true)
   const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
 
-  const expected = rebuildType(expectedType)
+  const expected = rebuildType(typeExpectation.type)
   const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
 
   return err(value.at, {
     message:
       text ??
-      `expected \`${rebuildType(expectedType, true)}\`, found \`${
+      `expected \`${rebuildType(typeExpectation.type, true)}\`, found \`${
         typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
       }\``,
     complements:
       expectedNoDepth !== expected || foundNoDepth !== found
         ? [
-            ['Expected', rebuildType(expectedType)],
+            ['Expected', rebuildType(typeExpectation.type)],
             ['Found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
           ]
         : [],
+    also: typeExpectation.from
+      ? [
+          {
+            at: typeExpectation.from,
+            message: 'type expectation originates here',
+          },
+        ]
+      : [],
   })
 }
 

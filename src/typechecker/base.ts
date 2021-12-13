@@ -3,7 +3,10 @@ import { CodeSection, FnType, ValueType } from '../shared/parsed'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
-export type TypecheckerContext = { scopes: Scope[]; expectedType: ValueType | null }
+export type TypecheckerContext = {
+  scopes: Scope[]
+  typeExpectation: null | { type: ValueType; from: CodeSection | null }
+}
 
 export type TypecheckerResult<O> = TypecheckerSuccess<O> | TypecheckerErr
 

@@ -29,7 +29,7 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
     return resolveExprElementContentType(element.parsed.content, ctx)
   }
 
-  const resolved = resolveExprElementContentType(element.parsed.content, { scopes: ctx.scopes, expectedType: null })
+  const resolved = resolveExprElementContentType(element.parsed.content, { scopes: ctx.scopes, typeExpectation: null })
   if (!resolved.ok) return resolved
 
   let previousIterType = resolved.data
@@ -99,12 +99,8 @@ export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> 
     upToPrevPropAccessSection = { start: upToPrevPropAccessSection.start, next: propAccess.at.next }
   }
 
-  if (ctx.expectedType) {
-    const compat = isTypeCompatible(
-      { at: upToPrevPropAccessSection, candidate: previousIterType, referent: ctx.expectedType },
-      ctx
-    )
-
+  if (ctx.typeExpectation) {
+    const compat = isTypeCompatible({ at: upToPrevPropAccessSection, candidate: previousIterType }, ctx)
     if (!compat.ok) return compat
   }
 
@@ -118,13 +114,22 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
     singleOp: ({ op, right }) =>
       matchStr(op.parsed.op.parsed, {
         Not: () =>
-          resolveExprElementContentType(right, { ...ctx, expectedType: { nullable: false, inner: { type: 'bool' } } }),
+          resolveExprElementContentType(right, {
+            ...ctx,
+            typeExpectation: {
+              type: { nullable: false, inner: { type: 'bool' } },
+              from: null,
+            },
+          }),
       }),
 
     ternary: ({ cond, then, elif, els }) => {
       const condType = resolveExprType(cond, {
         scopes: ctx.scopes,
-        expectedType: { nullable: false, inner: { type: 'bool' } },
+        typeExpectation: {
+          type: { nullable: false, inner: { type: 'bool' } },
+          from: null,
+        },
       })
 
       if (!condType.ok) return condType
@@ -135,19 +140,28 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       for (const { cond, expr } of elif) {
         const condType = resolveExprType(cond, {
           scopes: ctx.scopes,
-          expectedType: { nullable: false, inner: { type: 'bool' } },
+          typeExpectation: {
+            type: { nullable: false, inner: { type: 'bool' } },
+            from: then.at,
+          },
         })
 
         if (!condType.ok) return condType
 
-        const elifType = resolveExprType(expr, { scopes: ctx.scopes, expectedType: thenType.data })
+        const elifType = resolveExprType(expr, {
+          scopes: ctx.scopes,
+          typeExpectation: { type: thenType.data, from: then.at },
+        })
         if (!elifType.ok) return elifType
       }
 
-      const elseType = resolveExprType(els, { scopes: ctx.scopes, expectedType: thenType.data })
+      const elseType = resolveExprType(els, {
+        scopes: ctx.scopes,
+        typeExpectation: { type: thenType.data, from: then.at },
+      })
       if (!elseType.ok) return elseType
 
-      return success(ctx.expectedType ?? thenType.data)
+      return success(ctx.typeExpectation?.type ?? thenType.data)
     },
 
     try: () => {

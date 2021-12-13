@@ -86,23 +86,23 @@ export function maybe<T>(parser: Parser<T>): Parser<T | null> {
   }
 }
 
-export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
-  return (start, input, context) => {
-    const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
-    return parsed.ok
-      ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
-      : parsed.precedence
-      ? parsed
-      : phantomSuccess(start, null)
-  }
-}
+// export function maybeFlatten<T>(parser: Parser<Token<T>>): Parser<T | null> {
+//   return (start, input, context) => {
+//     const parsed = parser(start, input, { ...context, failureWillBePhantomSuccess: true })
+//     return parsed.ok
+//       ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } }
+//       : parsed.precedence
+//       ? parsed
+//       : phantomSuccess(start, null)
+//   }
+// }
 
-export function flatten<T>(parser: Parser<Token<T>>): Parser<T> {
-  return (start, input, context) => {
-    const parsed = parser(start, input, context)
-    return parsed.ok ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } } : parsed
-  }
-}
+// export function flatten<T>(parser: Parser<Token<T>>): Parser<T> {
+//   return (start, input, context) => {
+//     const parsed = parser(start, input, context)
+//     return parsed.ok ? { ...parsed, data: { ...parsed.data, parsed: parsed.data.parsed.parsed } } : parsed
+//   }
+// }
 
 export function extract<T>(parser: Parser<Token<T>[]>): Parser<T[]> {
   return (start, input, context) => {

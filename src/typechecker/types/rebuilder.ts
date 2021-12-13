@@ -24,8 +24,8 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
                   defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
                 }${
                   returnType || failureType
-                    ? ` -> ${returnType ? rebuildType(returnType) : 'void'}${
-                        failureType ? ' throws ' + rebuildType(failureType) : ''
+                    ? ` -> ${returnType ? rebuildType(returnType.parsed) : 'void'}${
+                        failureType ? ' throws ' + rebuildType(failureType.parsed) : ''
                       }`
                     : ''
                 }`

@@ -82,7 +82,12 @@ export const resolveDoubleOpType: Typechecker<
 
   const rightExprType = resolveExprElementType(right, {
     scopes: context.scopes,
-    expectedType: checkRightOperandType,
+    typeExpectation: checkRightOperandType
+      ? {
+          type: checkRightOperandType,
+          from: op.at,
+        }
+      : null,
   })
 
   if (!rightExprType.ok) return rightExprType
