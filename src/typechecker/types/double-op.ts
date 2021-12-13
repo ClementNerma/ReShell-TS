@@ -101,7 +101,7 @@ export const resolveDoubleOpType: Typechecker<
       switch (op.parsed.op.parsed) {
         case 'Add':
           if (leftExprType.type !== 'number' && leftExprType.type !== 'string') {
-            return errCannotApplyOperator(op.parsed.op, 'number | string', leftExprType, leftExprAt)
+            return errCannotApplyOperator('number | string', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -113,7 +113,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'Div':
         case 'Rem':
           if (leftExprType.type !== 'number') {
-            return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
+            return errCannotApplyOperator('number', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -141,7 +141,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'Or':
         case 'Xor':
           if (leftExprType.type !== 'bool') {
-            return errCannotApplyOperator(op.parsed.op, 'bool', leftExprType, leftExprAt)
+            return errCannotApplyOperator('bool', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -158,7 +158,7 @@ export const resolveDoubleOpType: Typechecker<
           const type = leftExprType.type
 
           if (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path') {
-            return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
+            return errCannotApplyOperator('number', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -171,7 +171,7 @@ export const resolveDoubleOpType: Typechecker<
         case 'LessThan':
         case 'LessThanOrEqualTo':
           if (leftExprType.type !== 'number') {
-            return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
+            return errCannotApplyOperator('number', leftExprType, leftExprAt)
           }
 
           checkRightOperandType = leftExprType
@@ -262,12 +262,7 @@ export function buildExprDoubleOp(
   }
 }
 
-const errCannotApplyOperator = (
-  operator: Token<string>,
-  expectedType: string,
-  foundType: ValueType,
-  leftExprAt: CodeSection
-) => {
+const errCannotApplyOperator = (expectedType: string, foundType: ValueType, leftExprAt: CodeSection) => {
   return err(leftExprAt, {
     message: `cannot apply this operator on type \`${rebuildType(foundType, true)}\``,
     complements: [
