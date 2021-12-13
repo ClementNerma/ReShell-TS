@@ -29,6 +29,21 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
   mappedCases<ExprElementContent>()(
     'type',
     {
+      // "(" expr ")"
+      paren: map(
+        combine(
+          combine(exact('('), maybe_s_nl),
+          failure(
+            withLatelyDeclared(() => expr),
+            'expected an expression after an opening parenthesis'
+          ),
+          combine(maybe_s_nl, exact(')'))
+        ),
+        ([_, inner, __]) => ({
+          inner,
+        })
+      ),
+
       // <single operator> s expr
       singleOp: map(
         combine(
@@ -135,21 +150,6 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
 
       // value
       value: map(value, (_, content) => ({ content })),
-
-      // "(" expr ")"
-      paren: map(
-        combine(
-          combine(exact('('), maybe_s_nl),
-          failure(
-            withLatelyDeclared(() => expr),
-            'expected an expression after an opening parenthesis'
-          ),
-          combine(maybe_s_nl, exact(')'))
-        ),
-        ([_, inner, __]) => ({
-          inner,
-        })
-      ),
 
       // Internal
       synth: never(),
