@@ -3,7 +3,11 @@ import { err, ErrInputData, Parser, ParsingContext, phantomSuccess, withErr, Wit
 export function failure<T>(parser: Parser<T>, error: WithErrData): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? parsed : withErr(parsed, error)
+    return parsed.ok
+      ? parsed
+      : parsed.precedence
+      ? withErr(parsed, error)
+      : withErr({ ...parsed, start, next: start }, error)
   }
 }
 
