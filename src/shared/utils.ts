@@ -3,12 +3,8 @@ import { CodeLoc, CodeSection } from './parsed'
 export const matchUnion = <U extends { [key in D]: string }, D extends keyof U, T>(
   subject: U,
   prop: D,
-  callbacks:
-    | { [variant in U[D]]: (value: Extract<U, { [key in D]: variant }>) => T }
-    | ({ [variant in U[D]]?: (value: Extract<U, { [key in D]: variant }>) => T } & {
-        _: (value: U[D]) => T
-      })
-): T => (callbacks[subject[prop]] ?? (callbacks as { _: any })._)(subject as any)
+  callbacks: { [variant in U[D]]: (value: Extract<U, { [key in D]: variant }>) => T }
+): T => callbacks[subject[prop]](subject as any)
 
 export const matchStr = <S extends string, T>(str: S, callbacks: { [variant in S]: () => T }): T => callbacks[str]()
 
