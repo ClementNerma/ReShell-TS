@@ -34,15 +34,15 @@ export function nothing(): Parser<void> {
 }
 
 export function fail<T>(error?: ErrInputData): Parser<T> {
-  return (start, _, context) => err(start, context, error)
+  return (start, _, context) => err(start, start, context, error)
 }
 
 export function failWith<T>(error: (input: string, context: ParsingContext, loc: CodeLoc) => ErrInputData): Parser<T> {
-  return (start, input, context) => err(start, context, error(input, context, start))
+  return (start, input, context) => err(start, start, context, error(input, context, start))
 }
 
 export function never<T>(error?: ErrInputData): Parser<T> {
-  return (start, _, context) => err(start, context, error)
+  return (start, _, context) => err(start, start, context, error)
 }
 
 export function inspect<T>(parser: Parser<T>, inspector: (result: ParserResult<T>) => void): Parser<T> {
@@ -69,7 +69,7 @@ export function not<T>(parser: Parser<T>, options?: LookaheadOptions): Parser<vo
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     return parsed.ok || parsed.precedence === options?.precedencePassthrough
-      ? err(start, context, options?.error)
+      ? err(start, start, context, options?.error)
       : neutralError(start)
   }
 }
@@ -81,7 +81,7 @@ export function notFollowedBy<T>(parser: Parser<T>, by: Parser<T>, options?: Loo
 
     const following = lookahead(parser)(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
     return following.ok || following.precedence === options?.precedencePassthrough
-      ? err(start, context, options?.error)
+      ? err(start, start, context, options?.error)
       : parsed
   }
 }
@@ -92,6 +92,6 @@ export function followedBy<T>(parser: Parser<T>, error?: ErrInputData): Parser<T
     if (!parsed.ok) return parsed
 
     const following = lookahead(parser)(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
-    return following.ok ? parsed : err(start, context, error)
+    return following.ok ? parsed : err(start, start, context, error)
   }
 }

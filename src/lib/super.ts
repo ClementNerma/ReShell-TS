@@ -30,14 +30,14 @@ export function fullSource<T>(
   errors?: { bos?: ErrInputData; error?: WithErrData; eos?: ErrInputData }
 ): Parser<T> {
   return (start, input, context) => {
-    if (start.col !== 0 || start.line !== 0) return err(start, context, errors?.bos)
+    if (start.col !== 0 || start.line !== 0) return err(start, start, context, errors?.bos)
 
     const parsed = parser(start, input, context)
     if (!parsed.ok) return withErr(parsed, context, errors?.error)
 
     const remaining = sliceInput(input, start, parsed.data.next)
 
-    if (remaining.length > 0) return err(parsed.data.next, context, errors?.eos)
+    if (remaining.length > 0) return err(parsed.data.next, parsed.data.next, context, errors?.eos)
 
     return parsed
   }

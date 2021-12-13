@@ -5,8 +5,14 @@ import { matches } from './raw'
 export function exact<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     return input.startsWith(candidate)
-      ? success(start, addCols(start, candidate.length), candidate, candidate)
-      : err(start, context, error)
+      ? success(
+          start,
+          addCols(start, candidate.length > 0 ? candidate.length - 1 : 0),
+          addCols(start, candidate.length),
+          candidate,
+          candidate
+        )
+      : err(start, start, context, error)
   }
 }
 
@@ -14,51 +20,70 @@ export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputDa
   return (start, input, context) => {
     const match = candidates.find((c) => input.startsWith(c))
 
-    if (match === undefined) return err(start, context, error)
-
-    const end = addCols(start, match.length)
+    if (match === undefined) return err(start, start, context, error)
 
     return matches(input.substr(match.length), unicodeAlphanumericUnderscore, null)
-      ? err(start, context, error)
-      : success(start, end, match, match)
+      ? err(start, start, context, error)
+      : success(
+          start,
+          addCols(start, match.length > 0 ? match.length - 1 : 0),
+          addCols(start, match.length),
+          match,
+          match
+        )
   }
 }
 
 export function word<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
-    if (!input.startsWith(candidate)) return err(start, context, error)
-
-    const end = addCols(start, candidate.length)
+    if (!input.startsWith(candidate)) return err(start, start, context, error)
 
     return matches(input.substr(candidate.length), unicodeAlphanumericUnderscore, null)
-      ? err(start, context, error)
-      : success(start, end, candidate, candidate)
+      ? err(start, start, context, error)
+      : success(
+          start,
+          addCols(start, candidate.length > 0 ? candidate.length - 1 : 0),
+          addCols(start, candidate.length),
+          candidate,
+          candidate
+        )
   }
 }
 
 export function char(regex: RegExp, error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
     input.charAt(0).match(regex)
-      ? success(start, addCols(start, 1), input.charAt(0), input.charAt(0))
-      : err(start, context, error)
+      ? success(start, start, addCols(start, 1), input.charAt(0), input.charAt(0))
+      : err(start, start, context, error)
 }
 
 export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
   return (start, input, context) => {
     const match = input.match(regex)
-    if (!match || match.index !== 0) return err(start, context, error)
+    if (!match || match.index !== 0) return err(start, start, context, error)
 
     const parsed = match[0]
     const matched = input.substr(0, parsed.length)
 
     if (!parsed.includes('\n')) {
-      return success(start, addCols(start, parsed.length), parsed, matched)
+      return success(
+        start,
+        addCols(start, parsed.length > 0 ? parsed.length - 1 : 0),
+        addCols(start, parsed.length),
+        parsed,
+        matched
+      )
     }
 
     const matchedLines = parsed.split(/\n/)
 
     return success(
       start,
+      matchedLines.length === 1
+        ? addCols(start, matched.length > 0 ? matched.length - 1 : 0)
+        : matchedLines[matchedLines.length - 1].length === 0
+        ? { line: matchedLines.length - 2, col: matchedLines[matchedLines.length - 2].length }
+        : { line: matchedLines.length - 1, col: matchedLines[matchedLines.length - 1].length - 1 },
       addLoc(start, { line: matchedLines.length - 1, col: matchedLines[matchedLines.length - 1].length }),
       parsed,
       matched
@@ -70,8 +95,14 @@ export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, 
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), mapper(match), input.substr(0, match[0].length))
-      : err(start, context, error)
+      ? success(
+          start,
+          addCols(start, match[0].length > 0 ? match[0].length - 1 : 0),
+          addCols(start, match[0].length),
+          mapper(match),
+          input.substr(0, match[0].length)
+        )
+      : err(start, start, context, error)
   }
 }
 
@@ -79,8 +110,14 @@ export function regexRaw(regex: RegExp, error?: ErrInputData): Parser<RegExpMatc
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), match, input.substr(0, match[0].length))
-      : err(start, context, error)
+      ? success(
+          start,
+          addCols(start, match[0].length > 0 ? match[0].length - 1 : 0),
+          addCols(start, match[0].length),
+          match,
+          input.substr(0, match[0].length)
+        )
+      : err(start, start, context, error)
   }
 }
 
@@ -88,11 +125,17 @@ export function oneOf(candidates: string[], error?: ErrInputData): Parser<string
   return (start, input, context) => {
     for (const candidate of candidates) {
       if (input.startsWith(candidate)) {
-        return success(start, addCols(start, candidate.length), candidate, candidate)
+        return success(
+          start,
+          addCols(start, candidate.length > 0 ? candidate.length - 1 : 0),
+          addCols(start, candidate.length),
+          candidate,
+          candidate
+        )
       }
     }
 
-    return err(start, context, error)
+    return err(start, start, context, error)
   }
 }
 
@@ -100,33 +143,40 @@ export function oneOfMap<T>(candidates: [string, T][], error?: ErrInputData): Pa
   return (start, input, context) => {
     for (const [candidate, parsed] of candidates) {
       if (input.startsWith(candidate)) {
-        return success(start, addCols(start, candidate.length), parsed, candidate)
+        return success(
+          start,
+          addCols(start, candidate.length > 0 ? candidate.length - 1 : 0),
+          addCols(start, candidate.length),
+          parsed,
+          candidate
+        )
       }
     }
 
-    return err(start, context, error)
+    return err(start, start, context, error)
   }
 }
 
 export function bol(error?: ErrInputData): Parser<void> {
-  return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, context, error))
+  return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, start, context, error))
 }
 
 export function eol(error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
     input.length === 0
-      ? success(start, start, '', '')
+      ? success(start, start, start, '', '')
       : input.charAt(0) === '\n'
-      ? success(start, addLoc(start, { line: 1, col: 0 }), '\n', '\n')
-      : err(start, context, error)
+      ? success(start, start, addLoc(start, { line: 1, col: 0 }), '\n', '\n')
+      : err(start, start, context, error)
 }
 
 export function bos(error?: ErrInputData): Parser<void> {
-  return (start, _, context) => (start.col === 0 && start.line === 0 ? neutralError(start) : err(start, context, error))
+  return (start, _, context) =>
+    start.col === 0 && start.line === 0 ? neutralError(start) : err(start, start, context, error)
 }
 
 export function eos(error?: ErrInputData): Parser<void> {
-  return (start, input, context) => (input.length === 0 ? neutralError(start) : err(start, context, error))
+  return (start, input, context) => (input.length === 0 ? neutralError(start) : err(start, start, context, error))
 }
 
 /**
@@ -143,6 +193,8 @@ export function failWithPrecedenceIf<T>(parser: Parser<T>, error: string, pos: '
 
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(before ? start : parsed.data.next, context, error) : { ...parsed, precedence: false }
+    return parsed.ok
+      ? err(before ? start : parsed.data.next, before ? start : parsed.data.next, context, error)
+      : { ...parsed, precedence: false }
   }
 }

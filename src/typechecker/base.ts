@@ -1,5 +1,5 @@
-import { buildFormatableExtract, FormatableError, FormatableExtract, FormatableExtractsInput } from '../shared/errors'
-import { CodeLoc, FnType, ValueType } from '../shared/parsed'
+import { FormatableError, FormatableExtract, FormatableExtractsInput, formattableExtract } from '../shared/errors'
+import { CodeLoc, FnType, Token, ValueType } from '../shared/parsed'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
@@ -24,15 +24,15 @@ export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (
   err: FormatableExtractsInput | { error: FormatableExtractsInput; also: FormatableExtract[] },
-  loc: CodeLoc
+  at: Token<unknown>
 ): TypecheckerErr =>
   typeof err === 'object' && 'also' in err
-    ? { ok: false, error: buildFormatableExtract(loc, err.error), also: err.also }
-    : { ok: false, error: buildFormatableExtract(loc, err), also: [] }
+    ? { ok: false, error: formattableExtract(at, err.error), also: err.also }
+    : { ok: false, error: formattableExtract(at, err), also: [] }
 
-export type Located<T> = { loc: CodeLoc; data: T }
+export type Located<T> = { start: CodeLoc; end: CodeLoc; data: T }
 
-export const located = <T>(loc: CodeLoc, data: T): Located<T> => ({ loc, data })
+export const located = <T>(start: CodeLoc, end: CodeLoc, data: T): Located<T> => ({ start, end, data })
 
 // export const tokenToLocated = <T>(token: Token<T>): Located<T> => ({ loc: token.start, data: token.parsed })
 

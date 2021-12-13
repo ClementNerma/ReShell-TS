@@ -1,4 +1,4 @@
-import { buildFormatableExtract, FormatableExtract, FormatableExtractsInput } from '../shared/errors'
+import { FormatableExtract, FormatableExtractsInput, formattableExtract } from '../shared/errors'
 import { CodeLoc, Token } from '../shared/parsed'
 
 export type ParserResult<T> = ParserSucess<T> | ParserErr
@@ -12,7 +12,8 @@ export type ParserErr = {
   ok: false
   stack: ParserErrStackEntry[]
   precedence: boolean
-  loc: CodeLoc
+  start: CodeLoc
+  end: CodeLoc
   context: ParsingContext
 }
 
@@ -47,6 +48,7 @@ export type Parser<T> = (start: CodeLoc, input: string, ctx: ParsingContext) => 
 
 export function success<T>(
   start: CodeLoc,
+  end: CodeLoc,
   next: CodeLoc,
   parsed: T,
   matched: string,
@@ -54,7 +56,7 @@ export function success<T>(
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
-    data: { matched, parsed, neutralError: neutralError ?? false, start, next },
+    data: { matched, parsed, neutralError: neutralError ?? false, start, end, next },
   }
 }
 
@@ -68,6 +70,7 @@ export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<Parse
       parsed: neutralValue!,
       neutralError: true,
       start,
+      end: start,
       next: start,
     },
   }
@@ -76,23 +79,26 @@ export function neutralError<T>(start: CodeLoc, neutralValue?: T): Extract<Parse
 export type ErrInputData = null | FormatableExtractsInput | ParserErr['stack']
 
 export function err(
-  loc: CodeLoc,
+  start: CodeLoc,
+  end: CodeLoc,
   context: ParsingContext,
   errData?: ErrInputData,
   also?: FormatableExtract[],
   precedence?: boolean
 ): ParserErr {
-  return errData === undefined || errData === null
-    ? { ok: false, stack: [], precedence: precedence ?? false, loc, context }
-    : {
-        ok: false,
-        stack: Array.isArray(errData)
-          ? errData
-          : [{ context, error: buildFormatableExtract(loc, errData), also: also ?? [] }],
-        precedence: precedence ?? true,
-        loc,
-        context,
-      }
+  return {
+    ok: false,
+    stack:
+      errData === undefined || errData === null
+        ? []
+        : Array.isArray(errData)
+        ? errData
+        : [{ context, error: formattableExtract({ start, end }, errData), also: also ?? [] }],
+    precedence: precedence ?? (errData !== undefined && errData !== null),
+    start,
+    end,
+    context,
+  }
 }
 
 export function addLoc(start: CodeLoc, add: CodeLoc): CodeLoc {
@@ -131,12 +137,10 @@ export function withErr(error: ParserErr, context: ParsingContext, mapping: With
   if (mapping !== undefined) {
     const data = typeof mapping === 'function' ? mapping(error) : mapping
 
-    const loc = error.loc
-
     error.stack.push(
       typeof data === 'object' && 'also' in data
-        ? { context, error: buildFormatableExtract(loc, data.error), also: data.also }
-        : { context, error: buildFormatableExtract(loc, data), also: [] }
+        ? { context, error: formattableExtract({ start: error.start, end: error.end }, data.error), also: data.also }
+        : { context, error: formattableExtract({ start: error.start, end: error.end }, data), also: [] }
     )
 
     error.precedence = true

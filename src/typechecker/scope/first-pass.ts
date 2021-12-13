@@ -19,21 +19,21 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       switch (sub.parsed.type) {
         case 'typeAlias':
-          const typename = sub.parsed.typename.parsed
+          const typename = sub.parsed.typename
 
-          const typeUnicity = ensureScopeUnicity({ name: typename, loc: sub.parsed.typename.start, firstPass }, ctx)
+          const typeUnicity = ensureScopeUnicity({ name: typename, firstPass }, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
-          firstPass.typeAliases.set(typename, located(sub.start, sub.parsed.content.parsed))
+          firstPass.typeAliases.set(typename.parsed, located(typename.start, typename.end, sub.parsed.content.parsed))
           break
 
         case 'fnDecl':
-          const fnName = sub.parsed.name.parsed
+          const fnName = sub.parsed.name
 
-          const fnUnicity = ensureScopeUnicity({ name: fnName, loc: sub.parsed.name.start, firstPass }, ctx)
+          const fnUnicity = ensureScopeUnicity({ name: fnName, firstPass }, ctx)
           if (!fnUnicity.ok) return fnUnicity
 
-          firstPass.functions.set(fnName, located(sub.start, sub.parsed.fnType))
+          firstPass.functions.set(fnName.parsed, located(fnName.start, fnName.end, sub.parsed.fnType))
           break
       }
     }

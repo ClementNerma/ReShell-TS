@@ -1,4 +1,5 @@
-import { CodeLoc, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
+import { formattableExtract } from '../../shared/errors'
+import { StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
@@ -9,7 +10,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
   const { expectedType } = ctx
 
   if (expectedType?.inner.type === 'implicit') {
-    return err('Internal error: expected type is set as implicit while evaluating value type', value.start)
+    return err('Internal error: expected type is set as implicit while evaluating value type', value)
   }
 
   return matchUnion(value.parsed)('type', {
@@ -22,7 +23,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               ['Tip', 'Usage of "null" values require to be able to determine the type of the parent expression'],
             ],
           },
-          value.start
+          value
         )
       }
 
@@ -35,7 +36,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               ['Found', 'void'],
             ],
           },
-          value.start
+          value
         )
       }
       return success(expectedType)
@@ -48,7 +49,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               expectedType,
               foundType: type,
             },
-            value.start
+            value
           )
         : success({ nullable: false, inner: { type } }),
 
@@ -59,7 +60,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               expectedType,
               foundType: type,
             },
-            value.start
+            value
           )
         : success({ nullable: false, inner: { type } }),
 
@@ -70,7 +71,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               expectedType,
               foundType: type,
             },
-            value.start
+            value
           )
         : success({ nullable: false, inner: { type } }),
 
@@ -81,7 +82,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               expectedType,
               foundType: type,
             },
-            value.start
+            value
           )
         : success({ nullable: false, inner: { type } }),
 
@@ -138,14 +139,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     list: ({ items: { parsed: items } }) => {
       if (items.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this list', value.start)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this list', value)
       }
 
       let expectedItemType: ValueType | null = null
 
       if (expectedType) {
         if (expectedType.inner.type !== 'list') {
-          return errIncompatibleValueType({ expectedType, foundType: 'list' }, value.start)
+          return errIncompatibleValueType({ expectedType, foundType: 'list' }, value)
         }
 
         expectedItemType = expectedType.inner.itemsType
@@ -166,14 +167,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     map: ({ entries: { parsed: entries } }) => {
       if (entries.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value.start)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
       }
 
       let expectedItemType: ValueType | null = null
 
       if (expectedType) {
         if (expectedType.inner.type !== 'map') {
-          return errIncompatibleValueType({ expectedType, foundType: 'map' }, value.start)
+          return errIncompatibleValueType({ expectedType, foundType: 'map' }, value)
         }
 
         expectedItemType = expectedType.inner.itemsType
@@ -191,16 +192,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           return err(
             {
               message: 'A key with this name was already declared above',
-              length: key.next.col - key.start.col,
-              also: [
-                {
-                  loc: duplicate.start,
-                  message: 'Original declaration occurs here',
-                  length: duplicate.next.col - duplicate.start.col,
-                },
-              ],
+              also: [formattableExtract(duplicate, 'Original declaration occurs here')],
             },
-            key.start
+            key
           )
         }
 
@@ -217,14 +211,14 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
     struct: ({ members: { parsed: members } }) => {
       if (members.length === 0) {
-        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value.start)
+        return expectedType ? success(expectedType) : err('Unable to determine the type of this map', value)
       }
 
       let expectedMembers: Map<string, ValueType> | null = null
 
       if (expectedType) {
         if (expectedType.inner.type !== 'struct') {
-          return errIncompatibleValueType({ expectedType, foundType: 'struct' }, value.start)
+          return errIncompatibleValueType({ expectedType, foundType: 'struct' }, value)
         }
 
         expectedMembers = new Map()
@@ -244,16 +238,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
           return err(
             {
               message: 'A member with this name was already declared above',
-              length: name.parsed.length,
-              also: [
-                {
-                  loc: duplicate.start,
-                  message: 'Original declaration occurs here',
-                  length: duplicate.parsed.length,
-                },
-              ],
+              also: [formattableExtract(duplicate, 'Original declaration occurs here')],
             },
-            name.start
+            name
           )
         }
 
@@ -270,7 +257,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
                 message: `Unknown member "${name.parsed}"`,
                 complements: [['Expected', rebuildType(expectedType!)]],
               },
-              name.start
+              name
             )
           }
 
@@ -299,8 +286,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     },
 
     reference: ({ varname }) => {
-      const referencedVar = getVariableInScope({ name: varname.parsed, loc: varname.start }, ctx)
-      const referencedFn = getFunctionInScope({ name: varname.parsed, loc: varname.start }, ctx)
+      const referencedVar = getVariableInScope(varname, ctx)
+      const referencedFn = getFunctionInScope(varname, ctx)
 
       let foundType: ValueType
 
@@ -309,7 +296,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       } else if (referencedFn.ok) {
         foundType = { nullable: false, inner: { type: 'fn', fnType: referencedFn.data.data } }
       } else {
-        return err(`Referenced variable "${varname.parsed}" was not found in this scope`, value.start)
+        return err(`Referenced variable "${varname.parsed}" was not found in this scope`, value)
       }
 
       if (!expectedType) {
@@ -328,7 +315,7 @@ const errIncompatibleValueType = (
     expectedType,
     foundType,
   }: { text?: string; expectedType: ValueType; foundType: ValueType | ValueType['inner']['type'] },
-  loc: CodeLoc
+  value: Token<Value>
 ) =>
   err(
     {
@@ -338,7 +325,7 @@ const errIncompatibleValueType = (
         ['Found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
       ],
     },
-    loc
+    value
   )
 
 // export const isStringifyableType = ({ nullable, inner: { type: typeType } }: ValueType) =>

@@ -1,5 +1,5 @@
-import { CodeLoc } from '../../shared/parsed'
-import { err, Scope, ScopeFn, ScopeTypeAlias, ScopeVar, success, Typechecker, TypecheckerErr } from '../base'
+import { Token } from '../../shared/parsed'
+import { err, Located, Scope, ScopeFn, ScopeTypeAlias, ScopeVar, success, Typechecker, TypecheckerErr } from '../base'
 import { ScopeFirstPass } from './first-pass'
 
 export const categoryMapping: { [key in keyof Scope]: string } = {
@@ -8,80 +8,71 @@ export const categoryMapping: { [key in keyof Scope]: string } = {
   variables: 'variable',
 }
 
-export const ensureScopeUnicity: Typechecker<{ name: string; loc: CodeLoc; firstPass?: ScopeFirstPass }, void> = (
-  { name, loc, firstPass },
+export const ensureScopeUnicity: Typechecker<{ name: Token<string>; firstPass?: ScopeFirstPass }, void> = (
+  { name, firstPass },
   { scopes }
 ) => {
   if (firstPass) {
     for (const [category, map] of Object.entries(firstPass)) {
-      const orig = map.get(name)
-      if (orig) return generateDuplicateDeclError(name, categoryMapping[category as keyof Scope], loc, orig.loc)
+      const orig = map.get(name.parsed)
+      if (orig) return generateDuplicateDeclError(name.parsed, categoryMapping[category as keyof Scope], name, orig)
     }
   }
 
   if (scopes.length > 0) {
     for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
-      const orig = map.get(name)
-      if (orig) return generateDuplicateDeclError(name, categoryMapping[category as keyof Scope], loc, orig.loc)
+      const orig = map.get(name.parsed)
+      if (orig) return generateDuplicateDeclError(name.parsed, categoryMapping[category as keyof Scope], name, orig)
     }
   }
 
   return success(void 0)
 }
 
-export const getTypeAliasInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeTypeAlias> = (
-  { name, loc },
-  { scopes }
-) => {
+export const getTypeAliasInScope: Typechecker<Token<string>, ScopeTypeAlias> = (name, { scopes }) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeType = scopes[s].typeAliases.get(name)
+    const scopeType = scopes[s].typeAliases.get(name.parsed)
     if (scopeType) return success(scopeType)
   }
 
-  return err({ message: 'Type not found in this scope', length: name.length }, loc)
+  return err({ message: 'Type not found in this scope' }, name)
 }
 
-export const getFunctionInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeFn> = ({ name, loc }, { scopes }) => {
+export const getFunctionInScope: Typechecker<Token<string>, ScopeFn> = (name, { scopes }) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeFn = scopes[s].functions.get(name)
+    const scopeFn = scopes[s].functions.get(name.parsed)
     if (scopeFn) return success(scopeFn)
   }
 
-  return err({ message: 'Function not found in this scope', length: name.length }, loc)
+  return err({ message: 'Function not found in this scope' }, name)
 }
 
-export const getVariableInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeVar> = (
-  { name, loc },
-  { scopes }
-) => {
+export const getVariableInScope: Typechecker<Token<string>, ScopeVar> = (name, { scopes }) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
-    const scopeVar = scopes[s].variables.get(name)
+    const scopeVar = scopes[s].variables.get(name.parsed)
     if (scopeVar) return success(scopeVar)
   }
 
-  return err({ message: 'Variable not found in this scope', length: name.length }, loc)
+  return err({ message: 'Variable not found in this scope' }, name)
 }
 
 export const generateDuplicateDeclError = (
   name: string,
   category: string,
-  duplicateLoc: CodeLoc,
-  originalLoc: CodeLoc
+  duplicate: Token<string>,
+  original: Located<unknown>
 ): TypecheckerErr =>
   err(
     {
-      error: {
-        message: `A ${category} with this name was previously declared in this scope`,
-        length: name.length,
-      },
+      error: `A ${category} with this name was previously declared in this scope`,
       also: [
         {
-          loc: originalLoc,
-          length: name.length,
+          start: original.start,
+          end: original.end,
           message: 'Original declaration occurs here',
           complements: [],
         },
       ],
     },
-    duplicateLoc
+    duplicate
   )

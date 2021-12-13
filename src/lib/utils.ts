@@ -60,5 +60,5 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
 }
 
 export function getErrorInput(err: ParserErr): string {
-  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.loc)
+  return sliceInput(err.context.source.ref, { line: 0, col: 0 }, err.start)
 }

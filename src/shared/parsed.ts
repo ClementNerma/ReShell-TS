@@ -12,7 +12,12 @@ export type CodeLoc = {
   col: number
 }
 
-export type Token<T> = { parsed: T; matched: string; neutralError: boolean; start: CodeLoc; next: CodeLoc }
+export type CodeSection = {
+  start: CodeLoc
+  end: CodeLoc
+}
+
+export type Token<T> = { parsed: T; matched: string; neutralError: boolean } & CodeSection & { next: CodeLoc }
 
 // ============== //
 

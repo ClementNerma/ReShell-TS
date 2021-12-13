@@ -13,10 +13,11 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const parsed: Token<T>[] = []
     const matched: string[] = []
     let interMadeExpectation = false
-    let beforeInterMatching: CodeLoc | null = null
+    let beforeInterMatching: { next: CodeLoc; end: CodeLoc } | null = null
     let lastWasNeutralError = false
 
-    let loc = { ...start }
+    let end = { ...start }
+    let next = { ...start }
     let iter = 0
 
     while (true) {
@@ -30,7 +31,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         },
       }
 
-      const result = parser(loc, input, iterContext)
+      const result = parser(next, input, iterContext)
 
       if (!result.ok) {
         if (interMadeExpectation || result.precedence) {
@@ -38,7 +39,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         }
 
         if (beforeInterMatching) {
-          loc = beforeInterMatching
+          next = beforeInterMatching.next
+          end = beforeInterMatching.end
           matched.pop()
         }
 
@@ -49,8 +51,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
       lastWasNeutralError = data.neutralError
 
-      input = sliceInput(input, loc, data.next)
-      loc = data.next
+      input = sliceInput(input, next, data.next)
+      next = data.next
 
       parsed.push(data)
       matched.push(data.matched)
@@ -60,21 +62,22 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
 
       if (options?.inter) {
-        const interResult = options.inter(loc, input, iterContext)
+        const interResult = options.inter(next, input, iterContext)
 
         if (!interResult.ok) {
           if (data.neutralError) {
             continue
           } else {
-            return success(start, loc, parsed, matched.join(''))
+            return success(start, end, next, parsed, matched.join(''))
           }
         }
 
         const { data: interData } = interResult
 
-        beforeInterMatching = loc
-        input = sliceInput(input, loc, interData.next)
-        loc = interData.next
+        beforeInterMatching = { end, next }
+        input = sliceInput(input, next, interData.next)
+        end = interData.end
+        next = interData.next
 
         matched.push(interData.matched)
 
@@ -84,7 +87,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
     }
 
-    return success(start, loc, parsed, matched.join(''))
+    return success(start, end, next, parsed, matched.join(''))
   }
 }
 
@@ -93,7 +96,7 @@ export function takeWhile1<T>(
   options?: TakeWhileOptions & { noMatchError?: ErrInputData }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
-    parsed.data.parsed.length === 0 ? err(parsed.data.start, context, options?.noMatchError) : parsed
+    parsed.data.parsed.length === 0 ? err(parsed.data.start, parsed.data.end, context, options?.noMatchError) : parsed
   )
 }
 
@@ -102,6 +105,8 @@ export function takeWhileN<T>(
   options: TakeWhileOptions & { noMatchError?: ErrInputData; minimum: number }
 ): Parser<Token<T>[]> {
   return then(takeWhile(parser, options), (parsed, context) =>
-    parsed.data.parsed.length < options.minimum ? err(parsed.data.start, context, options?.noMatchError) : parsed
+    parsed.data.parsed.length < options.minimum
+      ? err(parsed.data.start, parsed.data.end, context, options?.noMatchError)
+      : parsed
   )
 }

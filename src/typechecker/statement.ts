@@ -22,7 +22,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       const subResult: TypecheckerErr | false = matchUnion(sub.parsed)('type', {
         variableDecl: ({ varname, vartype, mutable, expr }) => {
-          const unicity = ensureScopeUnicity({ name: varname.parsed, loc: varname.start }, { ...ctx, scopes })
+          const unicity = ensureScopeUnicity({ name: varname }, { ...ctx, scopes })
           if (!unicity.ok) return unicity
 
           let expectedType: ValueType | null = null
@@ -39,7 +39,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           scope.variables.set(
             varname.parsed,
-            located(varname.start, { mutable: mutable.parsed, type: validation.data })
+            located(varname.start, varname.end, { mutable: mutable.parsed, type: validation.data })
           )
 
           return false

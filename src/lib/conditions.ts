@@ -34,20 +34,20 @@ export function failIf(
   error?: ErrInputData
 ): Parser<void> {
   return (start, input, context) =>
-    cond(input, context, start) ? err(start, context, error) : success(start, start, void 0, '')
+    cond(input, context, start) ? err(start, start, context, error) : success(start, start, start, void 0, '')
 }
 
 export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Parser<void> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(start, context, error) : success(start, start, void 0, '')
+    return parsed.ok ? err(start, start, context, error) : success(start, start, start, void 0, '')
   }
 }
 
 export function failIfMatchesElse<T>(parser: Parser<unknown>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
-    return parsed.ok ? err(start, context) : els(start, input, context)
+    return parsed.ok ? err(start, start, context) : els(start, input, context)
   }
 }
 
@@ -59,7 +59,7 @@ export function failIfMatchesAndCond<T>(
   return (start, input, context) => {
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
-    return cond(parsed.data.parsed, parsed.data) ? err(start, context, error) : parsed
+    return cond(parsed.data.parsed, parsed.data) ? err(start, start, context, error) : parsed
   }
 }
 
@@ -69,7 +69,7 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
     if (!parsed.ok) return parsed
 
     const not = notFollowedBy(parsed.data.next, sliceInput(input, start, parsed.data.next), context)
-    return not.ok ? err(start, context, error) : parsed
+    return not.ok ? err(start, start, context, error) : parsed
   }
 }
 

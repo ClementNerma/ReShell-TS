@@ -26,7 +26,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
         ctx
       ),
     aliasRef: ({ typeAliasName }) => {
-      const typeAlias = getTypeAliasInScope({ name: typeAliasName.parsed, loc: typeAliasName.start }, ctx)
+      const typeAlias = getTypeAliasInScope(typeAliasName, ctx)
       return typeAlias.ok ? success(void 0) : typeAlias
     },
     unknown: () => success(void 0),
