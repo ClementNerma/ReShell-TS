@@ -1,6 +1,5 @@
 import { spawnSync } from 'child_process'
 import { Statement } from '../shared/ast'
-import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchUnion } from '../shared/utils'
@@ -345,15 +344,9 @@ export const runStatement: Runner<Token<Statement>> = (stmt, ctx) =>
       // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
       return cmd.error
-        ? {
-            ok: false,
-            diag: diagnostic(stmt.at, 'spawn error: ' + cmd.error.message, DiagnosticLevel.Error),
-          }
+        ? err(stmt.at, 'spawn error: ' + cmd.error.message)
         : cmd.status !== null && cmd.status !== 0
-        ? {
-            ok: false,
-            diag: diagnostic(stmt.at, 'command failed with status ' + cmd.status.toString(), DiagnosticLevel.Error),
-          }
+        ? err(stmt.at, 'command failed with status ' + cmd.status.toString())
         : success(void 0)
     },
 
