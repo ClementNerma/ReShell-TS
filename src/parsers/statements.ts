@@ -51,7 +51,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
             ([_, type]) => type
           )
         ),
-        combine(maybe_s, exact('=', 'expected an assignment symbol (=)'), maybe_s),
+        combine(maybe_s, exact('=', 'expected an assignment symbol (=)'), maybe_s_nl),
         failure(expr, 'expected an expression')
       ),
 
