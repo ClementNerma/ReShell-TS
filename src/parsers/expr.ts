@@ -81,7 +81,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
                 ),
                 ([_, cond, __, expr]) => ({ cond, expr })
               ),
-              { inter: maybe_s_nl }
+              { inter: maybe_s_nl, interExpect: false }
             )
           ),
           combine(

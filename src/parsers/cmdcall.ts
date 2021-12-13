@@ -36,7 +36,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
                   'invalid argument provided'
                 )
               ),
-              { inter: s }
+              { inter: s, interExpect: false }
             )
           ),
           ([name, _, { parsed: args }]) => ({ name, args })

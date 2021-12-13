@@ -65,7 +65,7 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
               ),
               {
                 inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-                interMatchingMakesExpectation: true,
+                interExpect: 'expected another struct member',
                 noMatchError: 'please provide at least one member in the struct',
               }
             )

@@ -109,7 +109,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
               ),
               ([_, cond, __, { parsed: body }]) => ({ cond, body })
             ),
-            { inter: maybe_s_nl }
+            { inter: maybe_s_nl, interExpect: false }
           )
         ),
         maybe(
@@ -305,7 +305,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
               ),
               takeWhile(identifier, {
                 inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-                interMatchingMakesExpectation: 'expected an identifier to import',
+                interExpect: 'expected an identifier to import',
               }),
               maybe_s_nl,
               exact('}', 'expected a closing brace (})')
@@ -353,7 +353,7 @@ export const statementChainFree: Parser<StatementChain> = map(
           ([_, op, __, chainedStatement]): ChainedStatement => ({ op, chainedStatement })
         )
       ),
-      { inter: maybe_s }
+      { inter: maybe_s, interExpect: false }
     ),
     endOfStatementChain
   ),

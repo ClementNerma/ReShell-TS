@@ -105,7 +105,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ),
         {
           inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          interMatchingMakesExpectation: 'expected an argument name',
+          interExpect: 'expected an argument name',
         }
       ),
       combine(maybe_s_nl, exact(')', "expected a closing paren ')'")),

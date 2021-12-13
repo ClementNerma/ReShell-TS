@@ -97,7 +97,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         combine(exact('['), maybe_s_nl),
         takeWhile(
           withLatelyDeclared(() => expr),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: false }
         ),
         combine(maybe_s_nl, exact(']', "expected a closing bracket (]) to end the list's content"))
       ),
@@ -124,7 +124,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-            interMatchingMakesExpectation: 'expected either a key name, or a closing parenthesis ")" to close the map',
+            interExpect: 'expected either a key name, or a closing parenthesis ")" to close the map',
           }
         )
       ),
@@ -148,8 +148,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-            interMatchingMakesExpectation:
-              'expected either a member name, or a closing brace (}) to close the structure',
+            interExpect: 'expected either a member name, or a closing brace (}) to close the structure',
           }
         )
       ),
@@ -192,7 +191,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               'invalid argument provided'
             )
           ),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: false }
         )
       ),
       combine(maybe_s_nl, exact(')', 'expected a closing parenthesis to end the list of arguments'))
@@ -228,7 +227,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
           ),
           ([_, op, __, chainedCmdCall]) => ({ op, chainedCmdCall })
         ),
-        { inter: maybe_s }
+        { inter: maybe_s, interExpect: false }
       ),
       combine(maybe_s_nl, exact(')', "expected closing paren ')' after inline command call"))
     ),
