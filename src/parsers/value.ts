@@ -15,7 +15,14 @@ import { withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse, maybe } from './lib/conditions'
+import {
+  accelerateWithLookahead,
+  extract,
+  failIfMatches,
+  failIfMatchesAndCond,
+  failIfMatchesElse,
+  maybe,
+} from './lib/conditions'
 import { lookahead, not } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
@@ -219,13 +226,17 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         maybe_s_nl
       ),
       mappedCases<ClosureBody>()('type', {
-        block: toOneProp(
-          'body',
-          withStatementClosingChar(
-            '}',
-            withLatelyDeclared(() => blockBody)
+        block: accelerateWithLookahead(
+          exact('{'),
+          toOneProp(
+            'body',
+            withStatementClosingChar(
+              '}',
+              withLatelyDeclared(() => blockBody)
+            )
           )
         ),
+
         expr: map(
           withLatelyDeclared(() => expr),
           (_, body) => ({ body })
