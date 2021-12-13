@@ -128,12 +128,14 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     cmdCall: cmdCall(endOfCmdCallStatement),
   },
-  'Expected statement'
+  'Expected a statement'
 )
 
 export const statementChainFree: Parser<StatementChain> = map(
   combine(
+    maybe_s,
     statement,
+    maybe_s,
     takeWhile(
       failIfElse(
         endOfStatementChain,
@@ -148,10 +150,9 @@ export const statementChainFree: Parser<StatementChain> = map(
       ),
       { inter: maybe_s }
     ),
-    endOfStatementChain,
-    { inter: maybe_s }
+    endOfStatementChain
   ),
-  ([start, { parsed: sequence }]): StatementChain => ({
+  ([_, start, __, { parsed: sequence }]): StatementChain => ({
     type: 'chain',
     start,
     sequence,
