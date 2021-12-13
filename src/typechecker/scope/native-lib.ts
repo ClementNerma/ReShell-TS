@@ -1,5 +1,6 @@
 import {
   nativeLibraryFnTypes,
+  nativeLibraryMethodsTypes,
   nativeLibraryTypeAliases,
   nativeLibraryVarTypes,
   _forgeToken,
@@ -22,16 +23,20 @@ export function nativeLibraryScope(): Scope {
   const nativeLib: Scope = { generics: new Map(), methods: [], entities: new Map() }
 
   for (const [name, fnType] of Object.entries(nativeLibraryFnTypes)) {
-    if (fnType.parsed.method) {
-      nativeLib.methods.push({
-        at: fnType.at,
-        name: _forgeToken(name),
-        fnType: fnType.parsed,
-        infos: fnType.parsed.method,
-        forTypeWithoutGenerics: resolveGenerics(fnType.parsed.method.forType.parsed, 'unknown'),
-      })
-    } else {
-      nativeLib.entities.set(name, { type: 'fn', at: fnType.at, content: fnType.parsed })
+    nativeLib.entities.set(name, { type: 'fn', at: fnType.at, content: fnType.parsed })
+  }
+
+  for (const [name, variants] of Object.entries(nativeLibraryMethodsTypes)) {
+    for (const fnType of variants) {
+      if (fnType.parsed.method) {
+        nativeLib.methods.push({
+          at: fnType.at,
+          name: _forgeToken(name),
+          fnType: fnType.parsed,
+          infos: fnType.parsed.method,
+          forTypeWithoutGenerics: resolveGenerics(fnType.parsed.method.forType.parsed, 'unknown'),
+        })
+      }
     }
   }
 

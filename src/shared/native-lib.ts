@@ -24,15 +24,68 @@ export const nativeLibraryVarTypes = ensureValueTypes<ValueType>()({
 
 export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   // Numbers
+  rand: _buildNativeLibraryFn({
+    args: () => [{ optional: true, name: 'max', type: 'number' }],
+    returnType: () => 'number',
+  }),
+
+  // Failables
+  ok: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
+
+  err: _buildNativeLibraryFn({
+    generics: ['T', 'E'],
+    args: ({ E }) => [{ name: 'error', type: E }],
+    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
+  }),
+
+  // Type utilities
+  typed: _buildNativeLibraryFn({
+    generics: ['T'],
+    args: ({ T }) => [{ name: 'value', type: T }],
+    returnType: ({ T }) => T,
+  }),
+
+  // Debug utilities
+  debugStr: _buildNativeLibraryFn({
+    methodFor: () => 'unknown',
+    args: () => [{ flag: '--', name: 'pretty', type: 'bool' }],
+    returnType: () => 'string',
+  }),
+
+  dump: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'value', type: 'unknown' },
+      { flag: '--', name: 'pretty', type: 'bool' },
+    ],
+  }),
+
+  trace: _buildNativeLibraryFn({ args: () => [{ name: 'message', type: 'string', optional: true }] }),
+
+  // Terminal utilities
+  echo: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'message', type: 'string' },
+      { flag: '-', name: 'n', type: 'bool' },
+    ],
+  }),
+
+  // Filesystem utilities
+  ls: _buildNativeLibraryFn({
+    args: () => [{ name: 'path', type: 'path' }],
+    returnType: () => ({ type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } }),
+  }),
+})
+
+export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
+  // Numbers
   toFixed: _buildNativeLibraryFn({
     methodFor: () => 'number',
     args: () => [{ name: 'precision', type: 'number' }],
     returnType: () => 'string',
-  }),
-
-  rand: _buildNativeLibraryFn({
-    args: () => [{ optional: true, name: 'max', type: 'number' }],
-    returnType: () => 'number',
   }),
 
   // Strings
@@ -132,19 +185,6 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: () => 'path',
   }),
 
-  // Failables
-  ok: _buildNativeLibraryFn({
-    generics: ['T', 'E'],
-    args: ({ T }) => [{ name: 'value', type: T }],
-    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
-  }),
-
-  err: _buildNativeLibraryFn({
-    generics: ['T', 'E'],
-    args: ({ E }) => [{ name: 'error', type: E }],
-    returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
-  }),
-
   // Nullables
   unwrap: _buildNativeLibraryFn({
     generics: ['T'],
@@ -159,43 +199,6 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     args: () => [{ name: 'message', type: 'string' }],
     returnType: ({ T }) => T,
   }),
-
-  // Type utilities
-  typed: _buildNativeLibraryFn({
-    generics: ['T'],
-    args: ({ T }) => [{ name: 'value', type: T }],
-    returnType: ({ T }) => T,
-  }),
-
-  // Debug utilities
-  debugStr: _buildNativeLibraryFn({
-    methodFor: () => 'unknown',
-    args: () => [{ flag: '--', name: 'pretty', type: 'bool' }],
-    returnType: () => 'string',
-  }),
-
-  dump: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'value', type: 'unknown' },
-      { flag: '--', name: 'pretty', type: 'bool' },
-    ],
-  }),
-
-  trace: _buildNativeLibraryFn({ args: () => [{ name: 'message', type: 'string', optional: true }] }),
-
-  // Terminal utilities
-  echo: _buildNativeLibraryFn({
-    args: () => [
-      { name: 'message', type: 'string' },
-      { flag: '-', name: 'n', type: 'bool' },
-    ],
-  }),
-
-  // Filesystem utilities
-  ls: _buildNativeLibraryFn({
-    args: () => [{ name: 'path', type: 'path' }],
-    returnType: () => ({ type: 'list', itemsType: { type: 'aliasRef', typeAliasName: _forgeToken('LsItem') } }),
-  }),
 })
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Native library builder utilities ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
@@ -204,6 +207,18 @@ function ensureValueTypes<V>(): <K extends string>(obj: { [key in K]: V }) => { 
   return <K extends string>(obj: { [key in K]: V }) =>
     fromEntries<K, Token<V>>(
       Object.entries<V>(obj).map<[K, Token<V>]>(([name, value]) => [name as K, _forgeToken(value)])
+    )
+}
+
+function ensureArrayValuesType<V>(): <K extends string>(obj: { [key in K]: V | V[] }) => {
+  [key in K]: Token<V>[]
+} {
+  return <K extends string>(obj: { [key in K]: V | V[] }) =>
+    fromEntries<K, Token<V>[]>(
+      Object.entries<V | V[]>(obj).map<[K, Token<V>[]]>(([name, value]) => [
+        name as K,
+        Array.isArray(value) ? value.map((v) => _forgeToken(v)) : [_forgeToken(value)],
+      ])
     )
 }
 

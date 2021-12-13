@@ -6,7 +6,7 @@ import { matchUnion } from '../shared/utils'
 import { err, ExecValue, Runner, RunnerResult, success } from './base'
 import { runExpr } from './expr'
 import { executePrecompFnBody, RunnableFnContent } from './fncall'
-import { nativeLibraryFunctions } from './native-lib'
+import { nativeLibraryMethods } from './native-lib'
 
 export const runValueChainings: Runner<{ value: ExecValue; chainings: Token<ValueChaining>[] }, ExecValue> = (
   { value, chainings },
@@ -216,13 +216,13 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   if (method) {
     fn = { type: 'block', body: method.body }
   } else {
-    const method = nativeLibraryFunctions.get(call.name.parsed)
+    const method = nativeLibraryMethods.get(call.name.parsed)
 
-    if (method) {
-      fn = { type: 'native', exec: method }
-    } else {
+    if (!method) {
       return err(call.name.at, 'internal error: method not found from precomputed call data location')
     }
+
+    fn = { type: 'native', exec: method }
   }
 
   return executePrecompFnBody({ nameAt: call.name.at, fn, precomp, scopeMapping: null }, ctx)

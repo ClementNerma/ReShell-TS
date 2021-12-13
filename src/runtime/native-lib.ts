@@ -1,7 +1,7 @@
 import { lstatSync, readdirSync } from 'fs'
 import { isAbsolute, join } from 'path'
 import { ValueType } from '../shared/ast'
-import { nativeLibraryFnTypes, nativeLibraryVarTypes } from '../shared/native-lib'
+import { nativeLibraryFnTypes, nativeLibraryMethodsTypes, nativeLibraryVarTypes } from '../shared/native-lib'
 import { CodeSection } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, ExecValue, RunnerContext, RunnerResult, success } from './base'
@@ -30,15 +30,98 @@ type NativeFnInput = {
 
 export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, NativeFn>({
   // Numbers
+  rand: withArguments({ max: { nullable: 'number' } }, ({ max }) =>
+    success({ type: 'number', value: max.type === 'null' ? Math.random() : Math.floor(Math.random() * max.value) })
+  ),
+
+  // Failables
+  ok: withArguments({ value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
+
+  err: withArguments({ error: 'unknown' }, ({ error }) => success({ type: 'failable', success: false, value: error })),
+
+  // Type utilities
+  typed: withArguments({ value: 'unknown' }, ({ value }) => success(value)),
+
+  // Debug utilities
+  debugStr: withArguments({ self: 'unknown', pretty: 'bool' }, ({ self, pretty }, { ctx }) =>
+    success({
+      type: 'string',
+      value: valueToStr(self, pretty.value, false, ctx),
+    })
+  ),
+
+  dump: withArguments({ value: 'unknown', pretty: 'bool' }, ({ value, pretty }, { ctx, pipeTo }) => {
+    pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
+    return success(null)
+  }),
+
+  trace: withArguments({ message: { nullable: 'string' } }, ({ message }, { at, pipeTo }) => {
+    const file: string = matchUnion(at.start.file, 'type', {
+      entrypoint: ({ path }) => path,
+      file: ({ path }) => path,
+      internal: ({ path }) => `<internal:${path}>`,
+    })
+
+    let display = `[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`
+
+    if (message.type !== 'null') {
+      display += ' | ' + message.value
+    }
+
+    pipeTo.stdout.write(`${display}\n`)
+
+    return success(null)
+  }),
+
+  // Terminal utilities
+  echo: withArguments({ message: 'string', n: 'bool' }, ({ message, n }, { pipeTo }) => {
+    pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
+    return success(null)
+  }),
+
+  // Filesystem utilities
+  ls: withArguments({ path: { nullable: 'path' } }, ({ path }, { ctx }) => {
+    const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
+
+    return success({
+      type: 'list',
+      items: readdirSync(dir).map((name): ExecValue => {
+        const item = lstatSync(join(dir, name))
+
+        return {
+          type: 'struct',
+          members: new Map<string, ExecValue>([
+            [
+              'type',
+              item.isFile()
+                ? { type: 'enum', variant: 'File' }
+                : item.isDirectory()
+                ? { type: 'enum', variant: 'Dir' }
+                : item.isSymbolicLink()
+                ? { type: 'enum', variant: 'Symlink' }
+                : { type: 'enum', variant: 'Unknown' },
+            ],
+            ['name', { type: 'string', value: name }],
+            ['size', item.isFile() || item.isSymbolicLink() ? { type: 'number', value: item.size } : { type: 'null' }],
+            ['ctime', { type: 'number', value: item.ctime.getDate() }],
+            ['mtime', { type: 'number', value: item.mtime.getDate() }],
+            ['atime', { type: 'number', value: item.atime.getDate() }],
+          ]),
+        }
+      }),
+    })
+  }),
+})
+
+// NOTE: For methods that exist with the same name on multiple types (e.g. .len()), a single callback is provided
+//       and should handle all the variants.
+export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, NativeFn>({
+  // Numbers
   toFixed: withArguments({ self: 'number', precision: 'number' }, ({ self, precision }) =>
     success({
       type: 'string',
       value: self.value.toFixed(precision.value),
     })
-  ),
-
-  rand: withArguments({ max: { nullable: 'number' } }, ({ max }) =>
-    success({ type: 'number', value: max.type === 'null' ? Math.random() : Math.floor(Math.random() * max.value) })
   ),
 
   // Strings
@@ -145,11 +228,6 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     return success({ type: 'string', value: pieces.join(glue.value) })
   }),
 
-  // Failables
-  ok: withArguments({ value: 'unknown' }, ({ value }) => success({ type: 'failable', success: true, value })),
-
-  err: withArguments({ error: 'unknown' }, ({ error }) => success({ type: 'failable', success: false, value: error })),
-
   // Nullables
   unwrap: withArguments({ self: 'unknown' }, ({ self }, { at }) =>
     self.type !== 'null' ? success(self) : err(at, 'tried to unwrap a "null" value')
@@ -158,79 +236,6 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
   expect: withArguments({ self: 'unknown', message: 'string' }, ({ self, message }, { at }) =>
     self.type !== 'null' ? success(self) : err(at, message.value)
   ),
-
-  // Type utilities
-  typed: withArguments({ value: 'unknown' }, ({ value }) => success(value)),
-
-  // Debug utilities
-  debugStr: withArguments({ self: 'unknown', pretty: 'bool' }, ({ self, pretty }, { ctx }) =>
-    success({
-      type: 'string',
-      value: valueToStr(self, pretty.value, false, ctx),
-    })
-  ),
-
-  dump: withArguments({ value: 'unknown', pretty: 'bool' }, ({ value, pretty }, { ctx, pipeTo }) => {
-    pipeTo.stdout.write(valueToStr(value, pretty.value, true, ctx) + '\n')
-    return success(null)
-  }),
-
-  trace: withArguments({ message: { nullable: 'string' } }, ({ message }, { at, pipeTo }) => {
-    const file: string = matchUnion(at.start.file, 'type', {
-      entrypoint: ({ path }) => path,
-      file: ({ path }) => path,
-      internal: ({ path }) => `<internal:${path}>`,
-    })
-
-    let display = `[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`
-
-    if (message.type !== 'null') {
-      display += ' | ' + message.value
-    }
-
-    pipeTo.stdout.write(`${display}\n`)
-
-    return success(null)
-  }),
-
-  // Terminal utilities
-  echo: withArguments({ message: 'string', n: 'bool' }, ({ message, n }, { pipeTo }) => {
-    pipeTo.stdout.write(n.value ? message.value : message.value + '\n')
-    return success(null)
-  }),
-
-  // Filesystem utilities
-  ls: withArguments({ path: { nullable: 'path' } }, ({ path }, { ctx }) => {
-    const dir = path.type === 'null' ? process.cwd() : path.segments.join(ctx.platformPathSeparator)
-
-    return success({
-      type: 'list',
-      items: readdirSync(dir).map((name): ExecValue => {
-        const item = lstatSync(join(dir, name))
-
-        return {
-          type: 'struct',
-          members: new Map<string, ExecValue>([
-            [
-              'type',
-              item.isFile()
-                ? { type: 'enum', variant: 'File' }
-                : item.isDirectory()
-                ? { type: 'enum', variant: 'Dir' }
-                : item.isSymbolicLink()
-                ? { type: 'enum', variant: 'Symlink' }
-                : { type: 'enum', variant: 'Unknown' },
-            ],
-            ['name', { type: 'string', value: name }],
-            ['size', item.isFile() || item.isSymbolicLink() ? { type: 'number', value: item.size } : { type: 'null' }],
-            ['ctime', { type: 'number', value: item.ctime.getDate() }],
-            ['mtime', { type: 'number', value: item.mtime.getDate() }],
-            ['atime', { type: 'number', value: item.atime.getDate() }],
-          ]),
-        }
-      }),
-    })
-  }),
 })
 
 const valueToStr = (value: ExecValue, pretty: boolean, dumping: boolean, ctx: RunnerContext): string =>
