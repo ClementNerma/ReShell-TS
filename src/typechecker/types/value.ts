@@ -1,15 +1,11 @@
 import { matchUnion } from '../../parsers/utils'
 import { CodeLoc, StructTypeMember, Token, Value, ValueType } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
-import { Scope } from '../scope/first-pass'
 import { getFunctionInScope, getVariableInScope } from '../scope/search'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
-export const resolveValueType: Typechecker<Value, { scopes: Scope[]; expectedType: ValueType | null }, ValueType> = (
-  value,
-  ctx
-) => {
+export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   const { expectedType } = ctx
 
   if (expectedType?.inner.type === 'implicit') {
@@ -303,8 +299,8 @@ export const resolveValueType: Typechecker<Value, { scopes: Scope[]; expectedTyp
     },
 
     reference: ({ varname }) => {
-      const referencedVar = getVariableInScope([varname.parsed, varname.start], ctx.scopes)
-      const referencedFn = getFunctionInScope([varname.parsed, varname.start], ctx.scopes)
+      const referencedVar = getVariableInScope({ name: varname.parsed, loc: varname.start }, ctx)
+      const referencedFn = getFunctionInScope({ name: varname.parsed, loc: varname.start }, ctx)
 
       let foundType: ValueType
 

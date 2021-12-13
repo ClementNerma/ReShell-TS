@@ -1,6 +1,6 @@
 import { CodeLoc } from '../../shared/parsed'
-import { err, success, TypecheckerErr, TypecheckerRaw } from '../base'
-import { Scope, ScopeFirstPass, ScopeFn, ScopeTypeAlias, ScopeVar } from './first-pass'
+import { err, Scope, ScopeFn, ScopeTypeAlias, ScopeVar, success, Typechecker, TypecheckerErr } from '../base'
+import { ScopeFirstPass } from './first-pass'
 
 export const categoryMapping: { [key in keyof Scope]: string } = {
   typeAliases: 'type',
@@ -8,11 +8,10 @@ export const categoryMapping: { [key in keyof Scope]: string } = {
   variables: 'variable',
 }
 
-export const ensureScopeUnicity: TypecheckerRaw<
-  [string, CodeLoc],
-  { scopes: Scope[]; firstPass?: ScopeFirstPass },
-  void
-> = ([name, loc], { scopes, firstPass }) => {
+export const ensureScopeUnicity: Typechecker<{ name: string; loc: CodeLoc; firstPass?: ScopeFirstPass }, void> = (
+  { name, loc, firstPass },
+  { scopes }
+) => {
   if (firstPass) {
     for (const [category, map] of Object.entries(firstPass)) {
       const orig = map.get(name)
@@ -30,9 +29,9 @@ export const ensureScopeUnicity: TypecheckerRaw<
   return success(void 0)
 }
 
-export const getTypeAliasInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeTypeAlias> = (
-  [name, loc],
-  scopes
+export const getTypeAliasInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeTypeAlias> = (
+  { name, loc },
+  { scopes }
 ) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const scopeType = scopes[s].typeAliases.get(name)
@@ -42,7 +41,7 @@ export const getTypeAliasInScope: TypecheckerRaw<[string, CodeLoc], Scope[], Sco
   return err({ message: 'Type not found in this scope', length: name.length }, loc)
 }
 
-export const getFunctionInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeFn> = ([name, loc], scopes) => {
+export const getFunctionInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeFn> = ({ name, loc }, { scopes }) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const scopeFn = scopes[s].functions.get(name)
     if (scopeFn) return success(scopeFn)
@@ -51,7 +50,10 @@ export const getFunctionInScope: TypecheckerRaw<[string, CodeLoc], Scope[], Scop
   return err({ message: 'Function not found in this scope', length: name.length }, loc)
 }
 
-export const getVariableInScope: TypecheckerRaw<[string, CodeLoc], Scope[], ScopeVar> = ([name, loc], scopes) => {
+export const getVariableInScope: Typechecker<{ name: string; loc: CodeLoc }, ScopeVar> = (
+  { name, loc },
+  { scopes }
+) => {
   for (let s = scopes.length - 1; s >= 0; s--) {
     const scopeVar = scopes[s].variables.get(name)
     if (scopeVar) return success(scopeVar)

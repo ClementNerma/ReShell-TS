@@ -10,7 +10,7 @@ import { parseSource } from './lib/base'
 import { initContext } from './parsers/context'
 import { program } from './parsers/program'
 import { ErrorParsingFormatters, formatErr } from './shared/errors'
-import { programChecker } from './typechecker/program'
+import { typecheckProgram } from './typechecker/program'
 
 install()
 Error.stackTraceLimit = Infinity
@@ -69,7 +69,7 @@ if (argv[1] === '--ast') {
 }
 
 const startedTypechecker = Date.now()
-const exec = programChecker(parsed.data, void 0)
+const exec = typecheckProgram(parsed.data)
 const elapsedTypechecker = Date.now() - startedTypechecker
 
 if (!exec.ok) {

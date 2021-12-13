@@ -1,20 +1,20 @@
 import { matchUnion } from '../parsers/utils'
-import { StatementChain, ValueType } from '../shared/parsed'
-import { located, success, TypecheckerArr, TypecheckerErr } from './base'
-import { Scope, scopeFirstPass } from './scope/first-pass'
+import { StatementChain, Token, ValueType } from '../shared/parsed'
+import { located, Scope, success, Typechecker, TypecheckerErr } from './base'
+import { scopeFirstPass } from './scope/first-pass'
 import { ensureScopeUnicity } from './scope/search'
 import { resolveExprType } from './types/expr'
 import { typeValidator } from './types/validator'
 
-export const statementChainChecker: TypecheckerArr<StatementChain, Scope[], void> = (chain, parents) => {
-  const firstPass = scopeFirstPass(chain, parents)
+export const statementChainChecker: Typechecker<Token<StatementChain>[], void> = (chain, ctx) => {
+  const firstPass = scopeFirstPass(chain, ctx)
   if (!firstPass.ok) return firstPass
 
   // 1. Find all declared functions and type alias
   // 2. Discover scope sequentially using the items above
 
   const scope: Scope = { ...firstPass.data, variables: new Map() }
-  const scopes = parents.concat(scope)
+  const scopes = ctx.scopes.concat(scope)
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -22,13 +22,13 @@ export const statementChainChecker: TypecheckerArr<StatementChain, Scope[], void
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       const subResult: TypecheckerErr | false = matchUnion(sub.parsed)('type', {
         variableDecl: ({ varname, vartype, mutable, expr }) => {
-          const unicity = ensureScopeUnicity([varname.parsed, varname.start], { scopes })
+          const unicity = ensureScopeUnicity({ name: varname.parsed, loc: varname.start }, { ...ctx, scopes })
           if (!unicity.ok) return unicity
 
           let expectedType: ValueType | null = null
 
           if (vartype) {
-            const validation = typeValidator(vartype.parsed, scopes)
+            const validation = typeValidator(vartype.parsed, { ...ctx, scopes })
             if (!validation.ok) return validation
 
             expectedType = vartype.parsed

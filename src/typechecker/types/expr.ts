@@ -1,12 +1,9 @@
 import { matchUnion } from '../../parsers/utils'
-import { Expr, ExprElement, SingleLogicOp, ValueType } from '../../shared/parsed'
+import { Expr, ExprElement, SingleLogicOp, Token, ValueType } from '../../shared/parsed'
 import { ensureCoverage, err, success, Typechecker, TypecheckerResult } from '../base'
-import { Scope } from '../scope/first-pass'
 import { resolveValueType } from './value'
 
-export type ExprTypeResolverContext = { scopes: Scope[]; expectedType: ValueType | null }
-
-export const resolveExprType: Typechecker<Expr, ExprTypeResolverContext, ValueType> = (expr, context) => {
+export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, context) => {
   const from = resolveExprElementType(expr.parsed.from, context)
   if (!from.ok) return from
 
@@ -17,7 +14,7 @@ export const resolveExprType: Typechecker<Expr, ExprTypeResolverContext, ValueTy
   return from
 }
 
-export const resolveExprElementType: Typechecker<ExprElement, ExprTypeResolverContext, ValueType> = (element, ctx) =>
+export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) =>
   matchUnion(element.parsed)<TypecheckerResult<ValueType>>('type', {
     paren: ({ inner }) => resolveExprType(inner, ctx),
 

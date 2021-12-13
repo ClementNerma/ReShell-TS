@@ -1,17 +1,25 @@
 import { buildFormatableExtract, FormatableError, FormatableExtract, FormatableExtractsInput } from '../shared/errors'
-import { CodeLoc, Token } from '../shared/parsed'
+import { CodeLoc, FnType, ValueType } from '../shared/parsed'
 
-export type Typechecker<T, C, O> = (input: Token<T>, context: C) => TypecheckerResult<O>
+export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
-export type TypecheckerRaw<T, C, O> = (input: T, context: C) => TypecheckerResult<O>
-
-export type TypecheckerArr<T, C, O> = (input: Token<T>[], context: C) => TypecheckerResult<O>
+export type TypecheckerContext = { scopes: Scope[]; expectedType: ValueType | null }
 
 export type TypecheckerResult<O> = TypecheckerSuccess<O> | TypecheckerErr
 
 export type TypecheckerSuccess<O> = { ok: true; data: O }
 
 export type TypecheckerErr = { ok: false } & FormatableError
+
+export type Scope = {
+  typeAliases: Map<string, ScopeTypeAlias>
+  functions: Map<string, ScopeFn>
+  variables: Map<string, ScopeVar>
+}
+
+export type ScopeTypeAlias = Located<ValueType>
+export type ScopeFn = Located<FnType>
+export type ScopeVar = Located<{ mutable: boolean; type: ValueType }>
 
 export const success = <O>(data: O): TypecheckerSuccess<O> => ({ ok: true, data })
 export const err = (
