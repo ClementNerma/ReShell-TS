@@ -30,7 +30,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
         ? success(void 0)
         : err(typeAliasName.at, `type alias \`${typeAliasName.parsed}\` was not found`),
     unknown: () => success(void 0),
-    nullable: () => success(void 0),
+    nullable: ({ inner }) => typeValidator(inner, ctx),
     generic: ({ name }) => {
       const generic = getTypedEntityInScope(name, 'generic', ctx)
       return generic.ok ? success(void 0) : generic
