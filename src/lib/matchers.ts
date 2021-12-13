@@ -22,10 +22,10 @@ export function word<S extends string>(candidate: S, error?: string): Parser<S> 
   }
 }
 
-export function char(regex: RegExp, error?: string): Parser<void> {
+export function char(regex: RegExp, error?: string): Parser<string> {
   return (start, input, context) =>
     input.charAt(0).match(regex)
-      ? success(start, addCols(start, 1), void 0, input.charAt(0))
+      ? success(start, addCols(start, 1), input.charAt(0), input.charAt(0))
       : err(start, context, error)
 }
 
