@@ -241,7 +241,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
           } else {
             return err(
               subject.at,
-              `cannot iterate over non-list/map values (found \`${rebuildType(subjectType.data, true)}\`)`
+              `cannot iterate over non-list/map values (found \`${rebuildType(subjectType.data, { noDepth: true })}\`)`
             )
           }
         },
@@ -287,7 +287,10 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       if (!subjectType.ok) return subjectType
 
       if (subjectType.data.type !== 'map') {
-        return err(subject.at, `expected a \`map\` to iterate on, found a \`${rebuildType(subjectType.data, true)}\``)
+        return err(
+          subject.at,
+          `expected a \`map\` to iterate on, found a \`${rebuildType(subjectType.data, { noDepth: true })}\``
+        )
       }
 
       const check = blockChecker(body, {

@@ -21,6 +21,7 @@ export type TypecheckerContext = {
   commandDeclarations: Map<string, { at: CodeSection; content: CmdDeclSubCommand }>
   callbackTypes: PrecompData['callbackTypes']
   fnCalls: PrecompData['fnCalls']
+  fillgen: GenericResolutionScope | null
   checkIfCommandExists: (name: string) => boolean
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
@@ -30,6 +31,7 @@ export function createTypecheckerContext(
   diagnosticHandler: TypecheckerContext['emitDiagnostic']
 ): TypecheckerContext {
   return {
+    fillgen: null,
     scopes: [nativeLibraryScope()],
     typeAliases: nativeLibraryTypeAliasesMap(),
     typeAliasesPrelook: new Set(),

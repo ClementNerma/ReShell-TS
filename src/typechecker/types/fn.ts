@@ -262,35 +262,16 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
     if (type.data.type !== 'fn') {
       return err(
         name.at,
-        `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type.data, true)}\`)`
+        `the name \`${name.parsed}\` refers to a non-function variable (found \`${rebuildType(type.data, {
+          noDepth: true,
+        })}\`)`
       )
     }
 
     fnType = type.data.fnType
   }
 
-  let resolvedGenerics: GenericResolutionScope = []
-
-  if (ctx.typeExpectation && fnType.generics.length > 0) {
-    resolvedGenerics = fnType.generics.map((g) => ({ name: g, orig: g.at, mapped: null }))
-
-    const compat = isTypeCompatible(
-      {
-        at: name.at,
-        candidate: fnType.returnType?.parsed ?? { type: 'void' },
-        typeExpectation: ctx.typeExpectation,
-        fillKnownGenerics: resolvedGenerics,
-      },
-      ctx
-    )
-
-    if (!compat.ok) return compat
-  }
-
-  const fnCallCheck = validateAndRegisterFnCall(
-    { at: name.at, nameAt: name.at, fnType, generics, args, resolvedGenerics },
-    ctx
-  )
+  const fnCallCheck = validateAndRegisterFnCall({ at: name.at, nameAt: name.at, fnType, generics, args }, ctx)
 
   if (!fnCallCheck.ok) return fnCallCheck
 
@@ -323,10 +304,9 @@ export const validateAndRegisterFnCall: Typechecker<
     generics: Token<Token<ValueType | null>[]> | null
     args: Token<CmdArg>[]
     declaredCommand?: true
-    resolvedGenerics?: GenericResolutionScope
   },
   [ValueType, GenericResolutionScope]
-> = ({ at, nameAt, fnType, generics, args, declaredCommand, resolvedGenerics }, ctx) => {
+> = ({ at, nameAt, fnType, generics, args, declaredCommand }, ctx) => {
   const positional = fnType.args.filter((arg) => arg.parsed.flag === null)
   const flags = new Map(
     fnType.args.filter((arg) => arg.parsed.flag !== null).map((arg) => [arg.parsed.name.parsed, arg])
@@ -335,12 +315,8 @@ export const validateAndRegisterFnCall: Typechecker<
   const gScope: GenericResolutionScope = fnType.generics.map((name) => ({
     name,
     orig: name.at,
-    mapped: resolvedGenerics
-      ? getResolvedGenericInSingleScope(resolvedGenerics, name.parsed, name.at)?.mapped ?? null
-      : null,
+    mapped: null,
   }))
-
-  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
 
   if (generics) {
     if (generics.parsed.length < fnType.generics.length) {
@@ -363,14 +339,34 @@ export const validateAndRegisterFnCall: Typechecker<
 
       const suppliedFor = fnType.generics[g]
 
-      const determined = getResolvedGenericInSingleScope(gScope, suppliedFor.parsed, suppliedFor.at)
+      const scoped = getResolvedGenericInSingleScope(gScope, suppliedFor.parsed, suppliedFor.at)
 
-      if (determined !== undefined) {
+      if (!scoped) {
+        return err(generics.parsed[g].at, "internal error: generic not found in function's generics scope")
+      }
+
+      if (!scoped.mapped) {
         // TODO: ensure there are no conflicts here to detect internal errors (type collisions)
-        determined.mapped = supplied
+        scoped.mapped = supplied
       }
     }
   }
+
+  if (ctx.typeExpectation && fnType.generics.length > 0) {
+    const compat = isTypeCompatible(
+      {
+        at: nameAt,
+        candidate: fnType.returnType?.parsed ?? { type: 'void' },
+        typeExpectation: ctx.typeExpectation,
+        fillKnownGenerics: gScope,
+      },
+      ctx
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  ctx = { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
 
   let isSupplyingRestArguments = false
   const suppliedRestArgument: Token<CmdArg>[] = []
@@ -422,6 +418,7 @@ export const validateAndRegisterFnCall: Typechecker<
             type: relatedArg.parsed.type.parsed,
             from: relatedArg.at,
           },
+          fillgen: gScope,
         })
 
         return resolved.ok ? success([relatedArg.parsed.name.parsed, { type: 'expr', expr }]) : resolved
@@ -438,7 +435,9 @@ export const validateAndRegisterFnCall: Typechecker<
             ? success([name.parsed, { type: 'true' }])
             : err(
                 name.at,
-                `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type.parsed, true)}\`)`
+                `missing value for flag \`${name.parsed}\` (expected \`${rebuildType(flag.parsed.type.parsed, {
+                  noDepth: true,
+                })}\`)`
               )
         }
 
@@ -511,7 +510,7 @@ export const validateAndRegisterFnCall: Typechecker<
     return err(lastPos, {
       message: `missing required argument \`${positional[0].parsed.name.parsed}\` of type \`${rebuildType(
         positional[0].parsed.type.parsed,
-        true
+        { noDepth: true }
       )}\``,
       also: [{ at: positional[0].at, message: 'argument is defined here' }],
     })
@@ -523,7 +522,7 @@ export const validateAndRegisterFnCall: Typechecker<
     return err(lastPos, {
       message: `missing required flag \`${missingFlag.parsed.name.parsed}\` of type \`${rebuildType(
         missingFlag.parsed.type.parsed,
-        true
+        { noDepth: true }
       )}\``,
       also: [{ at: missingFlag.at, message: 'flag is defined here' }],
     })

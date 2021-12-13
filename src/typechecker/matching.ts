@@ -16,7 +16,10 @@ export function enumMatchingTypechecker<T, X>(
   if (!matchOn.ok) return matchOn
 
   if (matchOn.data.type !== 'enum') {
-    return err(subject.at, `matching can only be performed on enums, found \`${rebuildType(matchOn.data, true)}\``)
+    return err(
+      subject.at,
+      `matching can only be performed on enums, found \`${rebuildType(matchOn.data, { noDepth: true })}\``
+    )
   }
 
   const toMatch = [...matchOn.data.variants]

@@ -24,11 +24,28 @@ export const isTypeCompatible: Typechecker<
   const expectationErr = (message?: string, atOverride?: CodeSection, also?: DiagnosticExtract[]) => {
     const pathStr = path.length > 0 ? path.join(' > ') + ' > ' : ''
 
-    const expectedNoDepth = rebuildType(typeExpectation.type, true)
-    const expected = rebuildType(originalReferent)
+    const developedReferent = developTypeAliases(originalReferent, ctx)
+    if (!developedReferent.ok) return developedReferent
 
-    const foundNoDepth = rebuildType(candidate, true)
-    const found = rebuildType(originalCandidate)
+    const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true, replaceUnknownGenerics: '?' })
+    const expected = rebuildType(resolveGenerics(developedReferent.data, ctx.resolvedGenerics), {
+      replaceUnknownGenerics: '?',
+    })
+
+    const ctxForCandidate = fillKnownGenerics
+      ? { ...ctx, resolvedGenerics: ctx.resolvedGenerics.concat([fillKnownGenerics]) }
+      : ctx
+    const developedCandidate = developTypeAliases(originalCandidate, ctxForCandidate)
+    if (!developedCandidate.ok) return developedCandidate
+
+    const foundNoDepth = rebuildType(candidate, { noDepth: true, replaceUnknownGenerics: '?' })
+    const found = rebuildType(
+      resolveGenerics(
+        developedCandidate.data,
+        fillKnownGenerics ? ctx.resolvedGenerics.concat([fillKnownGenerics]) : ctx.resolvedGenerics
+      ),
+      { replaceUnknownGenerics: '?' }
+    )
 
     const messageWithFallback =
       message ??
@@ -57,17 +74,6 @@ export const isTypeCompatible: Typechecker<
       ),
     })
   }
-  // errIncompatibleValueType({
-  //   message,
-  //   path,
-  //   typeExpectation: {
-  //     type: referent,
-  //     from,
-  //   },
-  //   foundType: candidate,
-  //   valueAt: atOverride ?? at,
-  //   ctx,
-  // })
 
   const subCheck = (options: {
     addPath?: string
@@ -94,20 +100,12 @@ export const isTypeCompatible: Typechecker<
 
   const { from } = typeExpectation
 
-  const originalCandidate = _originalCandidate ?? candidate
-  const originalReferent = _originalReferent ?? typeExpectation.type
-
   let referent = typeExpectation.type
 
+  const originalCandidate = _originalCandidate ?? candidate
+  const originalReferent = _originalReferent ?? referent
+
   const path = _path ?? []
-
-  if (referent.type === 'unknown') {
-    return success(void 0)
-  }
-
-  if (candidate.type === 'unknown') {
-    return expectationErr()
-  }
 
   const developedCandidate = developTypeAliases(candidate, ctx)
   if (!developedCandidate.ok) return developedCandidate
@@ -132,14 +130,6 @@ export const isTypeCompatible: Typechecker<
     }
 
     // If not found, it means we are in a function body and generics are not resolvable yet
-  } else {
-    if (candidate.type === 'nullable') {
-      return referent.type !== 'nullable'
-        ? expectationErr()
-        : subCheck({ addPath: 'nullable type', candidate: candidate.inner, referent: referent.inner })
-    } else if (referent.type === 'nullable') {
-      return subCheck({ addPath: 'nullable type', candidate, referent: referent.inner })
-    }
   }
 
   if (candidate.type === 'generic') {
@@ -165,6 +155,22 @@ export const isTypeCompatible: Typechecker<
         return subCheck({ candidate: resolved, referent })
       }
     }
+  }
+
+  if (referent.type === 'unknown') {
+    return success(void 0)
+  }
+
+  if (candidate.type === 'unknown') {
+    return expectationErr()
+  }
+
+  if (candidate.type === 'nullable') {
+    return referent.type !== 'nullable'
+      ? expectationErr()
+      : subCheck({ addPath: 'nullable type', candidate: candidate.inner, referent: referent.inner })
+  } else if (referent.type === 'nullable') {
+    return subCheck({ addPath: 'nullable type', candidate, referent: referent.inner })
   }
 
   if (candidate.type !== referent.type) {

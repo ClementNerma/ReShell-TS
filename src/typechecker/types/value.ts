@@ -109,7 +109,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (typeExpectation.type.type !== 'nullable' && typeExpectation.type.type !== 'unknown') {
         return err(
           value.at,
-          `expected non-nullable type \`${rebuildType(typeExpectation.type, true)}\`, found value "null"`
+          `expected non-nullable type \`${rebuildType(typeExpectation.type, { noDepth: true })}\`, found value "null"`
         )
       }
 
@@ -139,7 +139,9 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             if (exprType.data.type !== 'string' && exprType.data.type !== 'number' && exprType.data.type !== 'path') {
               return err(
                 segment.at,
-                `expected \`string\`, \`number\` or \`path\`, found \`${rebuildType(exprType.data, true)}\``
+                `expected \`string\`, \`number\` or \`path\`, found \`${rebuildType(exprType.data, {
+                  noDepth: true,
+                })}\``
               )
             }
 
@@ -189,7 +191,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               segmentHasContent = true
               segmentHasInnerPath = true
             } else {
-              return err(segment.at, `expected a "string" or "path", found a ${rebuildType(exprType.data, true)}`)
+              return err(
+                segment.at,
+                `expected a "string" or "path", found a ${rebuildType(exprType.data, { noDepth: true })}`
+              )
             }
 
             break
@@ -408,7 +413,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         if (enumTypeEntity.content.type !== 'enum') {
           return err(
             enumName.at,
-            `this type is not an enumeration (found \`${rebuildType(enumTypeEntity.content, true)}\`)`
+            `this type is not an enumeration (found \`${rebuildType(enumTypeEntity.content, { noDepth: true })}\`)`
           )
         }
 
@@ -586,8 +591,8 @@ export const errIncompatibleValueType = ({
   valueAt: CodeSection
   ctx: TypecheckerContext
 }) => {
-  const expectedNoDepth = rebuildType(typeExpectation.type, true)
-  const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, true)
+  const expectedNoDepth = rebuildType(typeExpectation.type, { noDepth: true })
+  const foundNoDepth = typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })
 
   const expected = rebuildType(typeExpectation.type)
   const found = typeof foundType === 'string' ? foundType : rebuildType(foundType)
@@ -595,8 +600,8 @@ export const errIncompatibleValueType = ({
   return err(valueAt, {
     message: `expected ${ctx.typeExpectationNature !== null ? ctx.typeExpectationNature + ' ' : ''}\`${rebuildType(
       typeExpectation.type,
-      true
-    )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, true)}\``,
+      { noDepth: true }
+    )}\`, found \`${typeof foundType === 'string' ? foundType : rebuildType(foundType, { noDepth: true })}\``,
     complements:
       expectedNoDepth !== expected || foundNoDepth !== found
         ? [

@@ -227,7 +227,9 @@ function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerR
   if (type.type !== 'string' && type.type !== 'number' && type.type !== 'path') {
     return err(
       at,
-      `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, true)}\``
+      `command arguments can only be of type \`string\`, \`number\` or \`path\`, found \`${rebuildType(type, {
+        noDepth: true,
+      })}\``
     )
   }
 

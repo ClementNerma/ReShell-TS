@@ -19,7 +19,7 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
 
   if (!fromType.ok) return fromType
 
-  return resolveDoubleOpSequenceType(
+  const withOpsType = resolveDoubleOpSequenceType(
     {
       baseElement: expr.parsed.from,
       baseElementType: fromType.data,
@@ -27,6 +27,10 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
     },
     ctx
   )
+
+  if (!withOpsType.ok) return withOpsType
+
+  return success(withOpsType.data)
 }
 
 export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> = (exprOrNever, ctx) =>
@@ -104,7 +108,7 @@ export const resolveCondOrTypeAssertionType: Typechecker<
                   expr.at,
                   `"null" type assertions are only allowed for nullable and \`unknown\` values, found \`${rebuildType(
                     subjectType,
-                    true
+                    { noDepth: true }
                   )}\``
                 ),
 
@@ -112,7 +116,9 @@ export const resolveCondOrTypeAssertionType: Typechecker<
             if (subjectType.type !== 'failable') {
               return err(
                 expr.at,
-                `"ok" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, true)}\``
+                `"ok" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, {
+                  noDepth: true,
+                })}\``
               )
             }
 
@@ -123,7 +129,9 @@ export const resolveCondOrTypeAssertionType: Typechecker<
             if (subjectType.type !== 'failable') {
               return err(
                 expr.at,
-                `"err" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, true)}\``
+                `"err" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, {
+                  noDepth: true,
+                })}\``
               )
             }
 
@@ -136,7 +144,7 @@ export const resolveCondOrTypeAssertionType: Typechecker<
                 expr.at,
                 `type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
                   subjectType,
-                  true
+                  { noDepth: true }
                 )}\``
               )
             }

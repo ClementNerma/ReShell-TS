@@ -75,7 +75,7 @@ export const resolvePropAccessType: Typechecker<
           previousIterType = { type: 'nullable', inner: previousIterType.inner.itemsType }
         } else {
           return err(upToPrevPropAccessSection, {
-            message: `expected list due to index access, found \`${rebuildType(previousIterType, true)}\``,
+            message: `expected list due to index access, found \`${rebuildType(previousIterType, { noDepth: true })}\``,
             complements:
               noNullabilityTip === true
                 ? []
@@ -106,7 +106,9 @@ export const resolvePropAccessType: Typechecker<
           structType = previousIterType.inner
         } else {
           return err(upToPrevPropAccessSection, {
-            message: `expected struct due to member access, found \`${rebuildType(previousIterType, true)}\``,
+            message: `expected struct due to member access, found \`${rebuildType(previousIterType, {
+              noDepth: true,
+            })}\``,
             complements: [
               ['expected', 'struct'],
               ['found   ', rebuildType(previousIterType)],

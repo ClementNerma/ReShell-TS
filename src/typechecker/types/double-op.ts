@@ -264,7 +264,7 @@ const errCannotApplyOperator = (
   complements?: [string, string][]
 ) => {
   return err(opAt, {
-    message: `cannot apply this operator on type \`${rebuildType(foundType, true)}\``,
+    message: `cannot apply this operator on type \`${rebuildType(foundType, { noDepth: true })}\``,
     complements,
     also: [
       {
