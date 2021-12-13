@@ -10,6 +10,7 @@ import { deflateSync, inflateSync } from 'zlib'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
 import { program } from './parsers/program'
+import { execProgram } from './runtime/runner'
 import { DiagnosticFormatters, DiagnosticLevel, formatErr } from './shared/diagnostics'
 import { SourceFilesServer } from './shared/files-server'
 import { createTypecheckerContext } from './typechecker/base'
@@ -145,3 +146,15 @@ if (!typechecked.ok) {
 infos.forEach((info) => console.log(info))
 console.log(`Typechecked         | ${ms(typecheckerDuration)} |`)
 console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} |`)
+
+if (argv.includes('--exec')) {
+  console.log(chalk.greenBright('\nExecuting the program...'))
+  const [execDuration, result] = measurePerf(() => execProgram(parsed.data))
+
+  if (!result.ok) {
+    console.error(formatErr(result.diag, sourceServer, errorFormatters))
+    process.exit(1)
+  }
+
+  console.log(chalk.greenBright(`SUCCESS in ${execDuration} ms.`))
+}
