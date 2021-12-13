@@ -46,14 +46,6 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
     return expectationErr()
   }
 
-  if (candidate.type === 'nullable') {
-    return referent.type !== 'nullable'
-      ? expectationErr('Value should not be nullable')
-      : subCheck('nullable type', candidate.inner, referent.inner)
-  } else if (referent.type === 'nullable') {
-    return subCheck('nullable type', candidate, referent.inner)
-  }
-
   if (candidate.type === 'aliasRef') {
     const alias = getTypeAliasInScope(candidate.typeAliasName, ctx)
 
@@ -76,6 +68,14 @@ export const isTypeCompatible: Typechecker<{ candidate: ValueType; at: CodeSecti
     }
 
     referent = alias.data.content
+  }
+
+  if (candidate.type === 'nullable') {
+    return referent.type !== 'nullable'
+      ? expectationErr('Value should not be nullable')
+      : subCheck('nullable type', candidate.inner, referent.inner)
+  } else if (referent.type === 'nullable') {
+    return subCheck('nullable type', candidate, referent.inner)
   }
 
   if (candidate.type !== referent.type) {
