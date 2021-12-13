@@ -330,7 +330,7 @@ export const isTypeCompatible: Typechecker<
     nullable: () => expectationErr('internal error: unreachable "nullable" type comparison'),
 
     // Internal types
-    void: () => expectationErr('internal error: trying to compare candidate with internal type "void"'),
+    void: () => success(void 0),
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument

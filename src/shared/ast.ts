@@ -67,12 +67,12 @@ export type ValueType =
   | { type: 'struct'; members: StructTypeMember[] }
   | { type: 'enum'; variants: Token<string>[] }
   | { type: 'fn'; fnType: FnType }
-  | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'nullable'; inner: ValueType }
   | { type: 'failable'; successType: Token<ValueType>; failureType: Token<ValueType> }
   | { type: 'unknown' }
+  | { type: 'void' }
   | { type: 'generic'; name: Token<string>; orig: CodeSection; fromFnCallAt: CodeLoc | null }
-  | InternalTypes
+  | { type: 'aliasRef'; typeAliasName: Token<string> }
 
 export type PrimitiveValueType =
   | { type: 'bool' }
@@ -80,8 +80,6 @@ export type PrimitiveValueType =
   | { type: 'float' }
   | { type: 'string' }
   | { type: 'path' }
-
-export type InternalTypes = { type: 'void' }
 
 export type StructTypeMember = { name: string; type: ValueType }
 

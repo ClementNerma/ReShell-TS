@@ -17,7 +17,6 @@ export const keyword: Parser<string> = oneOfWords([
   'while',
   'let',
   'mut',
-  'void',
   'struct',
   'enum',
   '_',

@@ -87,7 +87,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         })
       }
 
-      if (typeExpectation.type.type !== 'nullable' && typeExpectation.type.type !== 'unknown') {
+      if (
+        typeExpectation.type.type !== 'nullable' &&
+        typeExpectation.type.type !== 'unknown' &&
+        typeExpectation.type.type !== 'void'
+      ) {
         return err(
           value.at,
           `expected non-nullable type \`${rebuildType(typeExpectation.type, { noDepth: true })}\`, found value "null"`
