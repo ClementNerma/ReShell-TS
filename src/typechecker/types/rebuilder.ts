@@ -9,10 +9,8 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
       number: () => 'number',
       string: () => 'string',
       path: () => 'path',
-      list: ({ itemsType }) =>
-        noDepth || itemsType.inner.type === 'implicit' ? 'list' : `list[${rebuildType(itemsType)}]`,
-      map: ({ itemsType }) =>
-        noDepth || itemsType.inner.type === 'implicit' ? 'map' : `map[${rebuildType(itemsType)}]`,
+      list: ({ itemsType }) => (noDepth ? 'list' : `list[${rebuildType(itemsType)}]`),
+      map: ({ itemsType }) => (noDepth ? 'map' : `map[${rebuildType(itemsType)}]`),
       struct: ({ members }) =>
         noDepth
           ? 'struct'
@@ -37,7 +35,6 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
 
       // Internal types
       void: () => 'void',
-      implicit: () => '?',
     })
   )
 }

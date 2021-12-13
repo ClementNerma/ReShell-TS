@@ -44,10 +44,6 @@ export const isTypeCompatible: Typechecker<
     return expectationErr()
   }
 
-  if (referent.inner.type === 'implicit') {
-    return expectationErr('Internal error: tried to check type compatibility with referent type "implicit"')
-  }
-
   if (candidate.inner.type === 'aliasRef' || referent.inner.type === 'aliasRef') {
     throw new Error('// TODO: type alias comparison')
   }
@@ -103,7 +99,6 @@ export const isTypeCompatible: Typechecker<
 
     // Internal types
     void: () => expectationErr('Internal error: trying to compare candidate with internal type "void"'),
-    implicit: () => expectationErr('Internal error: trying to compare candidate with internal type "implicit"'),
   }
 
   return comparators[candidate.inner.type](candidate.inner as any, referent.inner as any)

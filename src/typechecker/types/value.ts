@@ -9,10 +9,6 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   const { expectedType } = ctx
 
-  if (expectedType?.inner.type === 'implicit') {
-    return err(value.at, 'Internal error: trying to resolve this value with an "implicit" type expectation')
-  }
-
   if (expectedType?.inner.type === 'aliasRef') {
     throw new Error('// TODO: type alias development')
   }
@@ -138,10 +134,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this list')
       }
 
-      const expectedItemType: ValueType | null =
-        expectedListType?.itemsType && expectedListType.itemsType.inner.type !== 'implicit'
-          ? expectedListType.itemsType
-          : null
+      const expectedItemType: ValueType | null = expectedListType?.itemsType ?? null
 
       const referenceType = resolveExprType(items[0], { scopes: ctx.scopes, expectedType: expectedItemType })
       if (!referenceType.ok) return referenceType
@@ -166,10 +159,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return expectedType ? success(expectedType) : err(value.at, 'Unable to determine the type of this map')
       }
 
-      const expectedItemType: ValueType | null =
-        expectedMapType?.itemsType && expectedMapType.itemsType.inner.type !== 'implicit'
-          ? expectedMapType.itemsType
-          : null
+      const expectedItemType: ValueType | null = expectedMapType?.itemsType ?? null
 
       const referenceType = resolveExprType(entries[0].value, { scopes: ctx.scopes, expectedType: expectedItemType })
       if (!referenceType.ok) return referenceType
@@ -246,10 +236,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
             })
           }
 
-          resolvedType = resolveExprType(value, {
-            scopes: ctx.scopes,
-            expectedType: expectedMemberType.inner.type !== 'implicit' ? expectedMemberType : null,
-          })
+          resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: expectedMemberType })
         } else {
           resolvedType = resolveExprType(value, { scopes: ctx.scopes, expectedType: null })
         }
