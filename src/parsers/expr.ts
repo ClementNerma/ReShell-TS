@@ -85,7 +85,7 @@ export const exprElementContent: Parser<ExprElementContent> = selfRef((simpleExp
                     withLatelyDeclared(() => exprOrNever),
                     'expected an expression'
                   ),
-                  combine(maybe_s_nl, exact('}', 'expected an opening brace (}) to close the "elif" body'))
+                  combine(maybe_s_nl, exact('}', 'expected a closing brace (}) to close the "elif" body'))
                 ),
                 ([_, cond, __, expr]) => ({ cond, expr })
               ),

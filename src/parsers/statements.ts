@@ -346,7 +346,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
 
 export const blockBody: Parser<Token<StatementChain>[]> = map(
   combine(
-    exact('{', 'expected an opening brace (})'),
+    exact('{', 'expected an opening brace ({)'),
     maybe_s_nl,
     withStatementClosingChar(
       '}',
