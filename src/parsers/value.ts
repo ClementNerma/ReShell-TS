@@ -1,14 +1,7 @@
-import {
-  ClosureBody,
-  ClosureCallArg,
-  ComputedPathSegment,
-  ComputedStringSegment,
-  InlineCmdCallCapture,
-  Value,
-} from '../shared/ast'
+import { ClosureBody, ClosureCallArg, ComputedPathSegment, ComputedStringSegment, Value } from '../shared/ast'
 import { blockWithBraces } from './block'
 import { cmdFlag } from './cmdarg'
-import { cmdCall } from './cmdcall'
+import { inlineCmdCall } from './cmdcall'
 import { withStatementClosingChar } from './context'
 import { expr } from './expr'
 import { fnCall } from './fncall'
@@ -19,7 +12,7 @@ import { lookahead } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
-import { exact, match, oneOfMap } from './lib/matchers'
+import { exact, match } from './lib/matchers'
 import { mappedCases, mappedCasesComposed, or } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
@@ -34,6 +27,10 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       takeWhile(
         or<ComputedStringSegment>([
           map(match(/([^\\"$\n]|\\[^\n])+/), (_, content) => ({ type: 'literal', content })),
+          map(
+            withLatelyDeclared(() => inlineCmdCall),
+            (content) => ({ type: 'inlineCmdCall', content })
+          ),
           map(
             combine(
               combine(
@@ -237,25 +234,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
 
   fnCall: map(fnCall, (content) => ({ content })),
 
-  inlineCmdCallSequence: map(
-    combine(
-      oneOfMap<InlineCmdCallCapture>([
-        ['$*(', 'Both'],
-        ['$!(', 'Stderr'],
-        ['$(', 'Stdout'],
-      ]),
-      maybe_s_nl,
-      failure(
-        withStatementClosingChar(
-          ')',
-          withLatelyDeclared(() => cmdCall)
-        ),
-        'expected inline command call'
-      ),
-      combine(maybe_s_nl, exact(')', "expected closing paren ')' after inline command call"))
-    ),
-    ([capture, _, content]) => ({ content, capture })
-  ),
+  inlineCmdCall: map(inlineCmdCall, (content) => ({ content })),
 
   // FIX: TypeScript compiler produced an error because of the produced union being too complex
   // with "toOneProp('varname', identifier)"

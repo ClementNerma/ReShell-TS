@@ -1,9 +1,9 @@
 import { Value } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
-import { matchStr, matchUnion } from '../shared/utils'
+import { matchUnion } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
-import { collectableStream, runCmdCall } from './cmdcall'
+import { runInlineCmdCall } from './cmdcall'
 import { runExpr } from './expr'
 import { executeFnCall } from './fncall'
 import { nativeLibraryVariables } from './native-lib'
@@ -39,6 +39,17 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
                 `internal error: expected segment to be either "string" or "number", found internal type "${execExpr.data.type}"`
               )
             }
+            break
+          }
+
+          case 'inlineCmdCall': {
+            const execCmd = runInlineCmdCall(segment.parsed.content, ctx)
+            if (execCmd.ok !== true) return execCmd
+
+            const outString = expectValueType(segment.at, execCmd.data, 'string')
+            if (outString.ok !== true) return outString
+
+            out.push(outString.data.value)
             break
           }
 
@@ -189,37 +200,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       return executeFnCall({ name, precomp }, ctx)
     },
 
-    inlineCmdCallSequence: ({ content, capture }) => {
-      const outputPieces: Buffer[] = []
-
-      const call = runCmdCall(content.parsed, {
-        ...ctx,
-        pipeTo: {
-          stdout: collectableStream(
-            matchStr(capture.parsed, { Stdout: () => true, Stderr: () => false, Both: () => true }),
-            (piece) => outputPieces.push(piece)
-          ),
-
-          stderr: collectableStream(
-            matchStr(capture.parsed, { Stdout: () => false, Stderr: () => true, Both: () => true }),
-            (piece) => outputPieces.push(piece)
-          ),
-        },
-      })
-
-      if (call.ok !== true) return call
-
-      const collected = Buffer.concat(outputPieces).toString('utf8')
-
-      return success({
-        type: 'string',
-        value: collected.endsWith('\r\n')
-          ? collected.substr(0, collected.length - 2)
-          : collected.endsWith('\n')
-          ? collected.substr(0, collected.length - 1)
-          : collected,
-      })
-    },
+    inlineCmdCall: ({ content }) => runInlineCmdCall(content, ctx),
 
     reference: ({ varname }) => {
       for (const scope of ctx.scopes.reverse()) {

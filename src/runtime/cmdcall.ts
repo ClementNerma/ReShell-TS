@@ -1,10 +1,10 @@
 import { spawnSync } from 'child_process'
 import { Writable } from 'stream'
-import { CmdCall, SingleCmdCall } from '../shared/ast'
+import { CmdCall, InlineCmdCall, SingleCmdCall } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchStr } from '../shared/utils'
-import { err, Runner, success } from './base'
+import { err, ExecValue, Runner, success } from './base'
 import { escapeCmdArg, runCmdArg } from './cmdarg'
 import { executeFnCall } from './fncall'
 
@@ -67,6 +67,38 @@ export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { b
     : cmd.status !== null && cmd.status !== 0
     ? err(at, 'command failed with status ' + cmd.status.toString())
     : success(void 0)
+}
+
+export const runInlineCmdCall: Runner<InlineCmdCall, ExecValue> = ({ content, capture }, ctx) => {
+  const outputPieces: Buffer[] = []
+
+  const call = runCmdCall(content.parsed, {
+    ...ctx,
+    pipeTo: {
+      stdout: collectableStream(
+        matchStr(capture.parsed, { Stdout: () => true, Stderr: () => false, Both: () => true }),
+        (piece) => outputPieces.push(piece)
+      ),
+
+      stderr: collectableStream(
+        matchStr(capture.parsed, { Stdout: () => false, Stderr: () => true, Both: () => true }),
+        (piece) => outputPieces.push(piece)
+      ),
+    },
+  })
+
+  if (call.ok !== true) return call
+
+  const collected = Buffer.concat(outputPieces).toString('utf8')
+
+  return success({
+    type: 'string',
+    value: collected.endsWith('\r\n')
+      ? collected.substr(0, collected.length - 2)
+      : collected.endsWith('\n')
+      ? collected.substr(0, collected.length - 1)
+      : collected,
+  })
 }
 
 export const collectableStream = (capture: boolean, handler: (data: Buffer) => void) =>

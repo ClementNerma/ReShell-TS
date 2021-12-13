@@ -4,6 +4,7 @@ import {
   CmdCallSub,
   CmdDeclSubCommand,
   CmdVariantSignature,
+  InlineCmdCall,
   SingleCmdCall,
   ValueType,
 } from '../shared/ast'
@@ -212,6 +213,9 @@ export const cmdArgTypechecker: Typechecker<Token<CmdArg>, void> = (arg, ctx) =>
         ? success(void 0)
         : err(varname.at, `rest argument \`${varname.parsed}\` was not found`),
   })
+
+export const inlineCmdCallChecker: Typechecker<InlineCmdCall, void> = ({ content }, ctx) =>
+  cmdCallTypechecker(content.parsed, ctx)
 
 function cmdArgExprTypeValidator(at: CodeSection, type: ValueType): TypecheckerResult<void> {
   if (type.type !== 'string' && type.type !== 'number' && type.type !== 'path') {

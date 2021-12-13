@@ -6,9 +6,12 @@ import {
   CmdCallSub,
   CmdRedir,
   CmdRedirOp,
+  InlineCmdCall,
+  InlineCmdCallCapture,
   SingleCmdCall,
 } from '../shared/ast'
 import { cmdArg } from './cmdarg'
+import { withStatementClosingChar } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesElse, filterNullables, maybe, notFollowedBy } from './lib/conditions'
@@ -138,4 +141,24 @@ export const cmdCall: Parser<CmdCall> = map(
     )
   ),
   ([base, _, { parsed: chain }]) => ({ base, chain })
+)
+
+export const inlineCmdCall: Parser<InlineCmdCall> = map(
+  combine(
+    oneOfMap<InlineCmdCallCapture>([
+      ['$*(', 'Both'],
+      ['$!(', 'Stderr'],
+      ['$(', 'Stdout'],
+    ]),
+    maybe_s_nl,
+    failure(
+      withStatementClosingChar(
+        ')',
+        withLatelyDeclared(() => cmdCall)
+      ),
+      'expected inline command call'
+    ),
+    combine(maybe_s_nl, exact(')', "expected closing paren ')' after inline command call"))
+  ),
+  ([capture, _, content]) => ({ content, capture })
 )

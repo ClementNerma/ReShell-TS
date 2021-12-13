@@ -160,7 +160,7 @@ export type Value =
   // | { type: 'closure'; fnType: FnType; body: Token<Block> }
   | { type: 'callback'; args: Token<ClosureCallArg>[]; restArg: Token<string> | null; body: Token<ClosureBody> }
   | { type: 'fnCall'; content: FnCall }
-  | { type: 'inlineCmdCallSequence'; content: Token<CmdCall>; capture: Token<InlineCmdCallCapture> }
+  | { type: 'inlineCmdCall'; content: InlineCmdCall }
   | { type: 'reference'; varname: Token<string> }
 
 export type LiteralValue =
@@ -170,7 +170,10 @@ export type LiteralValue =
   | { type: 'string'; value: Token<string> }
   | { type: 'path'; segments: Token<Token<string>[]> }
 
-export type ComputedStringSegment = { type: 'literal'; content: Token<string> } | { type: 'expr'; expr: Token<Expr> }
+export type ComputedStringSegment =
+  | { type: 'literal'; content: Token<string> }
+  | { type: 'expr'; expr: Token<Expr> }
+  | { type: 'inlineCmdCall'; content: InlineCmdCall }
 
 export type ComputedPathSegment =
   | { type: 'separator' }
@@ -188,6 +191,11 @@ export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Tok
 export type ClosureCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
 
 export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<Block> }
+
+export type InlineCmdCall = {
+  content: Token<CmdCall>
+  capture: Token<InlineCmdCallCapture>
+}
 
 export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 

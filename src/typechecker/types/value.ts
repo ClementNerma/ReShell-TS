@@ -2,7 +2,7 @@ import { PrimitiveValueType, StructTypeMember, Value, ValueType } from '../../sh
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { cmdCallTypechecker } from '../cmdcall'
+import { inlineCmdCallChecker } from '../cmdcall'
 import { enumMatchingTypechecker } from '../matching'
 import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
 import { developTypeAliases } from './aliases'
@@ -140,6 +140,12 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
               return err(segment.at, `expected \`string\` or \`number\`, found \`${rebuildType(exprType.data, true)}\``)
             }
 
+            break
+          }
+
+          case 'inlineCmdCall': {
+            const callCheck = inlineCmdCallChecker(segment.parsed.content, ctx)
+            if (callCheck.ok !== true) return callCheck
             break
           }
 
@@ -529,11 +535,11 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         : success(returnType.data)
     },
 
-    inlineCmdCallSequence: ({ content }) => {
+    inlineCmdCall: ({ content }) => {
       const foundType = assertExpectedType('string')
       if (!foundType.ok) return foundType
 
-      const check = cmdCallTypechecker(content.parsed, ctx)
+      const check = inlineCmdCallChecker(content, ctx)
       if (!check.ok) return check
 
       return success(foundType.data)
