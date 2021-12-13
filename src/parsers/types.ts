@@ -7,12 +7,12 @@ import { contextualFailure, failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact, word } from './lib/matchers'
-import { addComplementsIf } from './lib/raw'
+import { addComplementsIf, matches } from './lib/raw'
 import { mappedCases, OrErrorStrategy } from './lib/switches'
 import { map } from './lib/transform'
 import { flattenMaybeToken, getErrorInput, withLatelyDeclared } from './lib/utils'
 import { literalValue } from './literals'
-import { identifier } from './tokens'
+import { identifier, keyword } from './tokens'
 import { startsWithLetter } from './utils'
 
 export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<NonNullableValueType>()(
@@ -97,9 +97,11 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
   [
     OrErrorStrategy.FallbackFn,
     (input, _, __, ___) =>
-      addComplementsIf('Invalid type', startsWithLetter(input), [
-        ['Tip', 'Type aliases must be prefixed by a "@" symbol'],
-      ]),
+      matches(input, keyword, null)
+        ? 'Cannot used reserved keyword as a type'
+        : addComplementsIf('Invalid type', startsWithLetter(input), [
+            ['Tip', 'Type aliases must be prefixed by a "@" symbol'],
+          ]),
   ]
 )
 
