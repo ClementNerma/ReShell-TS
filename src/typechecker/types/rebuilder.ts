@@ -4,7 +4,7 @@ import { matchUnion } from '../../shared/utils'
 export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
   return (
     (type.nullable ? '?' : '') +
-    matchUnion(type.inner)('type', {
+    matchUnion(type.inner, 'type', {
       bool: () => 'bool',
       number: () => 'number',
       string: () => 'string',
@@ -40,7 +40,7 @@ export const rebuildType = (type: ValueType, noDepth?: boolean): string => {
 }
 
 export const rebuildLiteralValue = (value: LiteralValue): string =>
-  matchUnion(value)('type', {
+  matchUnion(value, 'type', {
     null: () => 'null',
     bool: ({ value }) => (value.parsed ? 'true' : 'false'),
     number: ({ value }) => value.parsed.toString(),

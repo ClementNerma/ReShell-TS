@@ -1,10 +1,10 @@
 import { ValueType } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
-import { success, Typechecker, TypecheckerResult } from '../base'
+import { success, Typechecker } from '../base'
 import { getTypeAliasInScope } from '../scope/search'
 
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
-  matchUnion(type.inner)<TypecheckerResult<void>>('type', {
+  matchUnion(type.inner, 'type', {
     bool: () => success(void 0),
     number: () => success(void 0),
     string: () => success(void 0),

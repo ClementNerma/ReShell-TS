@@ -39,7 +39,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         : success(expectedType.inner as Extract<ValueType['inner'], { type: T }>)
       : success(void 0)
 
-  return matchUnion(value.parsed)('type', {
+  return matchUnion(value.parsed, 'type', {
     null: () => {
       if (!expectedType) {
         return err(value.at, {

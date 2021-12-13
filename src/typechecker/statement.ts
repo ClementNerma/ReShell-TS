@@ -20,8 +20,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
     if (stmt.parsed.type === 'empty') continue
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      const subResult: TypecheckerErr | false = matchUnion(sub.parsed)('type', {
-        variableDecl: ({ varname, vartype, mutable, expr }) => {
+      const subResult: TypecheckerErr | false = matchUnion(sub.parsed, 'type', {
+        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerErr | false => {
           const unicity = ensureScopeUnicity({ name: varname }, { ...ctx, scopes })
           if (!unicity.ok) return unicity
 
@@ -42,7 +42,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           return false
         },
 
-        _: () => {
+        _: (): TypecheckerErr | false => {
           throw new Error('// TODO: other statement types')
         },
       })
