@@ -35,7 +35,13 @@ export type Statement =
       elif: ElIfBlock[]
       els: Token<StatementChain>[] | null
     }
-  | { type: 'forLoop'; loopvar: Token<string>; subject: Token<ForLoopSubject>; body: Token<StatementChain>[] }
+  | {
+      type: 'forLoop'
+      loopvar: Token<string>
+      loopvar2: Token<string> | null
+      subject: Token<ForLoopSubject>
+      body: Token<StatementChain>[]
+    }
   | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
   | { type: 'continue' }
   | { type: 'break' }

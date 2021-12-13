@@ -2,7 +2,7 @@ import { StatementChain, ValueType } from '../shared/ast'
 import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { err, Scope, ScopeEntity, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
 import { flattenStatementChains, scopeFirstPass } from './scope/first-pass'
@@ -238,13 +238,19 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         })
       },
 
-      forLoop: ({ loopvar, subject, body }) => {
-        const subjectType: TypecheckerResult<ValueType> = matchUnion(subject.parsed, 'type', {
+      forLoop: ({ loopvar, loopvar2, subject, body }) => {
+        const subjectType: TypecheckerResult<[ValueType, ValueType | null]> = matchUnion(subject.parsed, 'type', {
           expr: ({ expr }) => {
             const subjectType = resolveExprType(expr, ctx)
             if (!subjectType.ok) return subjectType
-            if (subjectType.data.type !== 'list') return err(subject.at, 'cannot iterate over non-list values')
-            return success(subjectType.data.itemsType)
+
+            if (subjectType.data.type === 'list') {
+              return success([subjectType.data.itemsType, null])
+            } else if (subjectType.data.type === 'map') {
+              return success([{ type: 'string' }, subjectType.data.itemsType])
+            } else {
+              return err(subject.at, 'cannot iterate over non-list values')
+            }
           },
 
           range: ({ from, to }) => {
@@ -260,18 +266,43 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             })
             if (!toType.ok) return toType
 
-            return success({ type: 'number' })
+            return success([{ type: 'number' }, null])
           },
         })
 
         if (!subjectType.ok) return subjectType
 
+        const scopeEntries: [string, ScopeEntity][] = [
+          [loopvar.parsed, { type: 'var', at: loopvar.at, mutable: false, varType: subjectType.data[0] }],
+        ]
+
+        if (subjectType.data[1]) {
+          if (!loopvar2) {
+            return err(loopvar.at, {
+              message: 'cannot iterate directly on maps',
+              complements: [['tip', 'you can iterate on maps using: for key, value in <a map>']],
+            })
+          }
+
+          scopeEntries.push([
+            loopvar2.parsed,
+            { type: 'var', at: loopvar2.at, mutable: false, varType: subjectType.data[1] },
+          ])
+        } else if (loopvar2) {
+          return err(loopvar2.at, 'secondary loop variables can only be used on maps')
+        }
+
+        if (loopvar2?.parsed === loopvar.parsed) {
+          return err(loopvar2.at, {
+            message: 'cannot use the same identifier for both loop variables',
+            also: [{ at: loopvar.at, message: 'original identifier is used here' }],
+          })
+        }
+
         const check = statementChainChecker(body, {
           ...ctx,
           inLoop: true,
-          scopes: scopes.concat([
-            new Map([[loopvar.parsed, { type: 'var', at: loopvar.at, mutable: false, varType: subjectType.data }]]),
-          ]),
+          scopes: scopes.concat([new Map(scopeEntries)]),
         })
 
         if (!check.ok) return check

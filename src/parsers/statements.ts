@@ -117,8 +117,19 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       combine(
         combine(exact('for'), s),
         failure(identifier, 'expected an identifier'),
+        maybe(
+          map(
+            combine(
+              maybe_s,
+              exact(','),
+              maybe_s,
+              failure(identifier, 'expected a secondary identifier after comma (,)')
+            ),
+            ([_, __, ___, loopvar2]) => loopvar2
+          )
+        ),
         combine(
-          failure(s, 'expected a space after the loop identifier'),
+          failure(s, 'expected a space before the "in" keyword'),
           exact('in', 'expected "in" keyword'),
           failure(s, 'expected a space after the "in" keyword')
         ),
@@ -141,7 +152,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           ([_, { parsed: body }, __]) => body
         )
       ),
-      ([_, loopvar, __, subject, { parsed: body }]) => ({ loopvar, subject, body })
+      ([_, loopvar, { parsed: loopvar2 }, __, subject, { parsed: body }]) => ({ loopvar, loopvar2, subject, body })
     ),
 
     whileLoop: map(
