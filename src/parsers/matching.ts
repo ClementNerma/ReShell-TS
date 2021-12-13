@@ -11,7 +11,7 @@ import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 import { map } from './lib/transform'
 import { withLatelyDeclared } from './lib/utils'
-import { blockBody } from './statements'
+import { blockWithBraces } from './statements'
 import { identifier } from './tokens'
 
 export const enumMatching: <T>(
@@ -54,4 +54,4 @@ export const enumMatching: <T>(
   )
 
 export const enumMatchingExpr = enumMatching(withLatelyDeclared(() => expr))
-export const enumMatchingBlock = enumMatching(withLatelyDeclared(() => blockBody))
+export const enumMatchingBlock = enumMatching(withLatelyDeclared(() => blockWithBraces))

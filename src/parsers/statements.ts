@@ -71,7 +71,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         failure(s, 'expected a whitespace after the condition'),
         withContinuationKeyword(
           ['elif', 'else'],
-          withLatelyDeclared(() => blockBody)
+          withLatelyDeclared(() => blockWithBraces)
         ),
         extract(
           takeWhile<ElIfBlock>(
@@ -82,7 +82,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
                 failure(s, 'expected a whitespace after the condition'),
                 withContinuationKeyword(
                   ['else', 'elif'],
-                  withLatelyDeclared(() => blockBody)
+                  withLatelyDeclared(() => blockWithBraces)
                 )
               ),
               ([_, cond, __, { parsed: body }]) => ({ cond, body })
@@ -96,7 +96,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
               maybe_s_nl,
               exact('else'),
               maybe_s_nl,
-              withLatelyDeclared(() => blockBody)
+              withLatelyDeclared(() => blockWithBraces)
             ),
             ([_, __, ___, { parsed: body }]) => body
           )
@@ -120,7 +120,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         ),
         failure(expr, 'expected an expression to iterate on'),
         maybe_s_nl,
-        withLatelyDeclared(() => blockBody)
+        withLatelyDeclared(() => blockWithBraces)
       ),
       ([_, keyVar, { parsed: valueVar }, __, subject, ___, { parsed: body }]) => ({ keyVar, valueVar, subject, body })
     ),
@@ -142,7 +142,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
           expr: toOneProp('expr', failure(expr, 'expected an expression to iterate on')),
         }),
         maybe_s_nl,
-        withLatelyDeclared(() => blockBody)
+        withLatelyDeclared(() => blockWithBraces)
       ),
       ([_, loopVar, __, subject, ___, { parsed: body }]) => ({ loopVar, subject, body })
     ),
@@ -152,7 +152,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         combine(exact('while'), s),
         failure(condOrTypeAssertion, 'expected a loop condition'),
         maybe_s_nl,
-        withLatelyDeclared(() => blockBody)
+        withLatelyDeclared(() => blockWithBraces)
       ),
       ([_, cond, __, { parsed: body }]) => ({
         cond,
@@ -202,7 +202,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         map(
           combine(
             maybe_s_nl,
-            withLatelyDeclared(() => blockBody)
+            withLatelyDeclared(() => blockWithBraces)
           ),
           ([_, body]) => body
         ),
@@ -334,28 +334,27 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   map(combine(bol(), maybe_s, statementChainFree), ([_, __, { parsed: chain }]) => chain),
 ])
 
-export const blockBody: Parser<Block> = map(
+export const block: Parser<Block> = takeWhile<StatementChain>(
+  or([
+    map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
+    failIfMatchesElse(
+      matchStatementClose,
+      map(
+        combine(
+          maybe_s,
+          withLatelyDeclared(() => statementChainFree)
+        ),
+        ([_, { parsed: chain }]) => chain
+      )
+    ),
+  ])
+)
+
+export const blockWithBraces: Parser<Block> = map(
   combine(
     exact('{', 'expected an opening brace ({)'),
     maybe_s_nl,
-    withStatementClosingChar(
-      '}',
-      takeWhile<StatementChain>(
-        or([
-          map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
-          failIfMatchesElse(
-            matchStatementClose,
-            map(
-              combine(
-                maybe_s,
-                withLatelyDeclared(() => statementChainFree)
-              ),
-              ([_, { parsed: chain }]) => chain
-            )
-          ),
-        ])
-      )
-    ),
+    withStatementClosingChar('}', block),
     maybe_s_nl,
     exact('}', 'expected a closing brace (})')
   ),

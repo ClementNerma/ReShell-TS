@@ -33,7 +33,7 @@ import { map, toOneProp } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { literalValue, rawString } from './literals'
 import { enumMatchingExpr } from './matching'
-import { blockBody } from './statements'
+import { blockWithBraces } from './statements'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier, keyword } from './tokens'
 import { valueType } from './types'
@@ -232,7 +232,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
             'body',
             withStatementClosingChar(
               '}',
-              withLatelyDeclared(() => blockBody)
+              withLatelyDeclared(() => blockWithBraces)
             )
           )
         ),
