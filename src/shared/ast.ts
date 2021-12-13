@@ -37,13 +37,8 @@ export type Statement =
       elif: ElIfBlock[]
       els: Block | null
     }
-  | {
-      type: 'forLoop'
-      loopvar: Token<string>
-      loopvar2: Token<string> | null
-      subject: Token<ForLoopSubject>
-      body: Block
-    }
+  | { type: 'forLoop'; loopVar: Token<string>; subject: Token<ForLoopSubject>; body: Block }
+  | { type: 'forLoopDuo'; keyVar: Token<string>; valueVar: Token<string>; subject: Token<Expr>; body: Block }
   | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Block }
   | { type: 'continue' }
   | { type: 'break' }

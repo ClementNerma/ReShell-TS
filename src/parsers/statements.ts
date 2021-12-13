@@ -104,21 +104,30 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       ([_, cond, __, { parsed: then }, { parsed: elif }, { parsed: els }]) => ({ cond, then, elif, els })
     ),
 
+    forLoopDuo: map(
+      combine(
+        combine(exact('for'), s),
+        failure(identifier, 'expected an identifier'),
+        map(
+          combine(maybe_s, exact(','), maybe_s, failure(identifier, 'expected a secondary identifier after comma (,)')),
+          ([_, __, ___, loopvar2]) => loopvar2
+        ),
+        combine(
+          failure(s, 'expected a space before the "in" keyword'),
+          exact('in', 'expected "in" keyword'),
+          failure(s, 'expected a space after the "in" keyword')
+        ),
+        failure(expr, 'expected an expression to iterate on'),
+        maybe_s_nl,
+        withLatelyDeclared(() => blockBody)
+      ),
+      ([_, keyVar, { parsed: valueVar }, __, subject, ___, { parsed: body }]) => ({ keyVar, valueVar, subject, body })
+    ),
+
     forLoop: map(
       combine(
         combine(exact('for'), s),
         failure(identifier, 'expected an identifier'),
-        maybe(
-          map(
-            combine(
-              maybe_s,
-              exact(','),
-              maybe_s,
-              failure(identifier, 'expected a secondary identifier after comma (,)')
-            ),
-            ([_, __, ___, loopvar2]) => loopvar2
-          )
-        ),
         combine(
           failure(s, 'expected a space before the "in" keyword'),
           exact('in', 'expected "in" keyword'),
@@ -134,7 +143,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         maybe_s_nl,
         withLatelyDeclared(() => blockBody)
       ),
-      ([_, loopvar, { parsed: loopvar2 }, __, subject, ___, { parsed: body }]) => ({ loopvar, loopvar2, subject, body })
+      ([_, loopVar, __, subject, ___, { parsed: body }]) => ({ loopVar, subject, body })
     ),
 
     whileLoop: map(

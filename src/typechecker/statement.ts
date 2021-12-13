@@ -2,7 +2,7 @@ import { Statement, ValueType } from '../shared/ast'
 import { diagnostic, DiagnosticLevel } from '../shared/diagnostics'
 import { Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, ScopeEntity, success, Typechecker, TypecheckerResult } from './base'
+import { err, success, Typechecker, TypecheckerResult } from './base'
 import { blockChecker, StatementChainMetadata } from './block'
 import { cmdCallTypechecker } from './cmdcall'
 import { cmdDeclSubCommandTypechecker } from './cmddecl'
@@ -203,16 +203,19 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       })
     },
 
-    forLoop: ({ loopvar, loopvar2, subject, body }) => {
-      const subjectType: TypecheckerResult<[ValueType, ValueType | null]> = matchUnion(subject.parsed, 'type', {
+    forLoop: ({ loopVar, subject, body }) => {
+      const subjectType: TypecheckerResult<ValueType> = matchUnion(subject.parsed, 'type', {
         expr: ({ expr }) => {
           const subjectType = resolveExprType(expr, ctx)
           if (!subjectType.ok) return subjectType
 
           if (subjectType.data.type === 'list') {
-            return success([subjectType.data.itemsType, null])
+            return success(subjectType.data.itemsType)
           } else if (subjectType.data.type === 'map') {
-            return success([{ type: 'string' }, subjectType.data.itemsType])
+            return err(subject.at, {
+              message: 'cannot iterate directly on maps',
+              complements: [['tip', 'you can iterate on maps using: for key, value in <a map>']],
+            })
           } else {
             return err(
               subject.at,
@@ -234,43 +237,46 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
           })
           if (!toType.ok) return toType
 
-          return success([{ type: 'number' }, null])
+          return success({ type: 'number' })
         },
       })
 
       if (!subjectType.ok) return subjectType
 
-      const scopeEntries: [string, ScopeEntity][] = [
-        [loopvar.parsed, { type: 'var', at: loopvar.at, mutable: false, varType: subjectType.data[0] }],
-      ]
+      const check = blockChecker(body, {
+        ...ctx,
+        inLoop: true,
+        scopes: ctx.scopes.concat([
+          new Map([[loopVar.parsed, { type: 'var', at: loopVar.at, mutable: false, varType: subjectType.data }]]),
+        ]),
+      })
 
-      if (subjectType.data[1]) {
-        if (!loopvar2) {
-          return err(loopvar.at, {
-            message: 'cannot iterate directly on maps',
-            complements: [['tip', 'you can iterate on maps using: for key, value in <a map>']],
-          })
-        }
+      if (!check.ok) return check
 
-        scopeEntries.push([
-          loopvar2.parsed,
-          { type: 'var', at: loopvar2.at, mutable: false, varType: subjectType.data[1] },
-        ])
-      } else if (loopvar2) {
-        return err(loopvar2.at, 'secondary loop variables can only be used on maps')
+      if (check.data.neverEnds) {
+        ctx.emitDiagnostic(diagnostic(stmt.at, 'this loop always returns or breaks', DiagnosticLevel.Warning))
       }
 
-      if (loopvar2?.parsed === loopvar.parsed) {
-        return err(loopvar2.at, {
-          message: 'cannot use the same identifier for both loop variables',
-          also: [{ at: loopvar.at, message: 'original identifier is used here' }],
-        })
+      return success({ neverEnds: false })
+    },
+
+    forLoopDuo: ({ keyVar, valueVar, subject, body }) => {
+      const subjectType = resolveExprType(subject, ctx)
+      if (!subjectType.ok) return subjectType
+
+      if (subjectType.data.type !== 'map') {
+        return err(subject.at, `expected a \`map\` to iterate on, found a \`${rebuildType(subjectType.data, true)}\``)
       }
 
       const check = blockChecker(body, {
         ...ctx,
         inLoop: true,
-        scopes: ctx.scopes.concat([new Map(scopeEntries)]),
+        scopes: ctx.scopes.concat([
+          new Map([
+            [keyVar.parsed, { type: 'var', at: keyVar.at, mutable: false, varType: { type: 'string' } }],
+            [valueVar.parsed, { type: 'var', at: valueVar.at, mutable: false, varType: subjectType.data.itemsType }],
+          ]),
+        ]),
       })
 
       if (!check.ok) return check
