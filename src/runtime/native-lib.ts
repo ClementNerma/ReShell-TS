@@ -173,6 +173,17 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
       success({ type: 'failable', success: false, value: error })
     ),
 
+  // Nullables
+  unwrap: ({ at }, args) =>
+    withArguments(at, args, { self: 'unknown' }, ({ self }) =>
+      self.type !== 'null' ? success(self) : err(at, 'tried to unwrap a "null" value')
+    ),
+
+  expect: ({ at }, args) =>
+    withArguments(at, args, { self: 'unknown', message: 'string' }, ({ self, message }) =>
+      self.type !== 'null' ? success(self) : err(at, message.value)
+    ),
+
   // Type utilities
   typed: ({ at }, args) => withArguments(at, args, { value: 'unknown' }, ({ value }) => success(value)),
 
@@ -315,15 +326,21 @@ function makeMap<R extends object, O>(values: { [key in keyof R]: O }): Map<stri
   return new Map(Object.entries(values))
 }
 
-function withArguments<A extends { [name: string]: ValueType['type'] | { nullable: ValueType['type'] } }>(
+function withArguments<
+  A extends { [name: string]: ValueType['type'] | 'unknown' | { nullable: ValueType['type'] | 'unknown' } }
+>(
   at: CodeSection,
   map: Map<string, ExecValue>,
   expecting: A,
   callback: (data: {
     [name in keyof A]: Extract<
       ExecValue,
-      A[name] extends { nullable: ValueType['type'] }
-        ? { type: 'null' } | { type: A[name]['nullable'] }
+      A[name] extends { nullable: ValueType['type'] | 'unknown' }
+        ? A[name]['nullable'] extends 'unknown'
+          ? ExecValue
+          : { type: 'null' } | { type: A[name]['nullable'] }
+        : A[name] extends 'unknown'
+        ? ExecValue
         : { type: A[name] }
     >
   }) => RunnerResult<ExecValue | null>

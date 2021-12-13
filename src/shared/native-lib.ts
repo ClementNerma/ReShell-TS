@@ -140,6 +140,21 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
     returnType: ({ T, E }) => ({ type: 'failable', successType: _forgeToken(T), failureType: _forgeToken(E) }),
   }),
 
+  // Nullables
+  unwrap: _buildNativeLibraryFn({
+    generics: ['T'],
+    methodFor: ({ T }) => [[T.name], { type: 'nullable', inner: T }],
+    args: () => [],
+    returnType: ({ T }) => T,
+  }),
+
+  expect: _buildNativeLibraryFn({
+    generics: ['T'],
+    methodFor: ({ T }) => [[T.name], { type: 'nullable', inner: T }],
+    args: () => [{ name: 'message', type: 'string' }],
+    returnType: ({ T }) => T,
+  }),
+
   // Type utilities
   typed: _buildNativeLibraryFn({
     generics: ['T'],
