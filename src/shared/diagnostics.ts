@@ -84,13 +84,10 @@ export function formatErr(
         `--> At ${format('filePath', sourceFile)}${format('location', `:${line + 1}:${col + 1}`)}:`
       )
 
-      if (at.start.file.type === 'internal') {
-        return `${header}\n<internal file>`
-      }
-
       const fileContent: StrView | false = matchUnion(at.start.file, 'type', {
         entrypoint: () => sourceServer.entrypoint(),
         file: ({ path }) => sourceServer.read(path),
+        internal: ({ path }) => StrView.create(`<internal file: ${path}>`),
       })
 
       if (fileContent === false) return `${header}\n<file not found in source server>`
