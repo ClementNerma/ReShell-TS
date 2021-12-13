@@ -21,7 +21,7 @@ export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ base, pipes }, 
     if (!pipeCheck.ok) return pipeCheck
 
     if (pipeCheck.data.found === 'fn') {
-      return err(base.at, 'cannot pipe data to a function')
+      return err(pipe.parsed.name.at, 'cannot pipe data to a function')
     }
   }
 
