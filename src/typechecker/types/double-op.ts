@@ -1,22 +1,88 @@
-import { CodeSection, ExprDoubleOp, Token, ValueType } from '../../shared/parsed'
+import { CodeSection, DoubleOp, ExprDoubleOp, ExprElement, Token, ValueType } from '../../shared/parsed'
+import { matchStr } from '../../shared/utils'
 import { err, success, Typechecker } from '../base'
-import { resolveExprElementType } from './expr'
+import { isTypeCompatible } from './compat'
+import { resolveExprElementType, resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
 
 export const resolveDoubleOpSequenceType: Typechecker<
-  { baseExprAt: CodeSection; baseExprType: ValueType; seq: Token<ExprDoubleOp>[] },
+  { baseElement: Token<ExprElement>; baseElementType: ValueType; seq: Token<ExprDoubleOp>[] },
   ValueType
-> = ({ baseExprAt, baseExprType, seq }, ctx) => {
-  // TODO: operators precedence
+> = ({ baseElement, baseElementType, seq }, ctx) => {
+  if (seq.length === 0) return success(baseElementType)
+  if (seq.length === 1) {
+    return resolveDoubleOpType({ leftExprAt: baseElement.at, leftExprType: baseElementType, op: seq[0].parsed }, ctx)
+  }
 
-  let leftExprAt = baseExprAt
-  let leftExprType = baseExprType
+  const precedence = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
 
-  for (const { parsed: op } of seq) {
-    const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op }, ctx)
+  if (precedence.find((p) => p === 3)) {
+    for (let i = seq.length - 1; i >= 0; i--) {
+      if (precedence[i] === 3) {
+        const leftExprAt = {
+          start: baseElement.at.start,
+          next: seq[i].at.next,
+        }
+
+        const leftExprType = resolveExprType(
+          {
+            at: leftExprAt,
+            matched: '// TODO',
+            parsed: {
+              from: baseElement,
+              doubleOps: seq.slice(0, i),
+            },
+          },
+          { scopes: ctx.scopes, typeExpectation: null }
+        )
+
+        if (!leftExprType.ok) return leftExprType
+
+        const rightExprAt = {
+          start: seq[i].parsed.right.at.start,
+          next: seq[seq.length - 1].at.next,
+        }
+
+        const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, seq.slice(i + 1))
+
+        return resolveDoubleOpType(
+          { leftExprAt, leftExprType: leftExprType.data, op },
+          { scopes: ctx.scopes, typeExpectation: null }
+        )
+      }
+    }
+  }
+
+  let leftExprAt = baseElement.at
+  let leftExprType = baseElementType
+
+  for (let i = 0; i < seq.length; i++) {
+    if (i < seq.length - 1 && precedence[i + 1] === 2) {
+      const rightExprAt = {
+        start: seq[i].parsed.right.at.start,
+        next: seq[i + 1].parsed.right.at.next,
+      }
+
+      const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, [seq[i + 1]])
+
+      const newLeftExprType = resolveDoubleOpType(
+        { leftExprAt, leftExprType, op },
+        { scopes: ctx.scopes, typeExpectation: null }
+      )
+
+      if (!newLeftExprType.ok) return newLeftExprType
+
+      leftExprAt = rightExprAt
+      leftExprType = newLeftExprType.data
+
+      i++
+      continue
+    }
+
+    const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op: seq[i].parsed }, ctx)
     if (!newLeftExprType.ok) return newLeftExprType
 
-    leftExprAt = op.right.at
+    leftExprAt = seq[i].parsed.right.at
     leftExprType = newLeftExprType.data
   }
 
@@ -63,7 +129,7 @@ export const resolveDoubleOpType: Typechecker<
           }
 
           checkRightOperandType = null
-          producedType = (rightExprType) => ({ nullable: true, inner: rightExprType.inner })
+          producedType = (rightExprType) => rightExprType
           break
       }
 
@@ -89,6 +155,16 @@ export const resolveDoubleOpType: Typechecker<
       switch (op.parsed.op.parsed) {
         case 'Eq':
         case 'NotEq':
+          const type = leftExprType.inner.type
+
+          if (leftExprType.nullable || (type !== 'bool' && type !== 'number' && type !== 'string' && type !== 'path')) {
+            return errCannotApplyOperator(op.parsed.op, 'number', leftExprType, leftExprAt)
+          }
+
+          checkRightOperandType = leftExprType
+          producedType = { nullable: false, inner: { type: 'bool' } }
+          break
+
         case 'GreaterThan':
         case 'GreaterThanOrEqualTo':
         case 'LessThan':
@@ -117,7 +193,76 @@ export const resolveDoubleOpType: Typechecker<
 
   if (!rightExprType.ok) return rightExprType
 
-  return success(typeof producedType === 'function' ? producedType(rightExprType.data) : rightExprType.data)
+  const resultType = typeof producedType === 'function' ? producedType(rightExprType.data) : producedType
+
+  if (context.typeExpectation) {
+    const compat = isTypeCompatible(
+      {
+        at: {
+          start: leftExprAt.start,
+          next: right.at.next,
+        },
+        candidate: resultType,
+      },
+      context
+    )
+
+    if (!compat.ok) return compat
+  }
+
+  return success(resultType)
+}
+
+const getOpPrecedence = (op: DoubleOp['op']['parsed']): 1 | 2 | 3 =>
+  matchStr(op, {
+    Add: () => 1,
+    Sub: () => 1,
+    Mul: () => 2,
+    Div: () => 2,
+    Rem: () => 1,
+    Null: () => 2,
+    And: () => 2,
+    Or: () => 2,
+    Xor: () => 2,
+    Eq: () => 3,
+    NotEq: () => 3,
+    GreaterThanOrEqualTo: () => 3,
+    LessThanOrEqualTo: () => 3,
+    GreaterThan: () => 3,
+    LessThan: () => 3,
+  })
+
+function buildExprDoubleOp(
+  doubleOp: Token<DoubleOp>,
+  exprAt: CodeSection,
+  element: Token<ExprElement>,
+  remainingOps: Token<ExprDoubleOp>[]
+): ExprDoubleOp {
+  return {
+    op: doubleOp,
+    right: {
+      at: exprAt,
+      matched: '// TODO',
+      parsed: {
+        content: {
+          at: exprAt,
+          matched: '// TODO',
+          parsed: {
+            type: 'rebuilt',
+            inner: {
+              at: exprAt,
+              matched: '// TODO',
+              parsed: {
+                from: element,
+                doubleOps: remainingOps,
+              },
+            },
+          },
+        },
+        propAccess: [],
+      },
+    },
+  }
 }
 
 const errCannotApplyOperator = (

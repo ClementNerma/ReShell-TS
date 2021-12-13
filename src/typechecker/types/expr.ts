@@ -7,13 +7,18 @@ import { resolvePropAccessType } from './propaccess'
 import { resolveValueType } from './value'
 
 export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) => {
-  const fromType = resolveExprElementType(expr.parsed.from, ctx)
+  const fromType = resolveExprElementType(expr.parsed.from, {
+    scopes: ctx.scopes,
+    // Required to prevent "2 + 4 == 8" from creating an expectation for "2" to be a "bool"
+    typeExpectation: expr.parsed.doubleOps.length > 0 ? null : ctx.typeExpectation,
+  })
+
   if (!fromType.ok) return fromType
 
   return resolveDoubleOpSequenceType(
     {
-      baseExprAt: expr.parsed.from.at,
-      baseExprType: fromType.data,
+      baseElement: expr.parsed.from,
+      baseElementType: fromType.data,
       seq: expr.parsed.doubleOps,
     },
     ctx
