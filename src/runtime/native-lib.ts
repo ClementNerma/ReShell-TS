@@ -72,7 +72,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
         rest: () => `<rest>`,
       })
 
-    pipeTo.stdout.write(valueToStr(args.get('value')!))
+    pipeTo.stdout.write(valueToStr(args.get('value')!) + '\n')
 
     return { ok: null, breaking: 'return', value: null }
   },
@@ -84,7 +84,7 @@ export const nativeLibraryFunctions = buildWithNativeLibraryFunctionNames<Native
       internal: ({ path }) => `<internal:${path}>`,
     })
 
-    pipeTo.stdout.write(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}`)
+    pipeTo.stdout.write(`[Trace] ${file}:${at.start.line + 1}:${at.start.col + 1}\n`)
 
     return { ok: null, breaking: 'return', value: null }
   },
