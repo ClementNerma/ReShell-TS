@@ -1,6 +1,5 @@
 import { CodeLoc, Token } from '../../shared/parsed'
 import { err, ErrInputData, Parser, success, withErr, WithErrData } from './base'
-import { then } from './conditions'
 
 export type TakeWhileOptions = {
   inter?: Parser<unknown>
@@ -77,20 +76,30 @@ export function takeWhile1<T>(
   parser: Parser<T>,
   options?: TakeWhileOptions & { noMatchError?: ErrInputData }
 ): Parser<Token<T>[]> {
-  return then(takeWhile(parser, options), (_, parsed, context) =>
-    parsed.parsed.length === 0
-      ? err(parsed.at.start, parsed.at.next, context, options?.noMatchError)
-      : { ok: true, data: parsed }
-  )
+  const take = takeWhile(parser, options)
+
+  return (start, input, context) => {
+    const parsed = take(start, input, context)
+    return parsed.ok
+      ? parsed.data.parsed.length === 0
+        ? err(parsed.data.at.start, parsed.data.at.next, context, options?.noMatchError)
+        : { ok: true, data: parsed.data }
+      : parsed
+  }
 }
 
 export function takeWhileN<T>(
   parser: Parser<T>,
-  options: TakeWhileOptions & { noMatchError?: ErrInputData; minimum: number }
+  options: TakeWhileOptions & { notEnoughMatchError?: ErrInputData; minimum: number }
 ): Parser<Token<T>[]> {
-  return then(takeWhile(parser, options), (_, parsed, context) =>
-    parsed.parsed.length < options.minimum
-      ? err(parsed.at.start, parsed.at.next, context, options?.noMatchError)
-      : { ok: true, data: parsed }
-  )
+  const take = takeWhile(parser, options)
+
+  return (start, input, context) => {
+    const parsed = take(start, input, context)
+    return parsed.ok
+      ? parsed.data.parsed.length < options.minimum
+        ? err(parsed.data.at.start, parsed.data.at.next, context, options?.notEnoughMatchError)
+        : { ok: true, data: parsed.data }
+      : parsed
+  }
 }
