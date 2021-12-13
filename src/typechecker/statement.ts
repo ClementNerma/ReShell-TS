@@ -228,8 +228,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           ((condCheck.data.inverted && thenCheck.data.neverEnds) || (!condCheck.data.inverted && neverEnds))
         ) {
           const assertionScope = condCheck.data.inverted
-            ? condCheck.data.oppositeAssertionScope
-            : condCheck.data.normalAssertionScope
+            ? condCheck.data.normalAssertionScope
+            : condCheck.data.oppositeAssertionScope
 
           for (const [varname, scopedVar] of assertionScope) {
             currentScope.set(varname, scopedVar)
