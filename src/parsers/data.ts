@@ -41,7 +41,7 @@ export type Statement =
   | { type: 'typeAlias'; typename: Token<string>; content: Token<ValueType> }
   | { type: 'fnOpen'; name: Token<string>; fnType: FnType }
   | { type: 'return'; expr: Token<Expr | null> }
-  | { type: 'cmdCall'; name: Token<string>; args: Token<CmdArg>[] }
+  | { type: 'cmdCall'; name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
 
 export type FnType = {
   named: Token<string> | null
@@ -64,6 +64,18 @@ export type CmdArg =
   | { type: 'reference'; varname: Token<string> }
   | { type: 'expr'; expr: Token<Expr> }
   | { type: 'literal'; value: Token<LiteralValue> }
+
+export type CmdRedir = { op: Token<CmdRedirOp>; path: Token<Token<string>[]> }
+
+export enum CmdRedirOp {
+  Input,
+  Stdout,
+  AppendStdout,
+  Stderr,
+  AppendStderr,
+  StdoutStderr,
+  AppendStdoutStderr,
+}
 
 export type ValueType =
   | { type: 'bool' }

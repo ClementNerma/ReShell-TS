@@ -11,9 +11,10 @@ import { map } from '../lib/transform'
 import { flattenMaybeToken, mapToken, selfRef } from '../lib/utils'
 import { cmdArg } from './cmdarg'
 import { matchStatementClose } from './context'
-import { CmdArg, Statement, StatementChain } from './data'
+import { CmdArg, CmdRedir, Statement, StatementChain } from './data'
 import { expr } from './expr'
-import { endOfStatement, statementChainOp } from './stmtend'
+import { literalPath } from './literals'
+import { cmdRedirOp, endOfCmdCall, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
 import { fnDecl, valueType } from './types'
 
@@ -102,27 +103,46 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     fnOpen: map(fnDecl, (fn) => fn),
 
-    cmdCall: or([
-      map(combine(identifier, lookahead(endOfStatement)), ([name, _]) => ({ name, args: [] })),
-      map(
-        combine(
-          identifier,
-          takeWhile(
-            ifThenElse<CmdArg>(endOfStatement, fail(), failure(cmdArg, 'Syntax error: invalid argument provided')),
-            {
-              inter: s,
-            }
+    cmdCall: map(
+      combine(
+        or([
+          map(combine(identifier, lookahead(endOfCmdCall)), ([name, _]) => ({ name, args: [] })),
+          map(
+            combine(
+              identifier,
+              takeWhile(
+                ifThenElse<CmdArg>(endOfCmdCall, fail(), failure(cmdArg, 'Syntax error: invalid argument provided')),
+                {
+                  inter: s,
+                }
+              ),
+              {
+                inter: s,
+              }
+            ),
+            ([name, args]) => ({
+              name,
+              args: args.parsed ?? [],
+            })
           ),
-          {
-            inter: s,
-          }
+        ]),
+        maybe(
+          map(
+            combine(
+              cmdRedirOp,
+              maybe_s,
+              failure(literalPath, 'Syntax error: expected a valid path after redirection operator')
+            ),
+            ([op, _, path]): CmdRedir => ({ op, path })
+          )
         ),
-        ([name, args]) => ({
-          name,
-          args: args.parsed ?? [],
-        })
+        { inter: maybe_s }
       ),
-    ]),
+      ([nameAndArgs, redir]) => ({
+        ...nameAndArgs.parsed,
+        redir: flattenMaybeToken(redir),
+      })
+    ),
   },
   'Syntax error: expected statement'
 )

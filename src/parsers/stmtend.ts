@@ -5,7 +5,7 @@ import { maybe_s, maybe_s_nl } from '../lib/littles'
 import { eol, oneOfMap } from '../lib/matchers'
 import { or } from '../lib/switches'
 import { matchStatementClose } from './context'
-import { StatementChainOp } from './data'
+import { CmdRedirOp, StatementChainOp } from './data'
 
 export const statementChainOp: Parser<StatementChainOp> = oneOfMap([
   [';', StatementChainOp.Then],
@@ -14,8 +14,20 @@ export const statementChainOp: Parser<StatementChainOp> = oneOfMap([
   ['|', StatementChainOp.Pipe],
 ])
 
+export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
+  ['err>>', CmdRedirOp.AppendStderr],
+  ['both>>', CmdRedirOp.AppendStdoutStderr],
+  ['err>', CmdRedirOp.Stderr],
+  ['both>', CmdRedirOp.StdoutStderr],
+  ['>>', CmdRedirOp.AppendStdout],
+  ['>', CmdRedirOp.Stdout],
+  ['<', CmdRedirOp.Input],
+])
+
 export const endOfInner: Parser<void> = lookahead(
   combine(maybe_s_nl, or<unknown>([statementChainOp, matchStatementClose]))
 )
 
-export const endOfStatement: Parser<void> = lookahead(or<unknown>([combine(maybe_s, eol()), endOfInner]))
+export const endOfCmdCall: Parser<void> = lookahead(
+  or<unknown>([combine(maybe_s, or<unknown>([cmdRedirOp, eol()])), endOfInner])
+)
