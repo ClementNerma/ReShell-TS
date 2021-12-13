@@ -175,6 +175,8 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
+    break: exact('break'),
+
     tryBlock: map(
       combine(
         exact('try'),

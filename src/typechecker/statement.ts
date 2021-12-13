@@ -209,6 +209,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           return statementChainChecker(body, {
             ...ctx,
+            inLoop: true,
             scopes: scopes.concat([
               {
                 functions: new Map(),
@@ -229,12 +230,20 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
           if (!condCheck.ok) return condCheck
 
-          return statementChainChecker(
-            body,
-            condCheck.data.type === 'assertion'
-              ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.assertionScope]) }
-              : ctx
-          )
+          return statementChainChecker(body, {
+            ...ctx,
+            inLoop: true,
+            scopes:
+              condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.assertionScope]) : ctx.scopes,
+          })
+        },
+
+        break: () => {
+          if (!ctx.inLoop) {
+            return err(stmt.at, 'the "break" instruction is only allowed inside loops')
+          }
+
+          return success({ neverReturns: true })
         },
 
         tryBlock: ({ body, catchVarname, catchBody }) => {

@@ -6,6 +6,7 @@ export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => Typec
 
 export type TypecheckerContext = {
   scopes: Scope[]
+  inLoop: boolean
   typeExpectation: null | { type: ValueType; from: CodeSection | null }
   typeExpectationNature: null | string
   fnExpectation: null | {
@@ -19,6 +20,7 @@ export type TypecheckerContext = {
 export function createTypecheckerContext(cmdChecker: TypecheckerContext['checkIfCommandExists']): TypecheckerContext {
   return {
     scopes: [],
+    inLoop: false,
     typeExpectation: null,
     typeExpectationNature: null,
     fnExpectation: null,

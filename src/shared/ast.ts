@@ -36,6 +36,7 @@ export type Statement =
     }
   | { type: 'forLoop'; loopvar: Token<string>; subject: Token<Expr>; body: Token<StatementChain>[] }
   | { type: 'whileLoop'; cond: Token<ExprOrTypeAssertion>; body: Token<StatementChain>[] }
+  | { type: 'break' }
   | {
       type: 'tryBlock'
       body: Token<StatementChain>[]
