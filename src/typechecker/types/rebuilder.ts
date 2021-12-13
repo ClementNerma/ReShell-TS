@@ -15,17 +15,19 @@ export function rebuildType(type: ValueType, noDepth?: boolean): string {
         : `{ ${members.map(({ name, type }) => `${name}: ${rebuildType(type)}`).join(', ')} }`,
     enum: ({ variants }) =>
       noDepth === true ? 'enum' : `enum { ${variants.map((variant) => variant.parsed).join(', ')} }`,
-    fn: ({ fnType: { args, returnType } }) =>
+    fn: ({ fnType: { args, generics, restArg, returnType } }) =>
       noDepth === true
         ? 'fn'
-        : `fn(${args
+        : `fn${generics.length === 0 ? '' : `<${generics.map((g) => ':' + g.parsed).join(', ')}>`}(${args
             .map(
               ({ parsed: { flag, name, optional, type, defaultValue } }) =>
                 `${flag?.parsed ?? ''}${name.parsed}${optional ? '?' : ''}: ${rebuildType(type)}${
                   defaultValue ? ' = ' + rebuildLiteralValue(defaultValue) : ''
                 }`
             )
-            .join(', ')})${returnType ? ` -> ${rebuildType(returnType.parsed)}` : ''}`,
+            .join(', ')}${restArg === null ? '' : '...' + restArg.parsed})${
+            returnType ? ` -> ${rebuildType(returnType.parsed)}` : ''
+          }`,
     aliasRef: ({ typeAliasName }) => typeAliasName.parsed,
     nullable: ({ inner }) => '?' + rebuildType(inner, noDepth),
     failable: ({ successType, failureType }) =>
