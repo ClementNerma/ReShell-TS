@@ -1,4 +1,5 @@
 import { CodeLoc } from '../../shared/parsed'
+import { StrView } from '../../shared/strview'
 import {
   err,
   ErrInputData,
@@ -12,7 +13,6 @@ import {
   withErr,
   WithErrData,
 } from './base'
-import { StrView } from './strview'
 
 export function inspectOk<T>(parser: Parser<T>, inspector: (result: ParserSucess<T>) => void): Parser<T> {
   return (start, input, context) => {

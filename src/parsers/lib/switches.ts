@@ -1,6 +1,6 @@
 import { CodeLoc } from '../../shared/parsed'
+import { StrView } from '../../shared/strview'
 import { err, ErrInputData, Parser, ParserErr, ParsingContext, withErr, WithErrData } from './base'
-import { StrView } from './strview'
 import { map } from './transform'
 
 export type OrErrorFn<R> = (input: StrView, errors: Array<ParserErr>, context: ParsingContext, start: CodeLoc) => R
@@ -72,7 +72,8 @@ export function mappedCasesComposed<S extends object>(): <DN extends keyof S, E 
     : never,
   error?: OrErrorStrategyData
 ) => Parser<S> {
-  return (discriminant, firstResolver, cases, error) => or<S>([firstResolver, mappedCases<any>()(discriminant, cases)], error)
+  return (discriminant, firstResolver, cases, error) =>
+    or<S>([firstResolver, mappedCases<any>()(discriminant, cases)], error)
 }
 
 export function mappedCases<S extends object>(): <DN extends keyof S>(

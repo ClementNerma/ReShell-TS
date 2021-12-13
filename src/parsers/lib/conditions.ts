@@ -1,4 +1,5 @@
 import { CodeLoc, Token } from '../../shared/parsed'
+import { StrView } from '../../shared/strview'
 import {
   err,
   ErrInputData,
@@ -9,7 +10,6 @@ import {
   ParsingContext,
   phantomSuccess,
 } from './base'
-import { StrView } from './strview'
 
 export function ifThen<T>(cond: Parser<unknown>, then: Parser<T>): Parser<T | null> {
   return (start, input, context) => {

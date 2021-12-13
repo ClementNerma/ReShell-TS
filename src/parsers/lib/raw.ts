@@ -1,6 +1,6 @@
 import { FormatableErrInput } from '../../shared/errors'
+import { StrView } from '../../shared/strview'
 import { Parser, ParsingContext } from './base'
-import { StrView } from './strview'
 
 export function matches<C>(source: StrView, parser: Parser<unknown>, $custom: C) {
   const context: ParsingContext = { source, $custom, self: () => context }

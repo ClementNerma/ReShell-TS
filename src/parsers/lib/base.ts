@@ -1,6 +1,6 @@
 import { FormatableErrInput, FormatableError, formattableErr } from '../../shared/errors'
 import { CodeLoc, Token } from '../../shared/parsed'
-import { StrView } from './strview'
+import { StrView } from '../../shared/strview'
 
 export type ParserResult<T> = ParserSucess<T> | ParserErr
 

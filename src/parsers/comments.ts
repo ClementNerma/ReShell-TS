@@ -1,5 +1,5 @@
+import { StrView } from '../shared/strview'
 import { Parser, success } from './lib/base'
-import { StrView } from './lib/strview'
 
 export const commentStripper: Parser<StrView> = (start, input) => {
   let lines = input.toFullStringSlow().split(/\n/) // SLOW
