@@ -15,13 +15,11 @@ export const resolveDoubleOpSequenceType: Typechecker<
     return resolveDoubleOpType({ leftExprAt: baseElement.at, leftExprType: baseElementType, op: seq[0].parsed }, ctx)
   }
 
-  const precedence = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
+  const precedence: number[] = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
 
   for (let g = 4; g >= 3; g--) {
-    const rIndex = precedence.reverse().findIndex((p) => p === g)
-    if (rIndex === -1) continue
-
-    const i = seq.length - rIndex - 1
+    const i = precedence.lastIndexOf(g)
+    if (i === -1) continue
 
     const leftExprAt = {
       start: baseElement.at.start,
