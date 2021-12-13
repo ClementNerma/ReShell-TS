@@ -150,7 +150,7 @@ export const isTypeCompatible: Typechecker<
   } else {
     if (candidate.type === 'nullable') {
       return referent.type !== 'nullable'
-        ? expectationErr('value should not be nullable')
+        ? expectationErr()
         : subCheck({ addPath: 'nullable type', candidate: candidate.inner, referent: referent.inner })
     } else if (referent.type === 'nullable') {
       return subCheck({ addPath: 'nullable type', candidate, referent: referent.inner })

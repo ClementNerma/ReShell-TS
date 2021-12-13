@@ -133,13 +133,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       }
 
       if (typeExpectation.type.type !== 'nullable') {
-        return err(value.at, {
-          message: 'parent type is not nullable',
-          complements: [
-            ['expected', rebuildType(typeExpectation.type)],
-            ['found   ', 'void'],
-          ],
-        })
+        return err(
+          value.at,
+          `expected non-nullable type \`${rebuildType(typeExpectation.type, true)}\`, found value "null"`
+        )
       }
 
       return success(typeExpectation.type)
