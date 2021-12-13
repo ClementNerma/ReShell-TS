@@ -8,83 +8,100 @@ import { exact, word } from '../lib/matchers'
 import { addTipIf } from '../lib/raw'
 import { mappedCases, OrErrorStrategy } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, mapToken, selfRef, withLatelyDeclared } from '../lib/utils'
-import { FnArg, FnType, ValueType } from './data'
+import { flattenMaybeToken, mapToken, withLatelyDeclared } from '../lib/utils'
+import { FnArg, FnType, NonNullableValueType, ValueType } from './data'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { startsWithLetter } from './utils'
 
-export const valueType: Parser<ValueType> = selfRef((typeParser) =>
-  mappedCases<ValueType>()(
-    'type',
-    {
-      bool: map(word('bool'), (_) => ({})),
-      number: map(word('number'), (_) => ({})),
-      string: map(word('string'), (_) => ({})),
-      path: map(word('path'), (_) => ({})),
+export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<NonNullableValueType>()(
+  'type',
+  {
+    bool: map(word('bool'), (_) => ({})),
+    number: map(word('number'), (_) => ({})),
+    string: map(word('string'), (_) => ({})),
+    path: map(word('path'), (_) => ({})),
 
-      list: map(
-        combine(exact('list'), exact('['), typeParser, exact(']'), { inter: maybe_s_nl }),
-        ([_, __, itemsType, ___]) => ({
-          itemsType,
-        })
+    list: map(
+      combine(
+        exact('list'),
+        exact('['),
+        withLatelyDeclared(() => valueType),
+        exact(']'),
+        { inter: maybe_s_nl }
       ),
+      ([_, __, itemsType, ___]) => ({
+        itemsType,
+      })
+    ),
 
-      map: map(
-        combine(exact('map'), exact('['), typeParser, exact(']'), { inter: maybe_s_nl }),
-        ([_, __, itemsType, ___]) => ({
-          itemsType,
-        })
+    map: map(
+      combine(
+        exact('map'),
+        exact('['),
+        withLatelyDeclared(() => valueType),
+        exact(']'),
+        { inter: maybe_s_nl }
       ),
+      ([_, __, itemsType, ___]) => ({
+        itemsType,
+      })
+    ),
 
-      struct: map(
-        combine(
-          exact('{'),
-          extract(
-            takeWhile1N(
-              map(
-                combine(
-                  failure(identifier, 'Expected a member name'),
-                  exact(':', 'Expected a semicolon (:) type separator'),
-                  failure(typeParser, 'Expected a type annotation for this member'),
-                  { inter: maybe_s_nl }
+    struct: map(
+      combine(
+        exact('{'),
+        extract(
+          takeWhile1N(
+            map(
+              combine(
+                failure(identifier, 'Syntax error: expected a member name'),
+                exact(':', 'Syntax error: expected a semicolon (:) type separator'),
+                failure(
+                  withLatelyDeclared(() => valueType),
+                  'Syntax error: expected a type annotation for this member'
                 ),
-                ([name, _, type]): [Token<string>, Token<ValueType>] => [name, type]
+                { inter: maybe_s_nl }
               ),
-              {
-                inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-                interMatchingMakesExpectation: true,
-                noMatchError: 'Please provide at least one member in the struct',
-              }
-            )
-          ),
-          exact('}', "Expected a closing brace (}) after the list of the struct's members"),
-          { inter: maybe_s_nl }
+              ([name, _, type]): [Token<string>, Token<ValueType>] => [name, type]
+            ),
+            {
+              inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+              interMatchingMakesExpectation: true,
+              noMatchError: 'Please provide at least one member in the struct',
+            }
+          )
         ),
-        ([_, members, __]) => ({ members })
+        exact('}', "Syntax error: expected a closing brace (}) after the list of the struct's members"),
+        { inter: maybe_s_nl }
       ),
+      ([_, members, __]) => ({ members })
+    ),
 
-      fn: map(
-        withLatelyDeclared(() => fnType),
-        (fnType) => ({ fnType })
-      ),
+    fn: map(
+      withLatelyDeclared(() => fnType),
+      (fnType) => ({ fnType })
+    ),
 
-      aliasRef: map(
-        combine(exact('@'), failure(identifier, 'Syntax error: expected a type alias name')),
-        ([_, typeAliasName]) => ({ typeAliasName })
-      ),
-    },
+    aliasRef: map(
+      combine(exact('@'), failure(identifier, 'Syntax error: expected a type alias name')),
+      ([_, typeAliasName]) => ({ typeAliasName })
+    ),
+  },
 
-    [
-      OrErrorStrategy.FallbackFn,
-      (input, _, __, ___) =>
-        addTipIf(
-          'Syntax error: failed to parse expression',
-          startsWithLetter(input),
-          'Type aliases must be prefixed by a "@" symbol'
-        ),
-    ]
-  )
+  [
+    OrErrorStrategy.FallbackFn,
+    (input, _, __, ___) =>
+      addTipIf('Syntax error: invalid type', startsWithLetter(input), 'Type aliases must be prefixed by a "@" symbol'),
+  ]
+)
+
+export const valueType: Parser<ValueType> = map(
+  combine(maybe(exact('?')), nonNullableValueType),
+  ([nullable, { parsed: inner }]) => ({
+    nullable: nullable.parsed !== null,
+    inner,
+  })
 )
 
 const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireName) =>

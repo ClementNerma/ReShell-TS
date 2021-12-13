@@ -81,7 +81,7 @@ export enum CmdRedirOp {
   AppendStdoutStderr,
 }
 
-export type ValueType =
+export type NonNullableValueType =
   | { type: 'bool' }
   | { type: 'number' }
   | { type: 'string' }
@@ -91,6 +91,8 @@ export type ValueType =
   | { type: 'struct'; members: Token<[Token<string>, Token<ValueType>][]> }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
+
+export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 
 export type ResolvedValueType = Exclude<ValueType, { type: 'aliasRef' }>
 
