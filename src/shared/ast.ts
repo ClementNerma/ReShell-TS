@@ -184,6 +184,7 @@ export type ComputedPathSegment =
   | { type: 'expr'; expr: Token<Expr> }
 
 export type FnCall = {
+  at: CodeSection
   name: Token<string>
   generics: Token<Token<ValueType | null>[]> | null
   args: Token<FnCallArg>[]

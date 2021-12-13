@@ -73,5 +73,5 @@ export const fnCall: Parser<FnCall> = map(
     ),
     combine(maybe_s_nl, exact(')', 'expected a closing parenthesis to end the list of arguments'))
   ),
-  ([_, name, { parsed: generics }, __, { parsed: args }]) => ({ name, generics, args })
+  ([_, name, { parsed: generics }, __, { parsed: args }], { at }) => ({ at, name, generics, args })
 )

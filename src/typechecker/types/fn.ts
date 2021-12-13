@@ -244,7 +244,7 @@ export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<Block> },
   return success(void 0)
 }
 
-export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generics, args }, ctx) => {
+export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ at, name, generics, args }, ctx) => {
   let fnType: FnType
 
   const entity = getEntityInScope(name, ctx)
@@ -271,7 +271,7 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
     fnType = type.data.fnType
   }
 
-  const fnCallCheck = validateAndRegisterFnCall({ at: name.at, nameAt: name.at, fnType, generics, args }, ctx)
+  const fnCallCheck = validateAndRegisterFnCall({ at, nameAt: name.at, fnType, generics, args }, ctx)
 
   if (!fnCallCheck.ok) return fnCallCheck
 
@@ -280,7 +280,7 @@ export const resolveFnCallType: Typechecker<FnCall, ValueType> = ({ name, generi
   if (ctx.typeExpectation) {
     const compat = isTypeCompatible(
       {
-        at: name.at,
+        at,
         candidate: returnType,
         typeExpectation: {
           from: ctx.typeExpectation.from,
@@ -355,7 +355,7 @@ export const validateAndRegisterFnCall: Typechecker<
   if (ctx.typeExpectation && fnType.generics.length > 0) {
     const compat = isTypeCompatible(
       {
-        at: nameAt,
+        at,
         candidate: fnType.returnType?.parsed ?? { type: 'void' },
         typeExpectation: ctx.typeExpectation,
         fillKnownGenerics: gScope,
