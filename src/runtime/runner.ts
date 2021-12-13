@@ -787,10 +787,16 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
             const execExpr = runExpr(segment.parsed.expr.parsed, ctx)
             if (execExpr.ok !== true) return execExpr
 
-            const segmentStr = expectValueType(segment.at, execExpr.data, 'string')
-            if (segmentStr.ok !== true) return segmentStr
-
-            out.push(segmentStr.data.value)
+            if (execExpr.data.type === 'string') {
+              out.push(execExpr.data.value)
+            } else if (execExpr.data.type === 'number') {
+              out.push(execExpr.data.value.toString())
+            } else {
+              return err(
+                segment.at,
+                `internal error: expected segment to be either "string" or "number", found internal type "${execExpr.data.type}"`
+              )
+            }
             break
           }
 
@@ -803,31 +809,52 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
     },
 
     computedPath: ({ segments }) => {
+      let currentSegment: string[] = []
       const out: string[] = []
 
       for (const segment of segments) {
         switch (segment.parsed.type) {
           case 'literal':
-            out.push(segment.parsed.content.parsed)
+            currentSegment.push(segment.parsed.content.parsed)
             break
 
           case 'expr': {
             const execExpr = runExpr(segment.parsed.expr.parsed, ctx)
             if (execExpr.ok !== true) return execExpr
 
-            const segments = expectValueType(segment.at, execExpr.data, 'path')
-            if (segments.ok !== true) return segments
+            if (execExpr.data.type === 'string') {
+              currentSegment.push(execExpr.data.value)
+            } else if (execExpr.data.type === 'path') {
+              if (currentSegment.length > 0) {
+                out.push(currentSegment.join(''))
+                currentSegment = []
+              }
 
-            out.push(...segments.data.segments)
+              out.push(...execExpr.data.segments)
+            } else {
+              return err(
+                segment.at,
+                `internal error: expected segment to be either "string" or "path", found internal type "${execExpr.data.type}"`
+              )
+            }
+
             break
           }
 
           case 'separator':
+            if (currentSegment.length > 0) {
+              out.push(currentSegment.join(''))
+              currentSegment = []
+            }
             break
 
           default:
             return ensureCoverage(segment.parsed)
         }
+      }
+
+      if (currentSegment.length > 0) {
+        out.push(currentSegment.join(''))
       }
 
       return success({ type: 'path', segments: out })
