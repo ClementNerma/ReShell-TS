@@ -3,7 +3,7 @@ import { CodeSection, Token } from '../shared/parsed'
 import { addGenericsDefinition, CustomContext } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
+import { extract, failIfMatches, ifThen, maybe, useSeparatorIf } from './lib/conditions'
 import { not, notFollowedBy, nothing } from './lib/consumeless'
 import { feedContext } from './lib/context'
 import { contextualFailure, failure } from './lib/errors'
@@ -217,12 +217,26 @@ export const methodDecl: Parser<{
     maybe_s,
     exact(')', 'expected a closing parenthesis ")" after the method\'s applicable type'),
     failure(s_nl, 'expected a space or newline after closing parenthesis'),
-    fn(
-      map(combine(exact('fn'), s, identifier), ([_, __, name]) => name),
-      map(
-        combine(exact('self', 'methods must take a first argument named "self"'), maybe_s, exact(','), maybe_s),
-        ([self]) => self
-      )
+    failure(
+      fn(
+        map(
+          combine(
+            exact('fn', 'expected a "fn" keyword'),
+            failure(s, 'expected a space after the "fn" keyword'),
+            failure(identifier, 'expected a function identifier')
+          ),
+          ([_, __, name]) => name
+        ),
+        map(
+          combine(
+            exact('self', 'methods must take a first argument named "self"'),
+            maybe_s,
+            ifThen(not(exact(')')), combine(exact(','), maybe_s_nl))
+          ),
+          ([self]) => self
+        )
+      ),
+      'expected a function declaration'
     )
   ),
   ([_, __, forType, ___, ____, _____, { parsed }]) => ({
