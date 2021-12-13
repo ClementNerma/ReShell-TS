@@ -143,6 +143,7 @@ export type Value =
   | { type: 'map'; entries: { key: Token<string>; value: Token<Expr> }[] }
   | { type: 'struct'; members: { name: Token<string>; value: Token<Expr> }[] }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
+  | { type: 'callback'; args: Token<ClosureArg>[]; body: Token<ClosureBody> }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {
       type: 'inlineCmdCallSequence'
@@ -167,6 +168,10 @@ export type ComputedPathSegment =
   | { type: 'expr'; expr: Token<Expr> }
 
 export type FnCallArg = ({ type: 'flag' } & CmdFlag) | { type: 'expr'; expr: Token<Expr> }
+
+export type ClosureArg = ({ type: 'flag' } & CmdFlag) | { type: 'variable'; name: Token<string> }
+
+export type ClosureBody = { type: 'expr'; body: Token<Expr> } | { type: 'block'; body: Token<StatementChain>[] }
 
 export type InlineCmdCall = CmdCall
 

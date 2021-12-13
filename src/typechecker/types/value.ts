@@ -7,7 +7,7 @@ import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { fnScopeCreator, fnTypeValidator, validateFnCallArgs } from './fn'
+import { closureTypeValidator, fnScopeCreator, fnTypeValidator, validateFnCallArgs } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -354,6 +354,17 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       return success({ type: 'fn', fnType })
     },
 
+    callback: ({ args, body }) => {
+      const assert = assertExpectedNonPrimitiveType('fn')
+      if (!assert.ok) return assert
+      if (!assert.data) return err(value.at, 'cannot determine the signature of this function')
+
+      const expected = assert.data.fnType
+
+      const check = closureTypeValidator({ at: value.at, args, body, expected }, ctx)
+      return check.ok ? success({ type: 'fn', fnType: expected }) : check
+    },
+
     fnCall: ({ name, args }) => {
       let fnType: FnType
 
@@ -381,7 +392,10 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       }
 
       if (fnType.returnType === null) {
-        return err(name.at, "cannot call a function which doesn't have a return type inside an expression")
+        return err(
+          name.at,
+          'cannot call a function inside an expression when this function does not have a return type'
+        )
       }
 
       if (ctx.typeExpectation) {

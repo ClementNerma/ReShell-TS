@@ -1,4 +1,6 @@
 import {
+  ClosureArg,
+  ClosureBody,
   ComputedPathSegment,
   ComputedStringSegment,
   FnCallArg,
@@ -168,6 +170,46 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       combine(maybe_s_nl, exact('}', "expected a closing brace (}) after the closure's content"))
     ),
     ([{ parsed: fnType }, __, { parsed: body }, ___]) => ({ fnType, body })
+  ),
+
+  callback: map(
+    combine(
+      combine(exact('('), maybe_s_nl),
+      takeWhile(
+        mappedCases<ClosureArg>()('type', {
+          flag: withLatelyDeclared(() => cmdFlag),
+          variable: map(identifier, (_, name) => ({ name })),
+        }),
+        { inter: combine(maybe_s_nl, exact(','), maybe_s_nl), interExpect: 'expected another argument name' }
+      ),
+      combine(
+        maybe_s_nl,
+        exact(')', "expected a closing parenthesis ')' after the arguments list"),
+        maybe_s_nl,
+        exact('=>', 'expected a body arrow (=>)'),
+        maybe_s_nl
+      ),
+      mappedCases<ClosureBody>()('type', {
+        block: map(
+          combine(
+            exact('{'),
+            maybe_s_nl,
+            withStatementClosingChar(
+              '}',
+              withLatelyDeclared(() => blockBody)
+            ),
+            maybe_s_nl,
+            exact('}')
+          ),
+          ([_, __, { parsed: body }]) => ({ body })
+        ),
+        expr: map(
+          withLatelyDeclared(() => expr),
+          (_, body) => ({ body })
+        ),
+      })
+    ),
+    ([_, { parsed: args }, __, body]) => ({ args, body })
   ),
 
   fnCall: map(

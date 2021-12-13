@@ -7,7 +7,7 @@ import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveExprOrTypeAssertionType, resolveExprType } from './types/expr'
-import { fnScopeCreator } from './types/fn'
+import { validateFnBody } from './types/fn'
 import { resolvePropAccessType } from './types/propaccess'
 import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
@@ -313,22 +313,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         typeAlias: () => success({ neverEnds: false }),
 
         fnDecl: ({ fnType, body }) => {
-          const check = statementChainChecker(body, {
-            ...ctx,
-            scopes: scopes.concat([fnScopeCreator(fnType)]),
-            fnExpectation: {
-              failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
-              returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
-            },
-          })
-
-          if (!check.ok) return check
-
-          if (fnType.returnType !== null && !check.data.neverEnds) {
-            return err(fnType.returnType.at, 'not all code paths return a value')
-          }
-
-          return success({ neverEnds: false })
+          const check = validateFnBody({ fnType, body }, ctx)
+          return check.ok ? success({ neverEnds: false }) : check
         },
 
         return: ({ expr }) => {

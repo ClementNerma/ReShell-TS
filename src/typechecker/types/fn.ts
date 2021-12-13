@@ -1,7 +1,8 @@
-import { CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
+import { ClosureArg, ClosureBody, CmdArg, FnArg, FnType, StatementChain, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { err, located, Located, Scope, ScopeVar, success, Typechecker, TypecheckerResult } from '../base'
+import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
 import { rebuildType } from './rebuilder'
@@ -69,6 +70,86 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
   }
 
   return typeValidator({ type: 'fn', fnType }, ctx)
+}
+
+export const closureTypeValidator: Typechecker<
+  { at: CodeSection; args: Token<ClosureArg>[]; body: Token<ClosureBody>; expected: FnType },
+  void
+> = ({ at, args, body, expected }, ctx) => {
+  const candidateArgs = [...args]
+
+  for (const arg of expected.args) {
+    const c = candidateArgs.shift()
+
+    if (!c) {
+      return err(at, {
+        message: `missing argument \`${arg.parsed.name}\``,
+        also: [{ at: arg.at, message: 'missing argument is defined here' }],
+      })
+    }
+
+    if (arg.parsed.flag && c.parsed.type !== 'flag') {
+      return err(at, {
+        message: 'this argument should be a flag',
+        also: [{ at: arg.at, message: 'flag argument is defined here' }],
+      })
+    }
+
+    if (!arg.parsed.flag && c.parsed.type === 'flag') {
+      return err(at, {
+        message: 'this argument should not be a flag',
+        also: [{ at: arg.at, message: 'argument is not defined as a flag here' }],
+      })
+    }
+  }
+
+  if (args.length > expected.args.length) {
+    return err(args[expected.args.length].at, 'too many arguments')
+  }
+
+  const scopes = ctx.scopes.concat([fnScopeCreator(expected)])
+
+  return matchUnion(body.parsed, 'type', {
+    block: ({ body }) => validateFnBody({ fnType: expected, body }, { ...ctx, scopes }),
+    expr: ({ body }) => {
+      if (!expected.returnType) {
+        return err(body.at, 'cannot use this syntax here as the function should not return any value')
+      }
+
+      const check = resolveExprType(body, {
+        ...ctx,
+        scopes,
+        typeExpectation: {
+          from: expected.returnType.at,
+          type: expected.returnType.parsed,
+        },
+      })
+
+      return check.ok ? success(void 0) : check
+    },
+  })
+}
+
+export const validateFnBody: Typechecker<{ fnType: FnType; body: Token<StatementChain>[] }, void> = (
+  { fnType, body },
+  ctx
+) => {
+  const check = statementChainChecker(body, {
+    ...ctx,
+    scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
+    fnExpectation: {
+      failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
+      returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
+    },
+  })
+
+  if (!check.ok) return check
+
+  if (fnType.returnType !== null && !check.data.neverEnds) {
+    return err(fnType.returnType.at, 'not all code paths return a value')
+  }
+
+  return success(void 0)
 }
 
 export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; args: Token<CmdArg>[] }, void> = (
