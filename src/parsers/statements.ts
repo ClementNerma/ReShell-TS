@@ -291,7 +291,6 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
 export const statementChainFree: Parser<StatementChain> = map(
   combine(
-    maybe_s,
     statement,
     maybe_s,
     takeWhile(
@@ -311,7 +310,7 @@ export const statementChainFree: Parser<StatementChain> = map(
     ),
     endOfStatementChain
   ),
-  ([_, start, __, { parsed: sequence }]): StatementChain => ({
+  ([start, __, { parsed: sequence }]): StatementChain => ({
     type: 'chain',
     start,
     sequence,
@@ -322,7 +321,7 @@ export const statementChain: Parser<StatementChain> = or<StatementChain>([
   map(combine(bol('Internal error: statement chain must start at BOL'), maybe_s, eol()), (_, __) => ({
     type: 'empty',
   })),
-  map(combine(bol(), statementChainFree), ([, { parsed: chain }]) => chain),
+  map(combine(bol(), maybe_s, statementChainFree), ([_, __, { parsed: chain }]) => chain),
 ])
 
 export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
@@ -330,7 +329,13 @@ export const blockBody: Parser<Token<StatementChain>[]> = takeWhile(
     map(combine(maybe_s, eol()), () => ({ type: 'empty' })),
     failIfMatchesElse(
       matchStatementClose,
-      withLatelyDeclared(() => statementChainFree)
+      map(
+        combine(
+          maybe_s,
+          withLatelyDeclared(() => statementChainFree)
+        ),
+        ([_, { parsed: chain }]) => chain
+      )
     ),
   ])
 )

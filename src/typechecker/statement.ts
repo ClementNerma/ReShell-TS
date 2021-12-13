@@ -33,8 +33,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
+    const stmtAt = getStatementChainSection(stmt)
+
     if (previousStmt?.metadata.neverEnds) {
-      return err(stmt.at, {
+      return err(stmtAt, {
         message: 'previous statement always returns (or break loop), so this is dead code',
         also: [
           {
@@ -239,7 +241,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           if (!check.ok) return check
 
           return check.data.neverEnds
-            ? err(stmt.at, 'This loop always returns or breaks')
+            ? err(stmtAt, 'This loop always returns or breaks')
             : success({ neverEnds: false })
         },
 
@@ -261,13 +263,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           if (!check.ok) return check
 
           return check.data.neverEnds
-            ? err(stmt.at, 'This loop always returns or breaks')
+            ? err(stmtAt, 'This loop always returns or breaks')
             : success({ neverEnds: false })
         },
 
         break: () => {
           if (!ctx.inLoop) {
-            return err(stmt.at, 'the "break" instruction is only allowed inside loops')
+            return err(stmtAt, 'the "break" instruction is only allowed inside loops')
           }
 
           return success({ neverEnds: true })
@@ -326,7 +328,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         return: ({ expr }) => {
           if (!ctx.fnExpectation) {
-            return err(stmt.at, '`return` statements are only allowed inside functions')
+            return err(stmtAt, '`return` statements are only allowed inside functions')
           }
 
           if (!ctx.fnExpectation.returnType) {
@@ -336,7 +338,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           }
 
           if (!expr) {
-            return err(stmt.at, {
+            return err(stmtAt, {
               message: `missing return expression (expected \`${rebuildType(ctx.fnExpectation.returnType.type)}\`)`,
               also: [
                 {
@@ -374,15 +376,15 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           }
 
           if (!ctx.fnExpectation) {
-            return err(stmt.at, '`throw` statements are only allowed inside functions')
+            return err(stmtAt, '`throw` statements are only allowed inside functions')
           }
 
           if (!ctx.fnExpectation.failureType) {
-            return expr ? err(stmt.at, 'current function does not have a failure type') : success({ neverEnds: true })
+            return expr ? err(stmtAt, 'current function does not have a failure type') : success({ neverEnds: true })
           }
 
           if (!expr) {
-            return err(stmt.at, {
+            return err(stmtAt, {
               message: `missing failure value (expected \`${rebuildType(ctx.fnExpectation.failureType.type)}\`)`,
               also: [
                 {
@@ -410,9 +412,16 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
       if (!stmtMetadata.ok) return stmtMetadata
 
-      previousStmt = { at: stmt.at, metadata: stmtMetadata.data }
+      previousStmt = { at: stmtAt, metadata: stmtMetadata.data }
     }
   }
 
   return success(previousStmt?.metadata ?? { neverEnds: false })
+}
+
+function getStatementChainSection(stmt: Token<StatementChain>): CodeSection {
+  return {
+    start: stmt.parsed.type === 'empty' ? stmt.at.start : stmt.parsed.start.at.start,
+    next: stmt.at.next,
+  }
 }
