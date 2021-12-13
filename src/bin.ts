@@ -59,11 +59,8 @@ const measurePerf = <T>(runner: () => T): [number, T] => {
 const [parsingDuration, parsed] = measurePerf(() => parseSource(StrView.create(iterSrc), program, initContext()))
 
 if (!parsed.ok) {
-  console.error(
-    parsed.stack.length === 0
-      ? '<no error provided>'
-      : formatErr(parsed.stack[0].content, parsed.context.source.toFullStringSlow(), errorFormatters)
-  )
+  const error = parsed.history?.[0] ?? '<no error provided>'
+  console.error(formatErr(error, parsed.context.source.toFullStringSlow(), errorFormatters))
   process.exit(1)
 }
 

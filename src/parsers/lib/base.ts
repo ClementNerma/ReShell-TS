@@ -11,14 +11,12 @@ export type ParserSucess<T> = {
 
 export type ParserErr = {
   ok: false
-  stack: ParserErrStackEntry[]
+  history: FormatableError[]
   precedence: boolean
   start: CodeLoc
   next: CodeLoc
   context: ParsingContext
 }
-
-export type ParserErrStackEntry = { context: ParsingContext; content: FormatableError }
 
 export type ParsingContext = Readonly<{
   source: StrView
@@ -53,7 +51,7 @@ export function phantomSuccess<T>(start: CodeLoc, phantomValue?: T): Extract<Par
   }
 }
 
-export type ErrInputData = null | FormatableErrInput | ParserErr['stack']
+export type ErrInputData = null | FormatableErrInput | ParserErr['history']
 
 export function err(
   start: CodeLoc,
@@ -64,12 +62,12 @@ export function err(
 ): ParserErr {
   return {
     ok: false,
-    stack:
+    history:
       errData === undefined || errData === null
         ? []
         : Array.isArray(errData)
         ? errData
-        : [{ context, content: formattableErr({ start, next }, errData) }],
+        : [formattableErr({ start, next }, errData)],
     precedence: precedence ?? (errData !== undefined && errData !== null),
     start,
     next,
@@ -98,9 +96,7 @@ export type WithErrData = undefined | FormatableErrInput | ((err: ParserErr) => 
 export function withErr(error: ParserErr, context: ParsingContext, mapping: WithErrData): ParserErr {
   if (mapping !== undefined) {
     const errData = typeof mapping === 'function' ? mapping(error) : mapping
-
-    error.stack.push({ context, content: formattableErr({ start: error.start, next: error.next }, errData) })
-
+    error.history.push(formattableErr({ start: error.start, next: error.next }, errData))
     error.precedence = true
   }
 

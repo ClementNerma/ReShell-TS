@@ -24,7 +24,7 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
         ? `${parserName} Succeeded at line ${result.data.at.next.line} col ${result.data.at.next.col} | ${trimStr(
             result.data.matched
           )}`
-        : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | ${trimStr(JSON.stringify(result.stack))}`
+        : `${parserName} FAILED (${result.precedence ? 'Pr' : '--'}) | ${trimStr(JSON.stringify(result.history))}`
     )
 
     return result
