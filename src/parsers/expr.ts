@@ -49,11 +49,14 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       exact('{'),
       extract(
         takeWhile(
-          combine(
-            identifier,
-            exact(':'),
-            withLatelyDeclared(() => expr),
-            { inter: maybe_s_nl }
+          map(
+            combine(
+              identifier,
+              exact(':'),
+              withLatelyDeclared(() => expr),
+              { inter: maybe_s_nl }
+            ),
+            ([key, _, expr]) => ({ key, expr })
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
@@ -66,7 +69,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
       }
     ),
     ([_, entries, __]) => ({
-      entries: mapToken(entries, (_, { parsed }) => parsed.map((entry) => [entry[0], entry[2]])),
+      entries: mapToken(entries, (_, { parsed }) => parsed),
     })
   ),
 
