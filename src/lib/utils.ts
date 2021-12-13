@@ -79,7 +79,7 @@ export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
       const lineLen = line.toString().length
       const linePad = ' '.repeat(lineLen)
 
-      const header = `--> At line ${line + 1}, column ${col + 1}`
+      const header = `--> At line ${line + 1}, column ${col + 1}:`
       const failedLine = err.context.source.ref.split(/\n/)[line]
 
       const locPtr = format('locationPointer', '^'.repeat(length ?? 1))
