@@ -152,7 +152,10 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         ['$(', InlineCmdCallCapture.Stdout],
       ]),
       failure(
-        withLatelyDeclared(() => cmdCall(endOfInlineCmdCall)),
+        withStatementClose(
+          ')',
+          withLatelyDeclared(() => cmdCall(endOfInlineCmdCall))
+        ),
         'Expected inline command call'
       ),
       takeWhile<InlineChainedCmdCall>(
