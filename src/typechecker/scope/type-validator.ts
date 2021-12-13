@@ -3,8 +3,8 @@ import { matchUnion } from '../../parsers/utils'
 import { err, success, TypecheckerArr, TypecheckerRaw } from '../base'
 import { Scope } from './complete'
 
-export const typeValidator: TypecheckerRaw<ValueType, Scope, void, string> = (type, scope) =>
-  matchUnion(type.inner)<void>('type', {
+export const typeValidator: TypecheckerRaw<ValueType, Scope, void> = (type, scope) =>
+  matchUnion(type.inner)('type', {
     void: () => success(void 0),
     bool: () => success(void 0),
     number: () => success(void 0),
@@ -32,7 +32,7 @@ export const typeValidator: TypecheckerRaw<ValueType, Scope, void, string> = (ty
     unknown: () => success(void 0),
   })
 
-export const multiTypeValidator: TypecheckerArr<ValueType, Scope, void, string> = (types, scope) => {
+export const multiTypeValidator: TypecheckerArr<ValueType, Scope, void> = (types, scope) => {
   for (const type of types) {
     const validation = typeValidator(type.parsed, scope)
     if (!validation.ok) return validation
