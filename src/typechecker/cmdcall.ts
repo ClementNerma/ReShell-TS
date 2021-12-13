@@ -1,4 +1,12 @@
-import { CmdArg, CmdCall, CmdCallSub, CmdDeclSubCommand, CmdVariantSignature, ValueType } from '../shared/ast'
+import {
+  CmdArg,
+  CmdCall,
+  CmdCallSub,
+  CmdDeclSubCommand,
+  CmdVariantSignature,
+  SingleCmdCall,
+  ValueType,
+} from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
 import { err, success, Typechecker, TypecheckerResult } from './base'
@@ -8,7 +16,19 @@ import { validateAndRegisterFnCall } from './types/fn'
 import { rebuildType } from './types/rebuilder'
 import { resolveValueType } from './types/value'
 
-export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ base, pipes }, ctx) => {
+export const cmdCallTypechecker: Typechecker<CmdCall, void> = ({ base, chain }, ctx) => {
+  const baseCheck = singleCmdCallTypechecker(base.parsed, ctx)
+  if (!baseCheck.ok) return baseCheck
+
+  for (const chained of chain) {
+    const chainedCheck = singleCmdCallTypechecker(chained.call.parsed, ctx)
+    if (!chainedCheck.ok) return chainedCheck
+  }
+
+  return success(void 0)
+}
+
+export const singleCmdCallTypechecker: Typechecker<SingleCmdCall, void> = ({ base, pipes }, ctx) => {
   const baseCheck = cmdCallSubTypechecker(base.parsed, ctx)
   if (!baseCheck.ok) return baseCheck
 

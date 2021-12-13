@@ -192,7 +192,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
     inlineCmdCallSequence: ({ content, capture }) => {
       const outputPieces: Buffer[] = []
 
-      const call = runCmdCall(content, {
+      const call = runCmdCall(content.parsed, {
         ...ctx,
         pipeTo: {
           stdout: collectableStream(

@@ -268,7 +268,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
 
     fnCall: map(fnCall, (content) => ({ content })),
 
-    cmdCall: map(cmdCall(endOfCmdCallStatement), (_, content) => ({ content })),
+    cmdCall: map(cmdCall(endOfCmdCallStatement), (content) => ({ content })),
 
     cmdDecl: map(
       combine(

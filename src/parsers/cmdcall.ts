@@ -1,8 +1,8 @@
-import { CmdArg, CmdCall, CmdCallSub, CmdRedir } from '../shared/ast'
+import { ChainedSingleCmdCall, CmdArg, CmdCall, CmdCallSub, CmdRedir, SingleCmdCall } from '../shared/ast'
 import { cmdArg } from './cmdarg'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { failIfMatches, failIfMatchesElse, filterNullables, maybe, notFollowedBy } from './lib/conditions'
+import { extract, failIfMatches, failIfMatchesElse, filterNullables, maybe, notFollowedBy } from './lib/conditions'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
@@ -11,10 +11,10 @@ import { or } from './lib/switches'
 import { map, silence } from './lib/transform'
 import { flattenMaybeToken, withLatelyDeclared } from './lib/utils'
 import { rawPath } from './literals'
-import { cmdRedirOp } from './stmtend'
+import { chainedCmdCallOp, cmdRedirOp } from './stmtend'
 import { cmdName, identifier, keyword } from './tokens'
 
-export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (callEndDetector) =>
+export const singleCmdCall: (callEndDetector: Parser<void>) => Parser<SingleCmdCall> = (callEndDetector) =>
   map(
     combine(
       cmdCallSub(callEndDetector),
@@ -77,7 +77,7 @@ export const cmdCallSub: (callEndDetector: Parser<void>) => Parser<CmdCallSub> =
             filterNullables(
               takeWhile<CmdArg | null>(
                 failIfMatchesElse(
-                  or([callEndDetector, silence(exact('|'))]),
+                  or([callEndDetector, silence(chainedCmdCallOp), silence(exact('|'))]),
                   failure(
                     or([map(combine(exact('\\'), maybe_s, eol()), () => null), withLatelyDeclared(() => cmdArg)]),
                     'invalid argument provided'
@@ -101,4 +101,21 @@ export const cmdCallSub: (callEndDetector: Parser<void>) => Parser<CmdCallSub> =
       name,
       args,
     })
+  )
+
+export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (callEndDetector) =>
+  map(
+    combine(
+      singleCmdCall(callEndDetector),
+      maybe_s,
+      extract(
+        takeWhile<ChainedSingleCmdCall>(
+          map(combine(chainedCmdCallOp, maybe_s_nl, singleCmdCall(callEndDetector)), ([{ parsed: op }, _, call]) => ({
+            op,
+            call,
+          }))
+        )
+      )
+    ),
+    ([base, _, { parsed: chain }]) => ({ base, chain })
   )

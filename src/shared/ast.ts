@@ -14,7 +14,7 @@ export type StatementChain =
 
 export type ChainedStatement = { op: Token<StatementChainOp>; chainedStatement: Token<Statement> }
 
-export type StatementChainOp = 'Then' | 'And' | 'Or'
+export type StatementChainOp = 'Then'
 
 export type Statement =
   | {
@@ -55,7 +55,7 @@ export type Statement =
   | { type: 'return'; expr: Token<Expr> | null }
   | { type: 'panic'; message: Token<Expr> }
   | { type: 'fnCall'; content: FnCall }
-  | { type: 'cmdCall'; content: Token<CmdCall> }
+  | { type: 'cmdCall'; content: CmdCall }
   | { type: 'cmdDecl'; name: Token<string>; body: CmdDeclSubCommand }
   | { type: 'fileInclusion'; content: Program }
 
@@ -215,10 +215,19 @@ export type FnDeclArg = {
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Commands ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type CmdCall = {
+  base: Token<SingleCmdCall>
+  chain: ChainedSingleCmdCall[]
+}
+
+export type SingleCmdCall = {
   base: Token<CmdCallSub>
   pipes: Token<CmdCallSub>[]
   redir: Token<CmdRedir> | null
 }
+
+export type ChainedSingleCmdCall = { op: ChainedCmdCallOp; call: Token<SingleCmdCall> }
+
+export type ChainedCmdCallOp = 'And' | 'Or'
 
 export type CmdCallSub = { unaliased: boolean; name: Token<string>; args: Token<CmdArg>[] }
 

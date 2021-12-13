@@ -1,4 +1,4 @@
-import { CmdRedirOp, StatementChainOp } from '../shared/ast'
+import { ChainedCmdCallOp, CmdRedirOp, StatementChainOp } from '../shared/ast'
 import { matchStatementClose } from './context'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
@@ -8,7 +8,7 @@ import { eol, oneOfMap } from './lib/matchers'
 import { or } from './lib/switches'
 import { silence } from './lib/transform'
 
-export const cmdOnlyChainOp: Parser<StatementChainOp> = oneOfMap([
+export const chainedCmdCallOp: Parser<ChainedCmdCallOp> = oneOfMap([
   ['&&', 'And'],
   ['||', 'Or'],
 ])
@@ -23,10 +23,10 @@ export const cmdRedirOp: Parser<CmdRedirOp> = oneOfMap([
   ['<', 'Input'],
 ])
 
-export const statementChainOp: Parser<StatementChainOp> = or([oneOfMap([[';', 'Then']]), cmdOnlyChainOp])
+export const statementChainOp: Parser<StatementChainOp> = oneOfMap([[';', 'Then']])
 
 export const endOfInlineCmdCall: Parser<void> = lookahead(
-  combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, matchStatementClose]))
+  combine(maybe_s_nl, or<unknown>([statementChainOp, cmdRedirOp, /*chainedCmdCallOp,*/ matchStatementClose]))
 )
 
 export const endOfCmdCallStatement: Parser<void> = or([lookahead(combine(maybe_s, eol())), endOfInlineCmdCall])

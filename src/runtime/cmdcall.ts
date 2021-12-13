@@ -1,13 +1,27 @@
 import { spawnSync } from 'child_process'
 import { Writable } from 'stream'
-import { CmdCall } from '../shared/ast'
+import { CmdCall, SingleCmdCall } from '../shared/ast'
 import { Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
+import { matchStr } from '../shared/utils'
 import { err, Runner, success } from './base'
 import { escapeCmdArg, runCmdArg } from './cmdarg'
 import { executeFnCall } from './fncall'
 
-export const runCmdCall: Runner<Token<CmdCall>> = ({ at, parsed: { base, pipes /* redir */ } }, ctx) => {
+export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
+  let result = runSingleCmdCall(base, ctx)
+
+  for (const chained of chain) {
+    result = matchStr(chained.op, {
+      And: () => (result.ok === true ? runSingleCmdCall(chained.call, ctx) : result),
+      Or: () => (result.ok === true ? success(void 0) : runSingleCmdCall(chained.call, ctx)),
+    })
+  }
+
+  return result
+}
+
+export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { base, pipes /* redir */ } }, ctx) => {
   if (!base.parsed.unaliased) {
     const fnCall = getLocatedPrecomp(ctx.fnCalls, base.parsed.name.at)
 
