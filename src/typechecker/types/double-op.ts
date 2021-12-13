@@ -15,45 +15,41 @@ export const resolveDoubleOpSequenceType: Typechecker<
     return resolveDoubleOpType({ leftExprAt: baseElement.at, leftExprType: baseElementType, op: seq[0].parsed }, ctx)
   }
 
-  const precedence = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed))
+  const precedence = seq.map((op) => getOpPrecedence(op.parsed.op.parsed.op.parsed)).reverse()
 
   for (let g = 4; g >= 3; g--) {
-    if (precedence.find((p) => p === g)) {
-      for (let i = seq.length - 1; i >= 0; i--) {
-        if (precedence[i] === g) {
-          const leftExprAt = {
-            start: baseElement.at.start,
-            next: seq[i].at.next,
-          }
+    const rIndex = precedence.findIndex((p) => p === g)
+    if (rIndex === -1) continue
 
-          const leftExprType = resolveExprType(
-            {
-              at: leftExprAt,
-              matched: 0 /* // TODO */,
-              parsed: {
-                from: baseElement,
-                doubleOps: seq.slice(0, i),
-              },
-            },
-            { ...ctx, typeExpectation: null }
-          )
+    const i = seq.length - rIndex - 1
 
-          if (!leftExprType.ok) return leftExprType
-
-          const rightExprAt = {
-            start: seq[i].parsed.right.at.start,
-            next: seq[seq.length - 1].at.next,
-          }
-
-          const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, seq.slice(i + 1))
-
-          return resolveDoubleOpType(
-            { leftExprAt, leftExprType: leftExprType.data, op },
-            { ...ctx, typeExpectation: null }
-          )
-        }
-      }
+    const leftExprAt = {
+      start: baseElement.at.start,
+      next: seq[i].at.next,
     }
+
+    const leftExprType = resolveExprType(
+      {
+        at: leftExprAt,
+        matched: 0 /* // TODO */,
+        parsed: {
+          from: baseElement,
+          doubleOps: seq.slice(0, i),
+        },
+      },
+      { ...ctx, typeExpectation: null }
+    )
+
+    if (!leftExprType.ok) return leftExprType
+
+    const rightExprAt = {
+      start: seq[i].parsed.right.at.start,
+      next: seq[seq.length - 1].at.next,
+    }
+
+    const op = buildExprDoubleOp(seq[i].parsed.op, rightExprAt, seq[i].parsed.right, seq.slice(i + 1))
+
+    return resolveDoubleOpType({ leftExprAt, leftExprType: leftExprType.data, op }, { ...ctx, typeExpectation: null })
   }
 
   let leftExprAt = baseElement.at
