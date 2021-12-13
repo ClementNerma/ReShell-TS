@@ -16,10 +16,13 @@ import { getOpPrecedence } from '../shared/constants'
 import { Diagnostic } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { matchStr, matchUnion, matchUnionWithFallback } from '../shared/utils'
-import { createRunnerContext, ensureCoverage, err, ExecValue, Runner, RunnerResult, Scope, success } from './base'
+import { ensureCoverage, err, ExecValue, Runner, RunnerContext, RunnerResult, Scope, success } from './base'
 
-export function execProgram(program: Token<Program>): { ok: true } | { ok: false; diag: Diagnostic } {
-  const result = runProgram(program.parsed, createRunnerContext())
+export function execProgram(
+  program: Token<Program>,
+  ctx: RunnerContext
+): { ok: true } | { ok: false; diag: Diagnostic } {
+  const result = runProgram(program.parsed, ctx)
   return result.ok === false ? result : { ok: true }
 }
 
@@ -68,7 +71,13 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       const evaluated = runExpr(expr.parsed, ctx)
       if (evaluated.ok !== true) return evaluated
 
-      scope.entities.set(varname.parsed, evaluated.data)
+      const type = ctx.objectsTypingMap.assignedExpr.get(expr.parsed)
+
+      if (type === undefined) {
+        return err(expr.at, "internal error: failed to get expression type from typechecker's map for this expression")
+      }
+
+      scope.entities.set(varname.parsed, { inner: evaluated.data, type })
       return success(void 0)
     },
 
@@ -79,7 +88,7 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
         const entityValue = scope.entities.get(varname.parsed)
 
         if (entityValue) {
-          found = { scope, target: entityValue }
+          found = { scope, target: entityValue.inner }
           break
         }
       }
@@ -158,7 +167,13 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       const newValue = computeValue(targetAt, target)
       if (newValue.ok !== true) return newValue
 
-      found.scope.entities.set(varname.parsed, newValue.data)
+      const type = ctx.objectsTypingMap.assignedExpr.get(expr.parsed)
+
+      if (type === undefined) {
+        return err(expr.at, "internal error: failed to get expression type from typechecker's map for this expression")
+      }
+
+      found.scope.entities.set(varname.parsed, { inner: newValue.data, type })
       return success(void 0)
     },
 
@@ -223,8 +238,17 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope: Scope = { functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
+      const type = ctx.objectsTypingMap.forLoopsValueVar.get(loopVar)
+
+      if (type === undefined) {
+        return err(
+          loopVar.at,
+          "internal error: failed to get the loop's value variable type from typechecker's map for this expression"
+        )
+      }
+
       for (const value of iterateOn.data) {
-        scope.entities.set(loopVar.parsed, value)
+        scope.entities.set(loopVar.parsed, { inner: value, type })
 
         const result = runBlock(body, ctx)
         if (result.ok === null && result.breaking === 'continue') continue
@@ -247,9 +271,18 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope: Scope = { functions: [], entities: new Map() }
       ctx = { ...ctx, scopes: ctx.scopes.concat(scope) }
 
+      const type = ctx.objectsTypingMap.forLoopsValueVar.get(valueVar)
+
+      if (type === undefined) {
+        return err(
+          valueVar.at,
+          "internal error: failed to get the loop's value variable type from typechecker's map for this expression"
+        )
+      }
+
       for (const [key, value] of iterateOn) {
-        scope.entities.set(keyVar.parsed, { type: 'string', value: key })
-        scope.entities.set(valueVar.parsed, value)
+        scope.entities.set(keyVar.parsed, { inner: { type: 'string', value: key }, type: { type: 'string' } })
+        scope.entities.set(valueVar.parsed, { inner: value, type })
 
         const result = runBlock(body, ctx)
         if (result.ok === null && result.breaking === 'continue') continue
@@ -311,9 +344,12 @@ const runStatement: Runner<Statement> = (stmt, ctx) =>
       const scope = ctx.scopes[ctx.scopes.length - 1]
 
       scope.entities.set(name.parsed, {
-        type: 'fn',
-        def: { args: fnType.args.map((arg) => arg.parsed.name.parsed), restArg: fnType.restArg?.parsed ?? null },
-        body: body.parsed,
+        inner: {
+          type: 'fn',
+          def: { args: fnType.args.map((arg) => arg.parsed.name.parsed), restArg: fnType.restArg?.parsed ?? null },
+          body: body.parsed,
+        },
+        type: { type: 'fn', fnType },
       })
 
       scope.functions.push(name.parsed)
@@ -353,7 +389,10 @@ const runExpr: Runner<Expr, ExecValue> = (expr, ctx) => {
   const execFrom = runExprElement(expr.from.parsed, ctx)
   if (execFrom.ok !== true) return execFrom
 
-  return runDoubleOpSeq({ baseElementAt: expr.from.at, baseElement: execFrom.data, seq: expr.doubleOps }, ctx)
+  const resolved = runDoubleOpSeq({ baseElementAt: expr.from.at, baseElement: execFrom.data, seq: expr.doubleOps }, ctx)
+  if (resolved.ok !== true) return resolved
+
+  return success(resolved.data)
 }
 
 const runDoubleOpSeq: Runner<
@@ -942,7 +981,7 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
         const value = scope.entities.get(varname.parsed)
 
         if (value) {
-          return success(value)
+          return success(value.inner)
         }
       }
 

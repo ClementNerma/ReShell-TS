@@ -1,5 +1,6 @@
-import { Block, ClosureBody } from '../shared/ast'
+import { Block, ClosureBody, ValueType } from '../shared/ast'
 import { diagnostic, Diagnostic, DiagnosticLevel } from '../shared/diagnostics'
+import { ObjectsTypingMap } from '../shared/otm'
 import { CodeSection } from '../shared/parsed'
 
 export type Runner<T, RetType = void> = (token: T, ctx: RunnerContext) => RunnerResult<RetType>
@@ -12,16 +13,20 @@ export type RunnerResult<T> =
 
 export type RunnerContext = {
   scopes: Scope[]
+  objectsTypingMap: ObjectsTypingMap
 }
 
-export const createRunnerContext = (): RunnerContext => ({
+export const createRunnerContext = (objectsTypingMap: RunnerContext['objectsTypingMap']): RunnerContext => ({
   scopes: [],
+  objectsTypingMap,
 })
 
 export type Scope = {
   functions: string[]
-  entities: Map<string, ExecValue>
+  entities: Map<string, TypedExecValue>
 }
+
+export type TypedExecValue = { inner: ExecValue; type: ValueType }
 
 export type ExecValue =
   | { type: 'null' }

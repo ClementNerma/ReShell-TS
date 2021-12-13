@@ -7,14 +7,15 @@ import { existsSync, readFileSync } from 'fs'
 import { delimiter, dirname, join, relative } from 'path'
 import { install } from 'source-map-support'
 import { deflateSync, inflateSync } from 'zlib'
+import { langParser } from './parsers'
 import { initContext } from './parsers/context'
 import { parseSource } from './parsers/lib/base'
-import { program } from './parsers/program'
+import { createRunnerContext } from './runtime/base'
 import { execProgram } from './runtime/runner'
 import { DiagnosticFormatters, DiagnosticLevel, formatErr } from './shared/diagnostics'
 import { SourceFilesServer } from './shared/files-server'
+import { langTypechecker } from './typechecker'
 import { createTypecheckerContext } from './typechecker/base'
-import { programChecker } from './typechecker/program'
 
 install()
 Error.stackTraceLimit = 100
@@ -64,7 +65,7 @@ const sourceServer = new SourceFilesServer(
   iterSrc
 )
 
-const [parsingDuration, parsed] = measurePerf(() => parseSource(sourceServer, program, initContext()))
+const [parsingDuration, parsed] = measurePerf(() => parseSource(sourceServer, langParser, initContext()))
 
 if (!parsed.ok) {
   const error = parsed.history[0] ?? '<no error provided>'
@@ -136,7 +137,7 @@ const typecheckerContext = createTypecheckerContext(
   (diag) => console.error(formatErr(diag, sourceServer, errorFormatters))
 )
 
-const [typecheckerDuration, typechecked] = measurePerf(() => programChecker(parsed.data, typecheckerContext))
+const [typecheckerDuration, typechecked] = measurePerf(() => langTypechecker(parsed.data, typecheckerContext))
 
 if (!typechecked.ok) {
   console.error(formatErr(typechecked, sourceServer, errorFormatters))
@@ -149,7 +150,10 @@ console.log(`Parsing + typecheck | ${ms(parsingDuration + typecheckerDuration)} 
 
 if (argv.includes('--exec')) {
   console.log(chalk.greenBright('\nExecuting the program...'))
-  const [execDuration, result] = measurePerf(() => execProgram(parsed.data))
+
+  const runnerContext = createRunnerContext(typechecked.data)
+
+  const [execDuration, result] = measurePerf(() => execProgram(parsed.data, runnerContext))
 
   if (!result.ok) {
     console.error(formatErr(result.diag, sourceServer, errorFormatters))

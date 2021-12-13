@@ -2,6 +2,8 @@ import { CodeSection, Token } from './parsed'
 
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Statements ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
+export type AST = Program
+
 export type Program = Block
 
 export type Block = Token<StatementChain>[]
