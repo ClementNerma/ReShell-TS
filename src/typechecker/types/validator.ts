@@ -2,7 +2,7 @@ import { ValueType } from '../../shared/ast'
 import { matchUnion } from '../../shared/utils'
 import { err, success, Typechecker } from '../base'
 import { getTypedEntityInScope } from '../scope/search'
-import { withFnGenericsScope } from './fn'
+import { fnTypeValidator } from './fn'
 
 export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
   matchUnion(type, 'type', {
@@ -12,11 +12,7 @@ export const typeValidator: Typechecker<ValueType, void> = (type, ctx) =>
     path: () => success(void 0),
     list: ({ itemsType }) => typeValidator(itemsType, ctx),
     map: ({ itemsType }) => typeValidator(itemsType, ctx),
-    fn: ({ fnType }) =>
-      multiTypeValidator(
-        fnType.args.map((arg) => arg.parsed.type).concat(fnType.returnType ? [fnType.returnType.parsed] : []),
-        withFnGenericsScope(fnType.generics, ctx)
-      ),
+    fn: ({ fnType }) => fnTypeValidator(fnType, ctx),
     struct: ({ members }) =>
       multiTypeValidator(
         members.map(({ type }) => type),
