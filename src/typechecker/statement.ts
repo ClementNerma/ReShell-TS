@@ -12,24 +12,30 @@ import { resolvePropAccessType } from './types/propaccess'
 import { rebuildType } from './types/rebuilder'
 import { typeValidator } from './types/validator'
 
-export const statementChainChecker: Typechecker<Token<StatementChain>[], void> = (chain, ctx) => {
+export type StatementChainMetadata = {
+  neverReturns: boolean
+}
+
+export const statementChainChecker: Typechecker<Token<StatementChain>[], StatementChainMetadata> = (chain, ctx) => {
   const firstPass = scopeFirstPass(chain, ctx)
   if (!firstPass.ok) return firstPass
 
   // 1. Find all declared functions and type alias
   // 2. Discover scope sequentially using the items above
 
-  const scope = firstPass.data
-  const scopes = ctx.scopes.concat(scope)
+  const currentScope = firstPass.data
+  const scopes = ctx.scopes.concat(currentScope)
 
   ctx = { ...ctx, scopes }
+
+  let previousStmtMetadata: StatementChainMetadata | null = null
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
 
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
-      const subResult: TypecheckerResult<void> = matchUnion(sub.parsed, 'type', {
-        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<void> => {
+      const stmtMetadata: TypecheckerResult<StatementChainMetadata> = matchUnion(sub.parsed, 'type', {
+        variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementChainMetadata> => {
           // const unicity = ensureScopeUnicity({ name: varname }, ctx)
           // if (!unicity.ok) return unicity
 
@@ -53,12 +59,12 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           })
           if (!validation.ok) return validation
 
-          scope.variables.set(
+          currentScope.variables.set(
             varname.parsed,
             located(varname.at, { mutable: mutable.parsed, type: expectedType ?? validation.data })
           )
 
-          return success(void 0)
+          return success({ neverReturns: false })
         },
 
         assignment: ({ varname, propAccesses, prefixOp, expr }) => {
@@ -118,7 +124,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           if (!check.ok) return check
 
-          return success(void 0)
+          return success({ neverReturns: false })
         },
 
         ifBlock: ({ cond, then: body, elif, els }) => {
@@ -138,6 +144,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
 
           if (!thenCheck.ok) return thenCheck
 
+          let blocksMetadata: StatementChainMetadata[] = []
+
           for (const { cond, body } of elif) {
             const condCheck = resolveExprOrTypeAssertionType(cond, {
               ...ctx,
@@ -153,15 +161,27 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
             })
 
             if (!elifCheck.ok) return elifCheck
+
+            blocksMetadata.push(elifCheck.data)
           }
 
           if (els) {
             const elseCheck = statementChainChecker(els, ctx)
 
             if (!elseCheck.ok) return elseCheck
+
+            blocksMetadata.push(elseCheck.data)
           }
 
-          return success(void 0)
+          const neverReturns = blocksMetadata.every((metadata) => metadata.neverReturns)
+
+          if (neverReturns && condCheck.data.type === 'assertion') {
+            for (const [varname, vartype] of condCheck.data.assertionScope.variables.entries()) {
+              currentScope.variables.set(varname, vartype)
+            }
+          }
+
+          return success({ neverReturns: neverReturns && thenCheck.data.neverReturns })
         },
 
         forLoop: ({ loopvar, subject, body }) => {
@@ -242,7 +262,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
         },
 
         // Nothing to do here, already handled in first pass
-        typeAlias: () => success(void 0),
+        typeAlias: () => success({ neverReturns: true }),
 
         fnDecl: ({ fnType, body }) => {
           return statementChainChecker(body, {
@@ -263,7 +283,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           if (!ctx.fnExpectation.returnType) {
             return expr
               ? err(expr.at, 'current function does not have a return type so the `return` statement should be empty')
-              : success(void 0)
+              : success({ neverReturns: true })
           }
 
           if (!expr) {
@@ -279,7 +299,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           }
 
           const resolved = resolveExprType(expr, { ...ctx, typeExpectation: ctx.fnExpectation.returnType })
-          return resolved.ok ? success(void 0) : resolved
+          return resolved.ok ? success({ neverReturns: true }) : resolved
         },
 
         throw: ({ expr }) => {
@@ -294,13 +314,13 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
                 typeExpectationNature: 'failure type',
               })
 
-              return resolved.ok ? success(void 0) : resolved
+              return resolved.ok ? success({ neverReturns: true }) : resolved
             } else {
               const resolved = resolveExprType(expr, { ...ctx, typeExpectation: null })
               if (!resolved.ok) return resolved
 
               ctx.expectedFailureWriter.ref = { at: expr.at, content: resolved.data }
-              return success(void 0)
+              return success({ neverReturns: true })
             }
           }
 
@@ -309,7 +329,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
           }
 
           if (!ctx.fnExpectation.failureType) {
-            return expr ? err(stmt.at, 'current function does not have a failure type') : success(void 0)
+            return expr
+              ? err(stmt.at, 'current function does not have a failure type')
+              : success({ neverReturns: true })
           }
 
           if (!expr) {
@@ -330,15 +352,20 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
             typeExpectationNature: 'failure type',
           })
 
-          return resolved.ok ? success(void 0) : resolved
+          return resolved.ok ? success({ neverReturns: true }) : resolved
         },
 
-        cmdCall: (call) => cmdCallTypechecker(call, ctx),
+        cmdCall: (call) => {
+          const cmdCallCheck = cmdCallTypechecker(call, ctx)
+          return cmdCallCheck.ok ? success({ neverReturns: true }) : cmdCallCheck
+        },
       })
 
-      if (!subResult.ok) return subResult
+      if (!stmtMetadata.ok) return stmtMetadata
+
+      previousStmtMetadata = stmtMetadata.data
     }
   }
 
-  return success(void 0)
+  return success(previousStmtMetadata ?? { neverReturns: false })
 }
