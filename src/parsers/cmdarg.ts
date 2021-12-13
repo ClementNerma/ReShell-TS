@@ -2,6 +2,7 @@ import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { maybe } from '../lib/conditions'
 import { failure } from '../lib/errors'
+import { maybe_s_nl } from '../lib/littles'
 import { exact, oneOfMap } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map } from '../lib/transform'
@@ -45,7 +46,8 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
         withLatelyDeclared(() => expr),
         'Failed to parse the inner expression'
       ),
-      exact('}', 'Expected a closing brace (}) to close the inner expression')
+      exact('}', 'Expected a closing brace (}) to close the inner expression'),
+      { inter: maybe_s_nl }
     ),
     ([_, expr, __]) => ({ type: 'expr', expr })
   ),
