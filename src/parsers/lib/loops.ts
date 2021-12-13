@@ -9,7 +9,7 @@ export type TakeWhileOptions = {
 export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Parser<Token<T>[]> {
   return (start, input, context) => {
     const parsed: Token<T>[] = []
-    const matched: string[] = []
+    const matched: number[] = [] // TODO: replace with a simple counter variable
     let interMadeExpectation: false | WithErrData = false
     let beforeInterMatching: CodeLoc | null = null
 
@@ -37,7 +37,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
 
       const { data } = result
 
-      input = input.offset(data.matched.length)
+      input = input.offset(data.matched)
       next = data.at.next
 
       parsed.push(data)
@@ -57,7 +57,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
         const { data: interData } = interResult
 
         beforeInterMatching = next
-        input = input.offset(interData.matched.length)
+        input = input.offset(interData.matched)
         next = interData.at.next
 
         matched.push(interData.matched)
@@ -68,7 +68,12 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
     }
 
-    return success(start, next, parsed, matched.join(''))
+    return success(
+      start,
+      next,
+      parsed,
+      matched.reduce((a, b) => a + b, 0)
+    )
   }
 }
 

@@ -34,6 +34,7 @@ export function combine(...args: (Parser<Token<unknown>> | WithErrData | undefin
 
   return (start, input, context): ParserResult<unknown[]> => {
     const parsed: Token<unknown>[] = []
+    let matched = 0
     let next = start
 
     for (const parser of parsers) {
@@ -43,12 +44,13 @@ export function combine(...args: (Parser<Token<unknown>> | WithErrData | undefin
 
       const { data } = result
 
-      input = input.offset(data.matched.length)
+      matched += data.matched
+      input = input.offset(data.matched)
       next = data.at.next
 
       parsed.push(data)
     }
 
-    return success(start, next, parsed, parsed.map((p) => p.matched).join(''))
+    return success(start, next, parsed, matched)
   }
 }

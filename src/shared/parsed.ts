@@ -1,4 +1,4 @@
-export type Token<T> = { parsed: T; matched: string; at: CodeSection }
+export type Token<T> = { parsed: T; matched: number; at: CodeSection }
 
 export type CodeSection = {
   start: CodeLoc

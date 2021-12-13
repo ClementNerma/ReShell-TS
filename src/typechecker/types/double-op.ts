@@ -29,7 +29,7 @@ export const resolveDoubleOpSequenceType: Typechecker<
           const leftExprType = resolveExprType(
             {
               at: leftExprAt,
-              matched: '// TODO',
+              matched: 0 /* // TODO */,
               parsed: {
                 from: baseElement,
                 doubleOps: seq.slice(0, i),
@@ -239,16 +239,16 @@ export function buildExprDoubleOp(
     op: doubleOp,
     right: {
       at: exprAt,
-      matched: '// TODO',
+      matched: 0 /* // TODO */,
       parsed: {
         content: {
           at: exprAt,
-          matched: '// TODO',
+          matched: 0 /* // TODO */,
           parsed: {
             type: 'synth',
             inner: {
               at: exprAt,
-              matched: '// TODO',
+              matched: 0 /* // TODO */,
               parsed: {
                 from: element,
                 doubleOps: remainingOps,
@@ -269,7 +269,7 @@ const errCannotApplyOperator = (
   leftExprAt: CodeSection
 ) => {
   return err(leftExprAt, {
-    message: `cannot apply operator \`${operator.matched}\` on type \`${rebuildType(foundType, true)}\``,
+    message: `cannot apply this operator on type \`${rebuildType(foundType, true)}\``,
     complements: [
       ['expected', expectedType],
       ['found   ', rebuildType(foundType)],

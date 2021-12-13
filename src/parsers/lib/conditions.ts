@@ -72,12 +72,12 @@ export function useSeparatorIf<T, U>(
 
     const sep =
       parsed.data.parsed.length > 0
-        ? separator(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
+        ? separator(parsed.data.at.next, input.offset(parsed.data.matched), context)
         : phantomSuccess(parsed.data.at.next)
 
     if (!sep.ok) return success(start, parsed.data.at.next, [parsed.data, null], parsed.data.matched)
 
-    const next = then(sep.data.at.next, input.offset(parsed.data.matched.length + sep.data.matched.length), context)
+    const next = then(sep.data.at.next, input.offset(parsed.data.matched + sep.data.matched), context)
 
     if (!next.ok) {
       return next.precedence ? next : success(start, parsed.data.at.next, [parsed.data, null], parsed.data.matched)
@@ -102,7 +102,7 @@ export function notFollowedBy<T>(parser: Parser<T>, notFollowedBy: Parser<unknow
     const parsed = parser(start, input, context)
     if (!parsed.ok) return parsed
 
-    const not = notFollowedBy(parsed.data.at.next, input.offset(parsed.data.matched.length), context)
+    const not = notFollowedBy(parsed.data.at.next, input.offset(parsed.data.matched), context)
     return not.ok ? err(start, parsed.data.at.next, context, error) : parsed
   }
 }

@@ -33,7 +33,7 @@ export function success<T>(
   start: CodeLoc,
   next: CodeLoc,
   parsed: T,
-  matched: string
+  matched: number
 ): Extract<ParserResult<T>, { ok: true }> {
   return {
     ok: true,
@@ -47,7 +47,7 @@ export function phantomSuccess<T>(start: CodeLoc, phantomValue: T): Extract<Pars
   return {
     ok: true,
     data: {
-      matched: '',
+      matched: 0,
       parsed: phantomValue,
       at: { start, next: start },
     },

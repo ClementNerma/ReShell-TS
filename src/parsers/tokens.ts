@@ -1,7 +1,7 @@
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches } from './lib/conditions'
-import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore } from './lib/littles'
+import { buildUnicodeRegexMatcher, unicodeAlphanumericUnderscore, unicodeDigit } from './lib/littles'
 import { oneOfWords } from './lib/matchers'
 import { map } from './lib/transform'
 
@@ -28,8 +28,12 @@ export const keyword: Parser<string> = oneOfWords([
 ])
 
 export const identifier: Parser<string> = map(
-  combine(failIfMatches(keyword, 'cannot use a reserved keyword as an identifier'), unicodeAlphanumericUnderscore),
-  ([_, { parsed: keyword }]) => keyword
+  combine(
+    failIfMatches(keyword, 'cannot use a reserved keyword as an identifier'),
+    failIfMatches(unicodeDigit),
+    unicodeAlphanumericUnderscore
+  ),
+  ([_, __, { parsed: keyword }]) => keyword
 )
 
 export const cmdName: Parser<string> = buildUnicodeRegexMatcher((l, d) => `(${l}|${d}|[_\\-])+`)

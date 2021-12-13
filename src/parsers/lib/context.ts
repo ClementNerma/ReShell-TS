@@ -32,7 +32,7 @@ export function feedContext<A, B, C, D>(
 
     const feeded = feeder(context.$custom as C, first.data.parsed, first.data)
 
-    const second = parserWithFeededContext(first.data.at.next, input.offset(first.data.matched.length), {
+    const second = parserWithFeededContext(first.data.at.next, input.offset(first.data.matched), {
       ...context,
       $custom: feeded,
     })

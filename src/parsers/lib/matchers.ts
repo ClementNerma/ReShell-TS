@@ -4,7 +4,7 @@ import { UNICODE_ALPHANUMERIC_UNDERSCORE } from './littles'
 export function exact<S extends string>(candidate: S, error?: ErrInputData): Parser<S> {
   return (start, input, context) => {
     return input.startsWith(candidate)
-      ? success(start, addCols(start, candidate.length), candidate, candidate)
+      ? success(start, addCols(start, candidate.length), candidate, candidate.length)
       : err(start, start, context, error)
   }
 }
@@ -17,7 +17,7 @@ export function oneOfWords<S extends string>(candidates: S[], error?: ErrInputDa
 
     return input.offset(match.length).matchShort(UNICODE_ALPHANUMERIC_UNDERSCORE)
       ? err(start, start, context, error)
-      : success(start, addCols(start, match.length), match, match)
+      : success(start, addCols(start, match.length), match, match.length)
   }
 }
 
@@ -27,7 +27,7 @@ export function oneOfFirstChar<S extends string>(candidates: S[], error?: ErrInp
 
     for (const candidate of candidates) {
       if (firstChar === candidate) {
-        return success(start, addCols(start, candidate.length), candidate, candidate)
+        return success(start, addCols(start, candidate.length), candidate, candidate.length)
       }
     }
 
@@ -41,14 +41,14 @@ export function word<S extends string>(candidate: S, error?: ErrInputData): Pars
 
     return input.offset(candidate.length).matchShort(UNICODE_ALPHANUMERIC_UNDERSCORE)
       ? err(start, start, context, error)
-      : success(start, addCols(start, candidate.length), candidate, candidate)
+      : success(start, addCols(start, candidate.length), candidate, candidate.length)
   }
 }
 
 export function char(regex: RegExp, error?: ErrInputData): Parser<string> {
   return (start, input, context) =>
     input.matchFirstChar(regex)
-      ? success(start, addCols(start, 1), input.firstChar(), input.firstChar())
+      ? success(start, addCols(start, 1), input.firstChar(), input.firstChar().length)
       : err(start, start, context, error)
 }
 
@@ -58,7 +58,7 @@ export function match(regex: RegExp, error?: ErrInputData): Parser<string> {
     if (!match || match.index !== 0) return err(start, start, context, error)
 
     const parsed = match[0]
-    const matched = match[0]
+    const matched = parsed.length
 
     if (!parsed.includes('\n')) {
       return success(start, addCols(start, parsed.length), parsed, matched)
@@ -83,7 +83,7 @@ export function regex<T>(regex: RegExp, mapper: (match: RegExpMatchArray) => T, 
   return (start, input, context) => {
     const match = input.matchShort(regex) // TODO
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), mapper(match), match[0])
+      ? success(start, addCols(start, match[0].length), mapper(match), match[0].length)
       : err(start, start, context, error)
   }
 }
@@ -92,7 +92,7 @@ export function regexRaw(regex: RegExp, error?: ErrInputData): Parser<RegExpMatc
   return (start, input, context) => {
     const match = input.matchShort(regex) // TODO
     return match && match.index === 0
-      ? success(start, addCols(start, match[0].length), match, match[0])
+      ? success(start, addCols(start, match[0].length), match, match[0].length)
       : err(start, start, context, error)
   }
 }
@@ -101,7 +101,7 @@ export function oneOf<S extends string>(candidates: S[], error?: ErrInputData): 
   return (start, input, context) => {
     for (const candidate of candidates) {
       if (input.startsWith(candidate)) {
-        return success(start, addCols(start, candidate.length), candidate, candidate)
+        return success(start, addCols(start, candidate.length), candidate, candidate.length)
       }
     }
 
@@ -113,7 +113,7 @@ export function oneOfMap<T>(candidates: [string, T][], error?: ErrInputData): Pa
   return (start, input, context) => {
     for (const [candidate, parsed] of candidates) {
       if (input.startsWith(candidate)) {
-        return success(start, addCols(start, candidate.length), parsed, candidate)
+        return success(start, addCols(start, candidate.length), parsed, candidate.length)
       }
     }
 
@@ -130,7 +130,7 @@ export function eol(error?: ErrInputData): Parser<void> {
     input.empty()
       ? phantomSuccess(start)
       : input.startsWithChar('\n')
-      ? success(start, addLoc(start, { file: start.file, line: 1, col: 0 }), void 0, '\n')
+      ? success(start, addLoc(start, { file: start.file, line: 1, col: 0 }), void 0, '\n'.length)
       : err(start, start, context, error)
 }
 

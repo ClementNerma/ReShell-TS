@@ -91,9 +91,7 @@ export function formatErr(
 
       if (fileContent === false) return `${header}\n<file not found in source server>`
 
-      const source = fileContent.toFullStringSlow()
-
-      const end = computeCodeSectionEnd(at, source)
+      const end = computeCodeSectionEnd(at, fileContent)
 
       const addLines = end.line - line
       const addLinesPadding = addLines ? '  ' : ''
@@ -103,7 +101,7 @@ export function formatErr(
 
       const padLineNb = (line: number) => (line + 1).toString().padEnd(maxLineLen, ' ')
 
-      const sourceLines = source.split(/\n/)
+      const sourceLines = fileContent.toFullStringSlow().split(/\n/)
       const failedLine = sourceLines[line]
 
       const rawLocPtr =

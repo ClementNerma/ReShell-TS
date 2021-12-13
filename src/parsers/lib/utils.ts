@@ -1,8 +1,9 @@
 import { Diagnostic } from '../../shared/diagnostics'
-import { Token } from '../../shared/parsed'
+import { SourceFilesServer } from '../../shared/files-server'
+import { CodeSection, Token } from '../../shared/parsed'
 import { StrView } from '../../shared/strview'
-import { matchUnion } from '../../shared/utils'
-import { Parser, ParserErr } from './base'
+import { computeCodeSectionEnd, matchUnion } from '../../shared/utils'
+import { Parser } from './base'
 
 export function selfRef<T>(producer: (self: Parser<T>) => Parser<T>): Parser<T> {
   const parser = producer((start, input, ctx) => parser(start, input, ctx))
@@ -42,15 +43,20 @@ function _logUsageHandler(originalFn: Function, parser: Parser<unknown>, alias: 
 
     const result = parser(start, input, ctx)
 
-    console.log(
-      result.ok
-        ? `${parserNameWithCall} Succeeded at line ${result.data.at.next.line} col ${
-            result.data.at.next.col
-          } | ${trimStr(result.data.matched)}`
-        : `${parserNameWithCall} FAILED (${result.precedence ? 'Pr' : '--'}) | (${result.history.length}) ${trimStr(
-            _sumUpDiagnostics(result.history)
-          )}`
-    )
+    if (result.ok) {
+      const extract = getCodeExtract(result.data.at, ctx.sourceServer)
+
+      console.debug(
+        `${parserNameWithCall} Succeeded at line ${result.data.at.next.line} col ${result.data.at.next.col} ` +
+          (extract !== false ? `| ${trimStr(extract)}` : ` (failed to get code extract)`)
+      )
+    } else {
+      console.debug(
+        `${parserNameWithCall} FAILED (${result.precedence ? 'Pr' : '--'}) | (${result.history.length}) ${trimStr(
+          _sumUpDiagnostics(result.history)
+        )}`
+      )
+    }
 
     return result
   }
@@ -100,21 +106,34 @@ export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
 }
 
 // TODO: SLOW
-export function getErrorInput(err: ParserErr): string | false {
-  const file: StrView | false = matchUnion(err.start.file, 'type', {
-    entrypoint: () => err.context.sourceServer.entrypoint(),
+export function getCodeExtract(section: CodeSection, filesServer: SourceFilesServer): string | false {
+  const file: StrView | false = matchUnion(section.start.file, 'type', {
+    entrypoint: () => filesServer.entrypoint(),
     internal: () => false,
-    file: ({ path }) => err.context.sourceServer.read(path),
+    file: ({ path }) => filesServer.read(path),
   })
 
   if (file === false) return file
 
-  return err.next.line === err.start.line
-    ? file.toFullStringSlow().substr(err.next.col - err.start.col)
-    : file
-        .toFullStringSlow()
-        .split('\n')
-        .slice(err.next.line - err.start.line)
-        .join('\n')
-        .substr(err.next.col)
+  const source = file.toFullStringSlow().split('\n')
+  const end = computeCodeSectionEnd(section, file)
+
+  if (end.line === section.start.line) {
+    return source[section.start.line].substr(section.start.col, end.col - section.start.col + 1)
+  }
+
+  const firstLine = source[section.start.line].substr(section.start.col)
+  const lastLine = source[end.line].substr(0, end.col)
+
+  if (end.line === section.start.line + 1) {
+    return firstLine + '\n' + lastLine
+  }
+
+  return (
+    firstLine +
+    '\n' +
+    source.slice(section.start.line + 1, end.line - section.start.line - 1).join('\n') +
+    '\n' +
+    lastLine
+  )
 }
