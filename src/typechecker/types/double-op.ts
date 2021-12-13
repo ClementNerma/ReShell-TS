@@ -3,6 +3,26 @@ import { err, success, Typechecker } from '../base'
 import { resolveExprElementType } from './expr'
 import { rebuildType } from './rebuilder'
 
+export const resolveDoubleOpSequenceType: Typechecker<
+  { baseExprAt: CodeSection; baseExprType: ValueType; seq: Token<ExprDoubleOp>[] },
+  ValueType
+> = ({ baseExprAt, baseExprType, seq }, ctx) => {
+  // TODO: operators precedence
+
+  let leftExprAt = baseExprAt
+  let leftExprType = baseExprType
+
+  for (const { parsed: op } of seq) {
+    const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op }, ctx)
+    if (!newLeftExprType.ok) return newLeftExprType
+
+    leftExprAt = op.right.at
+    leftExprType = newLeftExprType.data
+  }
+
+  return success(leftExprType)
+}
+
 export const resolveDoubleOpType: Typechecker<
   { leftExprAt: CodeSection; leftExprType: ValueType; op: ExprDoubleOp },
   ValueType

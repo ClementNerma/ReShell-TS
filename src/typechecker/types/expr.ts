@@ -1,8 +1,8 @@
-import { CodeSection, Expr, ExprElement, ExprElementContent, Token, ValueType } from '../../shared/parsed'
+import { Expr, ExprElement, ExprElementContent, Token, ValueType } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
 import { success, Typechecker } from '../base'
 import { isTypeCompatible } from './compat'
-import { resolveDoubleOpType } from './double-op'
+import { resolveDoubleOpSequenceType } from './double-op'
 import { resolvePropAccessType } from './propaccess'
 import { resolveValueType } from './value'
 
@@ -10,18 +10,14 @@ export const resolveExprType: Typechecker<Token<Expr>, ValueType> = (expr, ctx) 
   const fromType = resolveExprElementType(expr.parsed.from, ctx)
   if (!fromType.ok) return fromType
 
-  let leftExprAt: CodeSection = expr.parsed.from.at
-  let leftExprType = fromType.data
-
-  for (const { parsed: op } of expr.parsed.doubleOps) {
-    const newLeftExprType = resolveDoubleOpType({ leftExprAt, leftExprType, op }, ctx)
-    if (!newLeftExprType.ok) return newLeftExprType
-
-    leftExprAt = op.right.at
-    leftExprType = newLeftExprType.data
-  }
-
-  return success(leftExprType)
+  return resolveDoubleOpSequenceType(
+    {
+      baseExprAt: expr.parsed.from.at,
+      baseExprType: fromType.data,
+      seq: expr.parsed.doubleOps,
+    },
+    ctx
+  )
 }
 
 export const resolveExprElementType: Typechecker<Token<ExprElement>, ValueType> = (element, ctx) => {
