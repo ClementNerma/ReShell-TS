@@ -21,7 +21,7 @@ export const rawPath: Parser<Token<string>[]> = notFollowedBy(
 export const rawString: Parser<string> = map(
   combine(
     exact('"'),
-    match(/([^\\"$\n]|\\[^\n])+/),
+    match(/([^\\"$\n]|\\[^\n])*/),
     failIfMatches(lookahead(exact('$'))),
     exact('"', 'opened string has not been closed with a quote (")')
   ),
