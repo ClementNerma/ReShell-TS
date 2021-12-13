@@ -353,7 +353,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         return err(fnType.returnType.at, 'not all code paths return a value')
       }
 
-      return success(fnType.returnType?.parsed ?? { nullable: false, inner: { type: 'void' } })
+      return success({ nullable: false, inner: { type: 'fn', fnType } })
     },
 
     fnCall: ({ name, args }) => {
