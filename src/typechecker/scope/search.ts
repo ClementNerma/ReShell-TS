@@ -22,7 +22,7 @@ export const getTypeAliasInScope: Typechecker<Token<string>, ScopeTypeAlias> = (
     if (scopeType) return success(scopeType)
   }
 
-  return err(name.at, 'Type not found in this scope')
+  return err(name.at, 'type not found in this scope')
 }
 
 export const getFunctionInScope: Typechecker<Token<string>, ScopeFn> = (name, { scopes }) => {
@@ -31,7 +31,7 @@ export const getFunctionInScope: Typechecker<Token<string>, ScopeFn> = (name, { 
     if (scopeFn) return success(scopeFn)
   }
 
-  return err(name.at, 'Function not found in this scope')
+  return err(name.at, 'function not found in this scope')
 }
 
 export const getVariableInScope: Typechecker<Token<string>, ScopeVar> = (name, { scopes }) => {
@@ -40,7 +40,7 @@ export const getVariableInScope: Typechecker<Token<string>, ScopeVar> = (name, {
     if (scopeVar) return success(scopeVar)
   }
 
-  return err(name.at, 'Variable not found in this scope')
+  return err(name.at, 'variable not found in this scope')
 }
 
 export const generateDuplicateDeclError = (
@@ -49,11 +49,11 @@ export const generateDuplicateDeclError = (
   duplicate: Token<string>
 ): TypecheckerErr =>
   err(duplicate.at, {
-    message: `A ${category} with this name was previously declared in this scope`,
+    message: `a ${category} with this name was previously declared in this scope`,
     also: [
       {
         at: original.at,
-        message: 'Original declaration occurs here',
+        message: 'original declaration occurs here',
       },
     ],
   })

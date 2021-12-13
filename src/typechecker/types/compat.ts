@@ -35,8 +35,8 @@ export const isTypeCompatible: Typechecker<
       complements:
         expectedNoDepth !== expected || foundNoDepth !== found
           ? [
-              ['Expected', expected],
-              ['Found   ', found],
+              ['expected', expected],
+              ['found   ', found],
             ]
           : [],
       also: typeExpectation.from
@@ -96,7 +96,7 @@ export const isTypeCompatible: Typechecker<
 
     if (!alias.ok) {
       return expectationErr(
-        'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+        'internal error: candidate type alias reference not found in scope while checking for type compatibility'
       )
     }
 
@@ -108,7 +108,7 @@ export const isTypeCompatible: Typechecker<
 
     if (!alias.ok) {
       return expectationErr(
-        'Internal error: referent type alias reference not found in scope while checking for type compatibility'
+        'internal error: referent type alias reference not found in scope while checking for type compatibility'
       )
     }
 
@@ -117,7 +117,7 @@ export const isTypeCompatible: Typechecker<
 
   if (candidate.type === 'nullable') {
     return referent.type !== 'nullable'
-      ? expectationErr('Value should not be nullable')
+      ? expectationErr('value should not be nullable')
       : subCheck('nullable type', candidate.inner, referent.inner)
   } else if (referent.type === 'nullable') {
     return subCheck('nullable type', candidate, referent.inner)
@@ -251,11 +251,11 @@ export const isTypeCompatible: Typechecker<
     },
 
     aliasRef: (c, r) => {
-      throw new Error('Internal error: trying to compare an alias ref')
+      throw new Error('internal error: trying to compare an alias ref')
     },
 
     unknown: () => {
-      throw new Error('Internal error: unreachable "unknown" type comparison')
+      throw new Error('internal error: unreachable "unknown" type comparison')
     },
 
     nullable: (c, r) =>
@@ -272,7 +272,7 @@ export const isTypeCompatible: Typechecker<
       ),
 
     // Internal types
-    void: () => expectationErr('Internal error: trying to compare candidate with internal type "void"'),
+    void: () => expectationErr('internal error: trying to compare candidate with internal type "void"'),
   }
 
   return comparators[candidate.type](candidate as any, referent as any)

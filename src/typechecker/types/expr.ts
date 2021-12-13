@@ -51,7 +51,7 @@ export const resolveExprOrTypeAssertionType: Typechecker<
         if (subjectType.type !== 'unknown') {
           return err(
             expr.at,
-            `Type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
+            `type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
               subjectType,
               true
             )}\``
@@ -188,7 +188,7 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
       if (wrapper.ref === null) {
         return err(catchVarname.at, {
           message: "failed to determine the catch clause's variable type",
-          complements: [['Tip', "you must use a failable function call inside the try's body"]],
+          complements: [['tip', "you must use a failable function call inside the try's body"]],
         })
       }
 

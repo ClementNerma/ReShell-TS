@@ -123,8 +123,8 @@ export const resolveDoubleOpType: Typechecker<
         case 'Null':
           if (leftExprType.type !== 'nullable') {
             return err(op.at, {
-              message: 'This operator can only be applied on nullable values',
-              also: [{ at: leftExprAt, message: 'This expression is not nullable' }],
+              message: 'this operator can only be applied on nullable values',
+              also: [{ at: leftExprAt, message: 'this expression is not nullable' }],
             })
           }
 
@@ -270,8 +270,8 @@ const errCannotApplyOperator = (
   return err(leftExprAt, {
     message: `cannot apply operator \`${operator.matched}\` on type \`${rebuildType(foundType, true)}\``,
     complements: [
-      ['Expected', expectedType],
-      ['Found   ', rebuildType(foundType)],
+      ['expected', expectedType],
+      ['found   ', rebuildType(foundType)],
     ],
   })
 }

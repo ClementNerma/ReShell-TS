@@ -31,7 +31,7 @@ export const propertyAccess: Parser<PropertyAccess> = or<PropertyAccess>([
       exact('?'),
       failure(
         nonNullablePropertyAccess,
-        'Expected a property index, key or member name after optional chaining operator (?.)'
+        'expected a property index, key or member name after optional chaining operator'
       )
     ),
     ([_, { parsed: access }]) => ({ nullable: true, access })

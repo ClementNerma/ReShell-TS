@@ -11,6 +11,6 @@ const strippedProgram: Parser<Program> = takeWhile(statementChain)
 
 export const program: Parser<Program> = withNormalizedNewlines(
   then(commentStripper, (_, data, context) =>
-    fullSource(strippedProgram, { eos: 'Unexpected end of input' })(data.at.start, data.parsed, context)
+    fullSource(strippedProgram, { eos: 'unexpected end of input' })(data.at.start, data.parsed, context)
   )
 )

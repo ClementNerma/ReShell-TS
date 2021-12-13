@@ -20,7 +20,7 @@ export const rawString: Parser<string> = map(
     exact('"'),
     match(/([^\\"\$\n]|\\[^\n])+/),
     failIfMatches(lookahead(exact('$'))),
-    exact('"', 'Opened string has not been closed with a quote (")')
+    exact('"', 'opened string has not been closed with a quote (")')
   ),
   ([_, { parsed: content }]) => content
 )
@@ -45,7 +45,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
         regex(/(-)?0*(\d+(\.\d+)?)/, ([neg, _, num]) => parseFloat(num) * (neg ? -1 : 1)),
       ]),
       digit,
-      'Unexpected token in number'
+      'unexpected token in number'
     ),
     'value'
   ),

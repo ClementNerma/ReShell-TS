@@ -21,14 +21,14 @@ export const cmdFlag: Parser<CmdFlag> = map(
       ['--', false],
       ['-', true],
     ]),
-    failure(identifier, 'Expected identifier after double dash'),
+    failure(identifier, 'expected a flag name'),
     maybe(
       map(
         combine(
           exact('='),
           failure(
             withLatelyDeclared(() => expr),
-            'Expected an expression'
+            'expected an expression'
           )
         ),
         ([_, expr]) => expr
@@ -48,15 +48,15 @@ export const cmdArg: Parser<CmdArg> = mappedCases<CmdArg>()('type', {
       combine(exact('${'), maybe_s_nl),
       failure(
         withLatelyDeclared(() => expr),
-        'Failed to parse the inner expression'
+        'failed to parse the inner expression'
       ),
       maybe_s_nl,
-      exact('}', 'Expected a closing brace (}) to close the inner expression')
+      exact('}', 'expected a closing brace (}) to close the inner expression')
     ),
     ([_, expr, __]) => ({ type: 'expr', expr })
   ),
 
-  // reference: map(combine(exact('$'), failure(identifier, 'Expected a variable name')), ([_, varname]) => ({
+  // reference: map(combine(exact('$'), failure(identifier, 'expected a variable name')), ([_, varname]) => ({
   //   type: 'reference',
   //   varname,
   // })),

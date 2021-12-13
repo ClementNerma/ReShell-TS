@@ -94,7 +94,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
             return err(varname.at, {
               message: `cannot assign to non-mutable variable \`${varname.parsed}\``,
               complements: [
-                ['Tip', 'you can make the variable mutable by declaring it with `let mut` instead of `let`'],
+                ['tip', 'you can make the variable mutable by declaring it with `let mut` instead of `let`'],
               ],
             })
           }
@@ -240,7 +240,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           if (!check.ok) return check
 
           return check.data.neverEnds
-            ? err(stmtAt, 'This loop always returns or breaks')
+            ? err(stmtAt, 'this loop always returns or breaks')
             : success({ neverEnds: false })
         },
 
@@ -262,7 +262,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           if (!check.ok) return check
 
           return check.data.neverEnds
-            ? err(stmtAt, 'This loop always returns or breaks')
+            ? err(stmtAt, 'this loop always returns or breaks')
             : success({ neverEnds: false })
         },
 
@@ -285,7 +285,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
               message: "failed to determine the catch clause's variable type",
               complements: [
                 [
-                  'Tip',
+                  'tip',
                   "you must use a failable instruction like a function call or a throw instruction inside the try's body",
                 ],
               ],

@@ -22,7 +22,7 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
       ['%', 'Rem'],
       ['??', 'Null'],
     ]),
-    failIfMatches(_catchUnknownOperator, 'Unknown operator')
+    failIfMatches(_catchUnknownOperator, 'unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -34,7 +34,7 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
       ['||', 'Or'],
       ['^', 'Xor'],
     ]),
-    failIfMatches(_catchUnknownOperator, 'Unknown operator')
+    failIfMatches(_catchUnknownOperator, 'unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -49,7 +49,7 @@ export const doubleComparisonLogicOp: Parser<DoubleComparisonOp> = map(
       ['>', 'GreaterThan'],
       ['<', 'LessThan'],
     ]),
-    failIfMatches(_catchUnknownOperator, 'Unknown operator')
+    failIfMatches(_catchUnknownOperator, 'unknown operator')
   ),
   ([{ parsed: sym }]) => sym
 )
@@ -67,7 +67,7 @@ export const doubleOpForAssignment: Parser<DoubleOp> = mappedCases<DoubleOp>()('
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
-  combine(oneOfMap<SingleLogicOp>([['!', 'Not']]), failIfMatches(_catchUnknownOperator, 'Unknown operator')),
+  combine(oneOfMap<SingleLogicOp>([['!', 'Not']]), failIfMatches(_catchUnknownOperator, 'unknown operator')),
   ([{ parsed: sym }]) => sym
 )
 

@@ -148,7 +148,7 @@ export const validateFnCallArgs: Typechecker<{ at: CodeSection; fnType: FnType; 
           return err(value.at, {
             message: 'references are not allowed in command and function calls',
             complements: [
-              ['Tip', `to use a variable here, wrap it inside an expression: \${${value.parsed.varname.parsed}}`],
+              ['tip', `to use a variable here, wrap it inside an expression: \${${value.parsed.varname.parsed}}`],
             ],
           })
         }

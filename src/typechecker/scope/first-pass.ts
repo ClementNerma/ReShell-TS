@@ -101,7 +101,7 @@ const completeScopeFirstPassTypeAliases: Typechecker<[Token<StatementChain>[], S
           //
           // ```
           // if (ctx.scopes.length > 0) {
-          //   return err(typename.at, 'Type aliases can only be defined at top level')
+          //   return err(typename.at, 'type aliases can only be defined at top level')
           // }
           // ```
           //

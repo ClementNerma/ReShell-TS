@@ -18,7 +18,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
     combine(
       or([
         map(
-          combine(failIfMatches(keyword, 'Cannot use reserved keyword alone'), cmdName, callEndDetector),
+          combine(failIfMatches(keyword, 'cannot use reserved keyword here'), cmdName, callEndDetector),
           ([_, name, __]) => ({
             name,
             args: [],
@@ -33,7 +33,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
                 callEndDetector,
                 failure(
                   withLatelyDeclared(() => cmdArg),
-                  'Invalid argument provided'
+                  'invalid argument provided'
                 )
               ),
               { inter: s }
@@ -50,7 +50,7 @@ export const cmdCall: (callEndDetector: Parser<void>) => Parser<CmdCall> = (call
             maybe_s,
             failure(
               withLatelyDeclared(() => rawPath),
-              'Expected a valid path after redirection operator'
+              'expected a valid path after redirection operator'
             )
           ),
           ([op, _, path]): CmdRedir => ({ op, path })

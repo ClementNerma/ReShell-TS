@@ -17,7 +17,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     const alias = getTypeAliasInScope(typeExpectation.type.typeAliasName, ctx)
 
     if (!alias.ok) {
-      return err(value.at, 'Internal error: type alias reference not found in scope during value type resolution')
+      return err(value.at, 'internal error: type alias reference not found in scope during value type resolution')
     }
 
     typeExpectation = { from: typeExpectation.from, type: alias.data.content }
@@ -67,19 +67,19 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     null: () => {
       if (!typeExpectation) {
         return err(value.at, {
-          message: 'Cannot determine the type of this value',
+          message: 'cannot determine the type of this value',
           complements: [
-            ['Tip', 'Usage of "null" values require to be able to determine the type of the parent expression'],
+            ['tip', 'usage of "null" values require to be able to determine the type of the parent expression'],
           ],
         })
       }
 
       if (typeExpectation.type.type !== 'nullable') {
         return err(value.at, {
-          message: 'Unexpected usage of "null" value ; type is not nullable',
+          message: 'parent type is not nullable',
           complements: [
-            ['Expected', rebuildType(typeExpectation.type)],
-            ['Found   ', 'void'],
+            ['expected', rebuildType(typeExpectation.type)],
+            ['found   ', 'void'],
           ],
         })
       }
@@ -162,7 +162,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (items.length === 0) {
         return typeExpectation
           ? success(typeExpectation.type)
-          : err(value.at, 'Unable to determine the type of this list')
+          : err(value.at, 'unable to determine the type of this list')
       }
 
       const expectedItemType: ValueType | null = expectedListType?.itemsType ?? null
@@ -202,7 +202,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (entries.length === 0) {
         return typeExpectation
           ? success(typeExpectation.type)
-          : err(value.at, 'Unable to determine the type of this map')
+          : err(value.at, 'unable to determine the type of this map')
       }
 
       const expectedItemType: ValueType | null = expectedMapType?.itemsType ?? null
@@ -225,8 +225,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         if (duplicate) {
           return err(duplicate.at, {
-            message: 'A key with this name was already declared above',
-            also: [{ at: duplicate.at, message: 'Original declaration occurs here' }],
+            message: 'a key with this name was already declared above',
+            also: [{ at: duplicate.at, message: 'original key name is used here' }],
           })
         }
 
@@ -253,7 +253,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (members.length === 0) {
         return typeExpectation
           ? success(typeExpectation.type)
-          : err(value.at, 'Unable to determine the type of this struct')
+          : err(value.at, 'unable to determine the type of this struct')
       }
 
       const expectedStructType = assert.data
@@ -276,8 +276,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
         if (duplicate) {
           return err(name.at, {
-            message: 'A member with this name was already declared above',
-            also: [{ at: duplicate.at, message: 'Original declaration occurs here' }],
+            message: 'a member with this name was already declared above',
+            also: [{ at: duplicate.at, message: 'original member name is used here' }],
           })
         }
 
@@ -290,8 +290,8 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
           if (!expectedMemberType) {
             return err(name.at, {
-              message: `Unknown member "${name.parsed}"`,
-              complements: [['Expected', rebuildType(typeExpectation!.type)]],
+              message: `unknown member \`${name.parsed}\``,
+              complements: [['expected', rebuildType(typeExpectation!.type)]],
               also: typeExpectation!.from
                 ? [
                     {
@@ -321,7 +321,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       if (expectedMembers) {
         for (const name of expectedMembers.keys()) {
           if (!memberNames.has(name)) {
-            return err(value.at, `Member "${name}" is missing`)
+            return err(value.at, `member \`${name}\` is missing`)
           }
         }
       }
@@ -424,7 +424,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
       } else if (referencedFn.ok) {
         foundType = { type: 'fn', fnType: referencedFn.data.content }
       } else {
-        return err(value.at, `Referenced variable "${varname.parsed}" was not found in this scope`)
+        return err(value.at, `variable \`${varname.parsed}\` was not found in this scope`)
       }
 
       if (!typeExpectation) {
@@ -464,8 +464,8 @@ export const errIncompatibleValueType = ({
     complements:
       expectedNoDepth !== expected || foundNoDepth !== found
         ? [
-            ['Expected', rebuildType(typeExpectation.type)],
-            ['Found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
+            ['expected', rebuildType(typeExpectation.type)],
+            ['found   ', typeof foundType === 'string' ? foundType : rebuildType(foundType)],
           ]
         : [],
     also: typeExpectation.from

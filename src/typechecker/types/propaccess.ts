@@ -18,7 +18,7 @@ export const resolvePropAccessType: Typechecker<
       if (!alias.ok) {
         return err(
           leftAt,
-          'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+          'internal error: candidate type alias reference not found in scope while checking for type compatibility'
         )
       }
 
@@ -29,7 +29,7 @@ export const resolvePropAccessType: Typechecker<
       if (!alias.ok) {
         return err(
           leftAt,
-          'Internal error: candidate type alias reference not found in scope while checking for type compatibility'
+          'internal error: candidate type alias reference not found in scope while checking for type compatibility'
         )
       }
 
@@ -44,7 +44,7 @@ export const resolvePropAccessType: Typechecker<
           if (!propAccess.parsed.nullable) {
             return err(upToPrevPropAccessSection, {
               message: 'cannot access index of a nullable list',
-              complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?[index]`']],
+              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?[index]`']],
               also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
             })
           }
@@ -56,8 +56,8 @@ export const resolvePropAccessType: Typechecker<
             complements: noNullabilityTip
               ? []
               : [
-                  ['Expected', 'list'],
-                  ['Found   ', rebuildType(previousIterType)],
+                  ['expected', 'list'],
+                  ['found   ', rebuildType(previousIterType)],
                 ],
             also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
           })
@@ -74,7 +74,7 @@ export const resolvePropAccessType: Typechecker<
           if (!propAccess.parsed.nullable) {
             return err(upToPrevPropAccessSection, {
               message: 'cannot access member of a nullable struct',
-              complements: noNullabilityTip ? [] : [['Tip', 'You can use nullable indexes with `?.member`']],
+              complements: noNullabilityTip ? [] : [['tip', 'you can use nullable indexes with `?.member`']],
             })
           }
 
@@ -83,8 +83,8 @@ export const resolvePropAccessType: Typechecker<
           return err(upToPrevPropAccessSection, {
             message: `expected struct due to member access, found \`${rebuildType(previousIterType, true)}\``,
             complements: [
-              ['Expected', 'struct'],
-              ['Found   ', rebuildType(previousIterType)],
+              ['expected', 'struct'],
+              ['found   ', rebuildType(previousIterType)],
             ],
             also: [{ at: propAccess.at, message: 'expectation caused by this access' }],
           })

@@ -54,11 +54,11 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
             takeWhile1(
               map(
                 combine(
-                  failure(identifier, 'Expected a member name'),
-                  combine(maybe_s_nl, exact(':', 'Expected a semicolon (:) type separator'), maybe_s_nl),
+                  failure(identifier, 'expected a member name'),
+                  combine(maybe_s_nl, exact(':', 'expected a semicolon (:) after the member name'), maybe_s_nl),
                   failure(
                     withLatelyDeclared(() => valueType),
-                    'Expected a type annotation for this member'
+                    'expected a type annotation for this member'
                   )
                 ),
                 ([{ parsed: name }, _, { parsed: type }]) => ({ name, type })
@@ -66,11 +66,11 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
               {
                 inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
                 interMatchingMakesExpectation: true,
-                noMatchError: 'Please provide at least one member in the struct',
+                noMatchError: 'please provide at least one member in the struct',
               }
             )
           ),
-          combine(maybe_s_nl, exact('}', "Expected a closing brace (}) after the list of the struct's members"))
+          combine(maybe_s_nl, exact('}', 'expected a closing brace (})'))
         ),
         ([_, { parsed: members }, __]) => ({ members })
       ),
@@ -80,12 +80,12 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
         (fnType) => ({ fnType })
       ),
 
-      aliasRef: map(combine(exact('@'), failure(identifier, 'Expected a type alias name')), ([_, typeAliasName]) => ({
+      aliasRef: map(combine(exact('@'), failure(identifier, 'expected a type alias name')), ([_, typeAliasName]) => ({
         typeAliasName,
       })),
 
       nullable: map(
-        combine(exact('?'), failure(valueType, 'Expected a type after nullable (?) operator')),
+        combine(exact('?'), failure(valueType, 'expected a type after nullable (?) operator')),
         ([_, { parsed: inner }]) => ({ inner })
       ),
 
@@ -98,8 +98,8 @@ export const valueType: Parser<ValueType> = selfRef((valueType) =>
     [
       OrErrorStrategy.FallbackFn,
       (input, _, __, ___) =>
-        addComplementsIf('Invalid type', startsWithLetter(input), [
-          ['Tip', 'Type aliases must be prefixed by a "@" symbol'],
+        addComplementsIf('invalid type', startsWithLetter(input), [
+          ['tip', 'type aliases must be prefixed by a "@" symbol'],
         ]),
     ]
   )

@@ -27,7 +27,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ),
         ([_, { parsed: name }]) => name
       ),
-      combine(maybe_s, exact('(', "Expected an open paren '('"), maybe_s_nl),
+      combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
       takeWhile<FnArg>(
         map(
           combine(
@@ -36,17 +36,17 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                 combine(
                   exact('-'),
                   notFollowedBy(exact('-')),
-                  failure(unicodeSingleLetter, 'Expected a flag name'),
+                  failure(unicodeSingleLetter, 'expected a flag name'),
                   notFollowedBy(unicodeSingleLetter, {
                     error: {
-                      message: 'Expected a single-letter flag name',
-                      complements: [['Tip', 'To specify a multi-letters flag name, use a double dash "--"']],
+                      message: 'expected a single-letter flag name',
+                      complements: [['tip', 'to specify a multi-letters flag name, use a double dash "--"']],
                     },
                   })
                 ),
                 ([flag, __, name]) => ({ flag, name })
               ),
-              map(combine(exact('--'), failure(identifier, 'Expected a flag name')), ([flag, name]) => ({
+              map(combine(exact('--'), failure(identifier, 'expected a flag name')), ([flag, name]) => ({
                 flag,
                 name,
               })),
@@ -56,14 +56,14 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
               combine(
                 maybe_s,
                 maybe(exact('?')),
-                exact(':', "Expected a semicolon (:) separator for the argument's type"),
+                exact(':', "expected a semicolon (:) separator for the argument's type"),
                 maybe_s
               ),
               ([_, optional, __, ___]) => !!optional.parsed
             ),
             failure(
               withLatelyDeclared(() => valueType),
-              'Expected a type for the argument'
+              'expected a type for the argument'
             ),
             maybe(
               map(
@@ -72,13 +72,13 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                   failure(
                     withLatelyDeclared(() => literalValue),
                     (err) => ({
-                      message: 'Expected a literal value',
+                      message: 'expected a literal value',
                       complements: [
                         [
-                          'Tip',
+                          'tip',
                           getErrorInput(err).startsWith('"')
-                            ? "Literal strings must be single-quoted (')"
-                            : 'Lists, maps and structures are not literal values',
+                            ? "literal strings must be single-quoted (')"
+                            : 'lists, maps and structures are not literal values',
                         ],
                       ],
                     })
@@ -105,10 +105,10 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ),
         {
           inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          interMatchingMakesExpectation: 'Expected an argument name',
+          interMatchingMakesExpectation: 'expected an argument name',
         }
       ),
-      combine(maybe_s_nl, exact(')', "Expected a closing paren ')'")),
+      combine(maybe_s_nl, exact(')', "expected a closing paren ')'")),
       maybe(
         map(
           combine(
@@ -117,7 +117,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
             maybe_s,
             failure(
               withLatelyDeclared(() => valueType),
-              'Expected a return type'
+              'expected a return type'
             )
           ),
           ([_, __, ___, returnType]) => returnType
@@ -131,7 +131,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
             s,
             failure(
               withLatelyDeclared(() => valueType),
-              'Expected a failure type'
+              'expected a failure type'
             )
           ),
           ([_, __, ___, failureType]) => failureType
