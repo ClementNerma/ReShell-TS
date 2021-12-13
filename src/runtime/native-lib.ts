@@ -350,22 +350,14 @@ function withArguments<
   for (const [name, type] of Object.entries(expecting)) {
     const value = map.get(name)
 
-    let expectedType: ValueType['type']
-
-    if (value === undefined)
+    if (value === undefined) {
       return err(at, `internal error: native library assertion failed: argument \`${name}\` was not found`)
-
-    if (typeof type === 'string') {
-      expectedType = type
-    } else {
-      if (value.type === 'null') {
-        continue
-      }
-
-      expectedType = type.nullable
     }
 
-    if (value.type !== expectedType && expectedType !== 'unknown') {
+    const expectedType: ValueType['type'] | null =
+      typeof type === 'string' ? type : value.type === 'null' ? null : type.nullable
+
+    if (expectedType !== null && value.type !== expectedType && expectedType !== 'unknown') {
       return err(
         at,
         `internal error: native library assertion failed: expected argument \`${name}\` to be of type "${expectedType}", found ${value.type}`
