@@ -40,6 +40,22 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     ),
 
   // Strings
+  strlen: ({ at }, args) =>
+    withArguments(at, args, { str: 'string' }, ({ str }) => success({ type: 'number', value: str.value.length })),
+
+  strcontains: ({ at }, args) =>
+    withArguments(at, args, { str: 'string', lookup: 'string' }, ({ str, lookup }) =>
+      success({ type: 'bool', value: str.value.includes(lookup.value) })
+    ),
+
+  strreplace: ({ at }, args) =>
+    withArguments(at, args, { str: 'string', model: 'string', replacement: 'string' }, ({ str, model, replacement }) =>
+      success({
+        type: 'string',
+        value: str.value.replaceAll(model.value, replacement.value),
+      })
+    ),
+
   repeat: ({ at }, args) =>
     withArguments(at, args, { str: 'string', repeat: 'number' }, ({ str, repeat }) =>
       success({ type: 'string', value: str.value.repeat(repeat.value) })

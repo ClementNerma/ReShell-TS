@@ -33,6 +33,28 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   // Strings
+  strlen: _buildNativeLibraryFn({
+    args: () => [{ name: 'str', type: 'string' }],
+    returnType: () => 'number',
+  }),
+
+  strcontains: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'str', type: 'string' },
+      { name: 'lookup', type: 'string' },
+    ],
+    returnType: () => 'bool',
+  }),
+
+  strreplace: _buildNativeLibraryFn({
+    args: () => [
+      { name: 'str', type: 'string' },
+      { name: 'model', type: 'string' },
+      { name: 'replacement', type: 'string' },
+    ],
+    returnType: () => 'string',
+  }),
+
   repeat: _buildNativeLibraryFn({
     args: () => [
       { name: 'str', type: 'string' },
