@@ -457,13 +457,7 @@ export const statementChecker: Typechecker<Token<Statement>, StatementMetadata> 
       if (!returnType.ok) return returnType
 
       if (returnType.data.type === 'failable') {
-        ctx.emitDiagnostic(
-          diagnostic(
-            content.at,
-            'this function call returns a `failable` value which is not handled',
-            DiagnosticLevel.Warning
-          )
-        )
+        ctx.emitDiagnostic(diagnostic(content.at, 'unhandled `failable` value', DiagnosticLevel.Warning))
       }
 
       return success({ neverEnds: false })
