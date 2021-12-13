@@ -90,13 +90,10 @@ const fnArg: Parser<FnArg> = map(
   })
 )
 
-const fn: (requireName: boolean) => Parser<FnType & { name: Token<string> | null }> = (requireName) =>
+const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T> }> = (nameParser) =>
   map(
     combine(
-      map(
-        combine(exact('fn'), requireName ? map(combine(s, identifier), ([_, name]) => name) : always(null)),
-        ([_, { parsed: name }]) => name
-      ),
+      map(combine(exact('fn'), nameParser), ([_, name]) => name),
       combine(maybe_s, exact('(', "expected an opening parenthesis '('"), maybe_s_nl),
       takeWhile(fnArg, {
         inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
@@ -161,8 +158,11 @@ const fn: (requireName: boolean) => Parser<FnType & { name: Token<string> | null
     })
   )
 
-export const fnType: Parser<FnType> = fn(false)
-export const fnDecl: Parser<{ name: Token<string>; fnType: FnType }> = map(fn(true), (fnType) => ({
-  name: fnType.name!,
-  fnType,
-}))
+export const fnType: Parser<FnType> = fn(always(null))
+export const fnDecl: Parser<{ name: Token<string>; fnType: FnType }> = map(
+  fn(map(combine(s, identifier), ([_, name]) => name)),
+  (fnType) => ({
+    name: fnType.name.parsed,
+    fnType,
+  })
+)
