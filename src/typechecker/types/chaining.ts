@@ -199,7 +199,7 @@ export const resolveValueChainings: Typechecker<
 
           if (!compat.ok) return compat
 
-          return success(developed.data.successType.parsed)
+          return success(previousIterType.successType.parsed)
         } else {
           // return err(chaining.at, 'the early return operator is only applyable on nullable and failable value types')
           return err(chaining.at, 'the early return operator is only applyable failable value types')
