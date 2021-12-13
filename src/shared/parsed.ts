@@ -116,11 +116,7 @@ export type CmdRedirOp =
   | 'AppendStdoutStderr'
 
 export type NonNullableValueType =
-  | { type: 'void' }
-  | { type: 'bool' }
-  | { type: 'number' }
-  | { type: 'string' }
-  | { type: 'path' }
+  | PrimitiveTypes
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
   | { type: 'struct'; members: StructTypeMember[] }
@@ -128,6 +124,13 @@ export type NonNullableValueType =
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'unknown' }
   | InternalTypes
+
+export type PrimitiveTypes =
+  | { type: 'void' }
+  | { type: 'bool' }
+  | { type: 'number' }
+  | { type: 'string' }
+  | { type: 'path' }
 
 export type InternalTypes = { type: 'implicit' }
 
