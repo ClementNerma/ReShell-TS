@@ -3,7 +3,7 @@ import { DiagnosticExtract } from '../../shared/diagnostics'
 import { isLocEq } from '../../shared/loc-cmp'
 import { CodeSection } from '../../shared/parsed'
 import { GenericResolutionScope, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
-import { getContextuallyResolvedGeneric, getResolvedGenericInSingleScope } from '../scope/search'
+import { getContextuallyResolvedGeneric } from '../scope/search'
 import { developTypeAliases } from './aliases'
 import { getFnDeclArgType } from './fn'
 import { isResolvedGenericDifferent, resolveGenerics } from './generics-resolver'
@@ -93,7 +93,7 @@ export const isTypeCompatible: Typechecker<
 
   if (candidate.type === 'generic' && ctx.inFnCallAt) {
     if (fillKnownGenerics) {
-      const set = getResolvedGenericInSingleScope(fillKnownGenerics, candidate)
+      const set = getContextuallyResolvedGeneric(fillKnownGenerics, candidate)
 
       if (set === undefined) {
         return expectationErr('internal error: candidate generic is unknown although filling map was provided')

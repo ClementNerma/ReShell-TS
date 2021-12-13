@@ -60,25 +60,26 @@ export function getEntityCategoryName(type: ScopeEntity['type']): string {
 }
 
 export function getContextuallyResolvedGeneric(
-  resolvedGenerics: TypecheckerContext['resolvedGenerics'],
-  generic: Extract<ValueType, { type: 'generic' }>
-): { mapped: ValueType | null } | undefined {
-  for (let s = resolvedGenerics.length - 1; s >= 0; s--) {
-    const got = getResolvedGenericInSingleScope(resolvedGenerics[s], generic)
-    if (got) return got
-  }
-
-  return undefined
-}
-
-export function getResolvedGenericInSingleScope(
   gScope: GenericResolutionScope,
-  { name, orig, fromFnCallAt }: Extract<ValueType, { type: 'generic' }>
+  { name, orig, fromFnCallAt }: Extract<ValueType, { type: 'generic' }>,
+  max?: number
 ): { mapped: ValueType | null } | undefined {
-  return gScope.find(
-    (c) =>
-      c.name.parsed === name.parsed &&
-      isLocEq(orig.start, c.orig.start) &&
-      (fromFnCallAt === null || isLocEq(fromFnCallAt, c.inFnCallAt))
+  return (
+    gScope
+      .slice()
+      .reverse()
+      .find(
+        (c) =>
+          c.name.parsed === name.parsed &&
+          isLocEq(orig.start, c.orig.start) &&
+          fromFnCallAt !== null &&
+          isLocEq(fromFnCallAt, c.inFnCallAt)
+      ) ??
+    (fromFnCallAt !== null
+      ? undefined
+      : gScope
+          .slice(0, max ?? gScope.length)
+          .reverse()
+          .find((c) => c.name.parsed === name.parsed && isLocEq(orig.start, c.orig.start)))
   )
 }

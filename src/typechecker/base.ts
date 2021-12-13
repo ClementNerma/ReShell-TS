@@ -10,7 +10,7 @@ export type TypecheckerContext = {
   scopes: Scope[]
   typeAliasesPrelook: Set<string>
   typeAliases: PrecompData['typeAliases']
-  resolvedGenerics: GenericResolutionScope[]
+  resolvedGenerics: GenericResolutionScope
   inLoop: boolean
   inFnCallAt: CodeLoc | null
   typeExpectation: null | { type: ValueType; from: CodeSection | null }

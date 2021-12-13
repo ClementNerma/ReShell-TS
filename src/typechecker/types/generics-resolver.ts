@@ -16,7 +16,7 @@ import { getContextuallyResolvedGeneric } from '../scope/search'
  *   is to indicate what has *changed* during the resolution.
  * We try this until there is no longer any generic resolved in the type, indicating the resolution is complete. We can the return it to the caller.
  */
-export function resolveGenerics(type: ValueType, ctx: TypecheckerContext): ValueType {
+export function resolveGenerics(type: ValueType, ctx: TypecheckerContext, max?: number): ValueType {
   function _subroutine(type: ValueType): [ValueType, { name: Token<string>; orig: CodeSection }[]] {
     switch (type.type) {
       case 'bool':
@@ -114,7 +114,7 @@ export function resolveGenerics(type: ValueType, ctx: TypecheckerContext): Value
         const allDeps: { name: Token<string>; orig: CodeSection }[] = [{ name: type.name, orig: type.orig }]
 
         const previous = { ...type }
-        const resolved = getContextuallyResolvedGeneric(ctx.resolvedGenerics, type)
+        const resolved = getContextuallyResolvedGeneric(ctx.resolvedGenerics, type, max)
 
         type = resolved?.mapped ?? type
 

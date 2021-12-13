@@ -14,7 +14,7 @@ import {
 } from '../base'
 import { blockChecker } from '../block'
 import { cmdArgTypechecker } from '../cmdcall'
-import { getEntityInScope, getResolvedGenericInSingleScope } from '../scope/search'
+import { getContextuallyResolvedGeneric, getEntityInScope } from '../scope/search'
 import { isTypeCompatible } from '../types/compat'
 import { developTypeAliases } from './aliases'
 import { resolveExprType } from './expr'
@@ -302,7 +302,9 @@ export const validateAndRegisterFnCall: Typechecker<
     inFnCallAt: at.start,
   }))
 
-  ctx = { ...ctx, inFnCallAt: at.start, resolvedGenerics: ctx.resolvedGenerics.concat([gScope]) }
+  ctx.resolvedGenerics.push(...gScope)
+  const max = ctx.resolvedGenerics.length
+  ctx = { ...ctx, inFnCallAt: at.start }
 
   if (generics) {
     if (generics.parsed.length < fnType.generics.length) {
@@ -325,8 +327,8 @@ export const validateAndRegisterFnCall: Typechecker<
 
       const suppliedFor = fnType.generics[g]
 
-      const scoped = getResolvedGenericInSingleScope(gScope, {
-        // to remake more properly (set the types during the gScope's creation)
+      const scoped = getContextuallyResolvedGeneric(gScope, {
+        // TODO: to remake more properly (set the types during the gScope's creation)
         type: 'generic',
         name: suppliedFor,
         orig: suppliedFor.at,
@@ -416,7 +418,7 @@ export const validateAndRegisterFnCall: Typechecker<
         const resolved = resolveExprType(expr, {
           ...ctx,
           typeExpectation: {
-            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx),
+            type: resolveGenerics(relatedArg.parsed.type.parsed, ctx, max),
             from: relatedArg.at,
           },
         })
@@ -570,7 +572,9 @@ export const validateAndRegisterFnCall: Typechecker<
     },
   })
 
-  const returnType: ValueType = fnType.returnType ? resolveGenerics(fnType.returnType.parsed, ctx) : { type: 'void' }
+  const returnType: ValueType = fnType.returnType
+    ? resolveGenerics(fnType.returnType.parsed, ctx, max)
+    : { type: 'void' }
 
   if (ctx.typeExpectation) {
     const compat = isTypeCompatible(
@@ -586,33 +590,6 @@ export const validateAndRegisterFnCall: Typechecker<
     )
 
     if (!compat.ok) return compat
-  }
-
-  // TODO: this unoptimized code is here to solve a simple problem
-  // Let's consider the following code:
-  //
-  // ```
-  // let values: [path] = map(
-  //   map([3], fn (len, _) => len > 0),
-  //   fn (p, _) => if p { ./ } else { ../ }
-  // )
-  // ```
-  //
-  // Without the code below, this fails to compile as during the resolution of
-  //  the nested map() call, the type compatibility checker (isTypeCompatible())
-  //  will assign to the expected argument type `T` from the first call the return
-  //  type of the nested map() call, which is its own `O`
-  // The `O` generic is then resolved properly, but it's too late for the `T` which
-  //  is still assigned to `O`. Once it is accessed for type checking, the generics
-  //  scope from the nested map() call has been destroyed (as the call as been fully
-  //  checked), so we can't get this type's content anymore.
-  // The code below resolves this problem, in a really sub-optimal way.
-  for (const gScope of ctx.resolvedGenerics) {
-    for (const entry of gScope) {
-      if (entry.mapped !== null) {
-        entry.mapped = resolveGenerics(entry.mapped, ctx)
-      }
-    }
   }
 
   return success(returnType)
