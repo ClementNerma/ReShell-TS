@@ -22,14 +22,14 @@ export function word<S extends string>(candidate: S, error?: string): Parser<S> 
   }
 }
 
-export function char<C>(regex: RegExp, error?: string): Parser<void> {
+export function char(regex: RegExp, error?: string): Parser<void> {
   return (start, input, context) =>
     input.charAt(0).match(regex)
       ? success(start, addCols(start, 1), void 0, input.charAt(0))
       : err(start, context, error)
 }
 
-export function match<C>(regex: RegExp, error?: string): Parser<string> {
+export function match(regex: RegExp, error?: string): Parser<string> {
   return (start, input, context) => {
     const match = input.match(regex)
     if (!match || match.index !== 0) return err(start, context, error)
@@ -66,7 +66,7 @@ export function regex<T>(
   }
 }
 
-export function regexRaw<C>(regex: RegExp, error?: string): Parser<RegExpMatchArray> {
+export function regexRaw(regex: RegExp, error?: string): Parser<RegExpMatchArray> {
   return (start, input, context) => {
     const match = input.match(regex)
     return match && match.index === 0
@@ -75,7 +75,7 @@ export function regexRaw<C>(regex: RegExp, error?: string): Parser<RegExpMatchAr
   }
 }
 
-export function oneOf<C>(candidates: string[], error?: string): Parser<string> {
+export function oneOf(candidates: string[], error?: string): Parser<string> {
   return (start, input, context) => {
     for (const candidate of candidates) {
       if (input.startsWith(candidate)) {
@@ -99,11 +99,11 @@ export function oneOfMap<T>(candidates: [string, T][], error?: string): Parser<T
   }
 }
 
-export function bol<C>(error?: string): Parser<void> {
+export function bol(error?: string): Parser<void> {
   return (start, _, context) => (start.col === 0 ? success(start, start, void 0, '') : err(start, context, error))
 }
 
-export function eol<C>(error?: string): Parser<void> {
+export function eol(error?: string): Parser<void> {
   return (start, input, context) =>
     input.length === 0
       ? success(start, start, void 0, '')
@@ -112,12 +112,12 @@ export function eol<C>(error?: string): Parser<void> {
       : err(start, context, error)
 }
 
-export function bos<C>(error?: string): Parser<void> {
+export function bos(error?: string): Parser<void> {
   return (start, _, context) =>
     start.col === 0 && start.line === 0 ? success(start, start, void 0, '') : err(start, context, error)
 }
 
-export function eos<C>(error?: string): Parser<void> {
+export function eos(error?: string): Parser<void> {
   return (start, input, context) =>
     input.length === 0 ? success(start, start, void 0, '') : err(start, context, error)
 }
