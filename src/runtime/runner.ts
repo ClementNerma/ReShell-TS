@@ -818,10 +818,10 @@ const runValue: Runner<Value, ExecValue> = (value, ctx) =>
 
     reference: ({ varname }) => {
       for (const scope of ctx.scopes.reverse()) {
-        const entityType = scope.entities.get(varname.parsed)
+        const value = scope.entities.get(varname.parsed)
 
-        if (entityType) {
-          return success(entityType)
+        if (value) {
+          return success(value)
         }
       }
 
