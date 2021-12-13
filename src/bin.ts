@@ -26,15 +26,12 @@ function fail(message: string): never {
 const argv = process.argv.slice(2)
 
 if (!argv[0]) fail('Please provide an example name')
-if (!argv[0].match(/^([a-zA-Z0-9_]+)/)) fail('Invalid example name provided')
 
-const examplePath = join(__dirname, '..', 'examples', argv[0] + '.rsh')
+const inputPath = argv[0]
 
-if (!existsSync(examplePath)) fail('Example not found')
+if (!existsSync(inputPath)) fail('Input file not found')
 
-const basePath = dirname(examplePath)
-
-const source = readFileSync(examplePath, 'utf-8')
+const source = readFileSync(inputPath, 'utf-8')
 
 const iter = argv[1] && argv[1].match(/^\d+$/) ? parseInt(argv[1]) : 1
 
@@ -65,7 +62,7 @@ const sourceServer = new SourceFilesServer(
     if (!existsSync(filename)) return false
     return readFileSync(filename, 'utf8')
   },
-  relative(process.cwd(), examplePath),
+  relative(process.cwd(), inputPath),
   iterSrc
 )
 
