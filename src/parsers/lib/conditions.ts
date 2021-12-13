@@ -44,6 +44,13 @@ export function failIfMatches(parser: Parser<unknown>, error?: ErrInputData): Pa
   }
 }
 
+export function failIfMatchesWith<T>(parser: Parser<T>, error: (token: Token<T>) => ErrInputData): Parser<void> {
+  return (start, input, context) => {
+    const parsed = parser(start, input, context)
+    return parsed.ok ? err(start, parsed.data.at.next, context, error(parsed.data)) : success(start, start, void 0, '')
+  }
+}
+
 export function failIfMatchesElse<T>(parser: Parser<unknown>, els: Parser<T>): Parser<T> {
   return (start, input, context) => {
     const parsed = parser(start, input, context)
