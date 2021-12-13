@@ -4,14 +4,14 @@ import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { accelerateWithLookahead, failIfMatches, notFollowedBy } from './lib/conditions'
 import { lookahead } from './lib/consumeless'
-import { digit, unicodeAlphanumericUnderscore } from './lib/littles'
-import { takeWhile1, takeWhileN } from './lib/loops'
+import { buildUnicodeRegexMatcher, digit } from './lib/littles'
+import { takeWhileN } from './lib/loops'
 import { exact, match, oneOfFirstChar, oneOfMap, regex } from './lib/matchers'
 import { mappedCases, or } from './lib/switches'
-import { map, toOneProp, unify } from './lib/transform'
+import { map, toOneProp } from './lib/transform'
 
 export const rawPath: Parser<Token<string>[]> = takeWhileN(
-  unify(takeWhile1(or([unicodeAlphanumericUnderscore, exact('.'), match(/\\./)]))),
+  buildUnicodeRegexMatcher((letter, digit) => `(${letter}|${digit}|\\.|\\\\\\.)+`),
   { inter: exact('/'), minimum: 2, interExpect: false }
 )
 

@@ -36,10 +36,6 @@ export function silence<T>(parser: Parser<T>): Parser<void> {
   return map(parser, () => void 0)
 }
 
-export function unify(parser: Parser<unknown>): Parser<string> {
-  return map(parser, (_, parsed) => parsed.matched)
-}
-
 export function toOneProp<P extends string, T>(prop: P, parser: Parser<T>): Parser<{ [prop in P]: Token<T> }> {
   return map(parser, (_, value) => ({ [prop]: value } as { [prop in P]: Token<T> }))
 }
