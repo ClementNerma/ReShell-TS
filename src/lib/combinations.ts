@@ -1,4 +1,14 @@
-import { ErrorMapping, Parser, ParserResult, ParserSucess, sliceInput, success, Token, withErr } from './base'
+import {
+  ErrorMapping,
+  Parser,
+  ParserResult,
+  ParserSucess,
+  ParsingContext,
+  sliceInput,
+  success,
+  Token,
+  withErr,
+} from './base'
 
 type CombineOptions = {
   error?: ErrorMapping
@@ -40,11 +50,16 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
     const parsed: Token<unknown>[] = []
     const matched = []
 
+    let lastWasNeutralError = false
+
     for (let i = 0; i < parsers.length; i++) {
-      const result = (parsers[i] as Parser<unknown>)(loc, input, {
+      const combinationContext: ParsingContext = {
         ...context,
-        combinationData: { iter: i, soFar: { start, matched, parsed } },
-      })
+        combinationData: { iter: i, lastWasNeutralError, soFar: { start, matched, parsed } },
+      }
+
+      const result = (parsers[i] as Parser<unknown>)(loc, input, combinationContext)
+
       if (!result.ok) return withErr(result, context, options?.error)
 
       const { data } = result
@@ -54,18 +69,19 @@ export function combine(...parsers: (Parser<Token<unknown>> | CombineOptions | n
       parsed.push(data)
       matched.push(data.matched)
 
-      if (data.neutralError && i === parsers.length - 1) {
-        break
+      if (data.neutralError) {
+        if (i === parsers.length - 1) {
+          break
+        }
       }
+
+      lastWasNeutralError = data.neutralError
 
       loc = data.next
       lastResult = result
 
       if (!data.neutralError && options?.inter && i < parsers.length - 1) {
-        const interResult = options.inter(loc, input, {
-          ...context,
-          combinationData: { iter: i, soFar: { start, matched, parsed } },
-        })
+        const interResult = options.inter(loc, input, combinationContext)
 
         if (!interResult.ok) {
           return withErr(interResult, context, options?.error)

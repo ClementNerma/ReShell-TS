@@ -13,6 +13,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     const matched: string[] = []
     let interMadeExpectation = false
     let beforeInterMatching: ParserLoc | null = null
+    let lastWasNeutralError = false
 
     let loc = { ...start }
     let iter = 0
@@ -20,7 +21,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     while (true) {
       const iterContext = {
         ...context,
-        loopData: { iter: iter++, soFar: { start, matched, parsed } },
+        loopData: { iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
       }
 
       const result = parser(loc, input, iterContext)
@@ -39,6 +40,8 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
 
       const { data } = result
+
+      lastWasNeutralError = data.neutralError
 
       input = sliceInput(input, loc, data.next)
       loc = data.next
@@ -95,6 +98,7 @@ export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
   return (start, input, context) => {
     const parsed: Token<T>[] = []
     const matched: string[] = []
+    let lastWasNeutralError = false
 
     let loc = { ...start }
     let iter = 0
@@ -102,7 +106,7 @@ export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
     while (input.length > 0) {
       const result = parser(loc, input, {
         ...context,
-        loopData: { iter: iter++, soFar: { start, matched, parsed } },
+        loopData: { iter: iter++, lastWasNeutralError, soFar: { start, matched, parsed } },
       })
 
       if (!result.ok) {
@@ -114,6 +118,8 @@ export function takeForever<T>(parser: Parser<T>): Parser<Token<T>[]> {
       }
 
       const { data } = result
+
+      lastWasNeutralError = data.neutralError
 
       input = sliceInput(input, loc, data.next)
       loc = data.next

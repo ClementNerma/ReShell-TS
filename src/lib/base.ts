@@ -35,6 +35,7 @@ export type ParsingContext = Readonly<{
 
 export type LoopContext = Readonly<{
   iter: number
+  lastWasNeutralError: boolean
   soFar: Readonly<{
     start: Readonly<ParserLoc>
     matched: ReadonlyArray<string>
