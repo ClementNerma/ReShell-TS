@@ -197,7 +197,7 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
       for (const scope of ctx.scopes.reverse()) {
         const value = scope.entities.get(varname.parsed)
 
-        if (value) {
+        if (value && value.type !== 'rest') {
           return success(value)
         }
       }
