@@ -45,7 +45,7 @@ export const literalValue: Parser<LiteralValue> = mappedCases<LiteralValue>()('t
           regex(/(-)?0x([0-9a-fA-F]+)/, ([_, neg, num]) => parseInt(num, 16) * (neg ? -1 : 1)),
           regex(/(-)?0b([0-1]+)/, ([_, neg, num]) => parseInt(num, 2) * (neg ? -1 : 1)),
           regex(/(-)?0o([0-7]+)/, ([_, neg, num]) => parseInt(num, 8) * (neg ? -1 : 1)),
-          regex(/(-)?0*(\d+(\.\d+)?)/, ([neg, _, num]) => parseFloat(num) * (neg ? -1 : 1)),
+          regex(/(-)?0*(\d+(\.\d+)?)/, ([_, neg, num]) => parseFloat(num) * (neg ? -1 : 1)),
         ]),
         digit,
         'unexpected token in number'
