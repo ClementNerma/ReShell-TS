@@ -3,7 +3,7 @@ import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { maybe } from './lib/conditions'
 import { notFollowedBy } from './lib/consumeless'
-import { contextualFailure, failure } from './lib/errors'
+import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s, unicodeSingleLetter } from './lib/littles'
 import { takeWhile } from './lib/loops'
 import { exact } from './lib/matchers'
@@ -41,10 +41,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
                 flag,
                 name,
               })),
-              map(
-                contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
-                (_, name) => ({ flag: null, name })
-              ),
+              map(identifier, (_, name) => ({ flag: null, name })),
             ]),
             map(
               combine(
@@ -99,7 +96,7 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ),
         {
           inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          interMatchingMakesExpectation: true,
+          interMatchingMakesExpectation: 'Expected an argument name',
         }
       ),
       combine(maybe_s_nl, exact(')', "Expected a closing paren ')'")),

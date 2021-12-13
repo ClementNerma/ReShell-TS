@@ -1,5 +1,5 @@
 import { Token } from '../../shared/parsed'
-import { Parser, ParserResult, ParsingContext, success, withErr, WithErrData } from './base'
+import { Parser, ParserResult, success, withErr, WithErrData } from './base'
 
 /* prettier-ignore */ export function combine<A, B>(a: Parser<A>, b: Parser<B>, error?: WithErrData): Parser<[Token<A>, Token<B>]>;
 /* prettier-ignore */ export function combine<A, B, C>(a: Parser<A>, b: Parser<B>, c: Parser<C>, error?: WithErrData): Parser<[Token<A>, Token<B>, Token<C>]>;
@@ -36,16 +36,7 @@ export function combine(...parsers: (Parser<Token<unknown>> | WithErrData | null
     let next = { ...start }
 
     for (let i = 0; i < parsers.length; i++) {
-      const combinationContext: ParsingContext = {
-        ...context,
-        combinationData: {
-          firstIter: i === 0,
-          iter: i,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
-        },
-      }
-
-      const result = (parsers[i] as Parser<unknown>)(next, input, combinationContext)
+      const result = (parsers[i] as Parser<unknown>)(next, input, context)
 
       if (!result.ok) return withErr(result, context, error)
 

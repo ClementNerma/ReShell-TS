@@ -1,10 +1,10 @@
 import { CodeLoc, Token } from '../../shared/parsed'
-import { err, ErrInputData, Parser, ParsingContext, success, withErr, WithErrData } from './base'
+import { err, ErrInputData, Parser, success, withErr, WithErrData } from './base'
 import { then } from './conditions'
 
 export type TakeWhileOptions = {
   inter?: Parser<unknown>
-  interMatchingMakesExpectation?: boolean
+  interMatchingMakesExpectation?: true | WithErrData
   matchError?: WithErrData
   dontPropagateInterSkipping?: boolean
 }
@@ -17,23 +17,18 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
     let beforeInterMatching: CodeLoc | null = null
 
     let next = { ...start }
-    let iter = 0
 
     while (true) {
-      const iterContext: ParsingContext = {
-        ...context,
-        loopData: {
-          firstIter: iter === 0,
-          iter: iter++,
-          soFar: { previous: parsed[parsed.length - 1] ?? null, start, matched, parsed },
-        },
-      }
-
-      const result = parser(next, input, iterContext)
+      const result = parser(next, input, context)
 
       if (!result.ok) {
         if (interMadeExpectation || result.precedence) {
-          return withErr(result, context, options?.matchError)
+          return withErr(
+            result,
+            context,
+            options?.matchError ??
+              (options?.interMatchingMakesExpectation === true ? undefined : options?.interMatchingMakesExpectation)
+          )
         }
 
         if (beforeInterMatching) {
@@ -57,7 +52,7 @@ export function takeWhile<T>(parser: Parser<T>, options?: TakeWhileOptions): Par
       }
 
       if (/*!infos.skipInter &&*/ options?.inter) {
-        const interResult = options.inter(next, input, iterContext)
+        const interResult = options.inter(next, input, context)
 
         if (!interResult.ok) {
           break

@@ -23,21 +23,8 @@ export type ParserErrStackEntry = { context: ParsingContext; content: Formatable
 export type ParsingContext = Readonly<{
   source: StrView
   failureWillBePhantomSuccess?: boolean
-  loopData?: LoopContext
-  combinationData?: LoopContext
   $custom: unknown
   self: () => ParsingContext
-}>
-
-export type LoopContext = Readonly<{
-  firstIter: boolean
-  iter: number
-  soFar: Readonly<{
-    start: Readonly<CodeLoc>
-    matched: ReadonlyArray<string>
-    parsed: ReadonlyArray<Token<unknown>>
-    previous: Token<unknown> | null
-  }>
 }>
 
 export type Parser<T> = (start: CodeLoc, input: StrView, ctx: ParsingContext) => ParserResult<T>

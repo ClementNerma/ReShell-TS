@@ -15,7 +15,7 @@ import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { extract, failIfMatches, failIfMatchesAndCond, failIfMatchesElse } from './lib/conditions'
 import { lookahead, not } from './lib/consumeless'
-import { contextualFailure, failure } from './lib/errors'
+import { failure } from './lib/errors'
 import { buildUnicodeRegexMatcher, maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from './lib/littles'
 import { takeWhile, takeWhile1 } from './lib/loops'
 import { exact, match, oneOfMap } from './lib/matchers'
@@ -116,16 +116,19 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
                 message: "Expected either an identifier or the end of the map's content",
                 complements: [['Tip', 'Key names in map values must be written between quotes']],
               }),
-              contextualFailure(rawString, (ctx) => !ctx.loopData!.firstIter, 'Expected a map key name'),
+              rawString,
               combine(maybe_s, exact(':'), maybe_s_nl),
               withLatelyDeclared(() => expr)
             ),
             ([_, key, __, value]) => ({ key, value })
           ),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+            interMatchingMakesExpectation: 'Expected either a key name, or a closing parenthesis ")" to close the map',
+          }
         )
       ),
-      combine(maybe_s_nl, exact(')', "Expected a closing parenthesis ')' to close the map's content"))
+      combine(maybe_s_nl, exact(')', 'Expected a key name for the map'))
     ),
     ([_, { parsed: entries }, __]) => ({ entries })
   ),
@@ -137,17 +140,17 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         takeWhile(
           map(
             combine(
-              contextualFailure(
-                identifier,
-                (ctx) => !ctx.loopData!.firstIter,
-                'Expected either a member name, or a closing brace (}) to close the structure'
-              ),
+              identifier,
               combine(maybe_s, exact(':'), maybe_s_nl),
               withLatelyDeclared(() => expr)
             ),
             ([name, _, value]) => ({ name, value })
           ),
-          { inter: combine(maybe_s_nl, exact(','), maybe_s_nl) }
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+            interMatchingMakesExpectation:
+              'Expected either a member name, or a closing brace (}) to close the structure',
+          }
         )
       ),
       combine(maybe_s_nl, exact('}', 'Expected a closing brace (}) to close the structure'))
