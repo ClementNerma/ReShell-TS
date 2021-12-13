@@ -162,8 +162,8 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         inter: maybe_s_nl,
       }
     ),
-    ([_, entries, __]) => ({
-      entries: mapToken(entries, (_, { parsed }) => parsed),
+    ([_, members, __]) => ({
+      members: mapToken(members, (_, { parsed }) => parsed),
     })
   ),
 
