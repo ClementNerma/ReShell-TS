@@ -209,7 +209,16 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
 
       if (call.ok !== true) return call
 
-      return success({ type: 'string', value: Buffer.concat(outputPieces).toString('utf8') })
+      const collected = Buffer.concat(outputPieces).toString('utf8')
+
+      return success({
+        type: 'string',
+        value: collected.endsWith('\r\n')
+          ? collected.substr(0, collected.length - 2)
+          : collected.endsWith('\n')
+          ? collected.substr(0, collected.length - 1)
+          : collected,
+      })
     },
 
     reference: ({ varname }) => {
