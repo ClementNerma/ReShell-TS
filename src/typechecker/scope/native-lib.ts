@@ -1,28 +1,32 @@
-import { CodeSection } from '../../shared/parsed'
+import {
+  nativeLibAt,
+  nativeLibraryFnTypes,
+  nativeLibraryTypeAliases,
+  nativeLibraryVarTypes,
+} from '../../shared/native-lib'
+import { PrecompData } from '../../shared/precomp'
 import { Scope } from '../base'
 
 export function nativeLibraryScope(): Scope {
   const nativeLib: Scope = new Map()
 
-  nativeLib.set('argv', {
-    type: 'var',
-    at: nativeLibAt,
-    mutable: false,
-    varType: { type: 'list', itemsType: { type: 'unknown' } },
-  })
+  for (const [name, fnType] of nativeLibraryFnTypes) {
+    nativeLib.set(name, { type: 'fn', at: nativeLibAt, content: fnType })
+  }
+
+  for (const [name, type] of nativeLibraryVarTypes) {
+    nativeLib.set(name, { type: 'var', at: nativeLibAt, mutable: false, varType: type })
+  }
 
   return nativeLib
 }
 
-const nativeLibAt: CodeSection = {
-  start: {
-    file: { type: 'internal', path: 'native library' },
-    col: 0,
-    line: 0,
-  },
-  next: {
-    file: { type: 'internal', path: 'native library' },
-    col: 0,
-    line: 0,
-  },
+export function nativeLibraryTypeAliasesMap(): PrecompData['typeAliases'] {
+  const typeAliases: PrecompData['typeAliases'] = new Map()
+
+  for (const [name, content] of nativeLibraryTypeAliases) {
+    typeAliases.set(name, { at: nativeLibAt, content })
+  }
+
+  return typeAliases
 }

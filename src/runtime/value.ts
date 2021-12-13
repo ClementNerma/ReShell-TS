@@ -5,6 +5,7 @@ import { matchUnion } from '../shared/utils'
 import { ensureCoverage, err, ExecValue, Runner, RunnerResult, success } from './base'
 import { runExpr } from './expr'
 import { executeFnCall } from './fncall'
+import { nativeLibraryVariables } from './native-lib'
 
 export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
   matchUnion(value.parsed, 'type', {
@@ -201,7 +202,8 @@ export const runValue: Runner<Token<Value>, ExecValue> = (value, ctx) =>
         }
       }
 
-      return err(varname.at, 'internal error: reference not found in scope')
+      const nativeVar = nativeLibraryVariables.get(varname.parsed)
+      return nativeVar ? success(nativeVar(ctx)) : err(varname.at, 'internal error: reference not found in scope')
     },
   })
 

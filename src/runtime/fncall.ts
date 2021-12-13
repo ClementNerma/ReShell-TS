@@ -6,13 +6,18 @@ import { err, ExecValue, Runner, RunnerContext, RunnerResult, Scope, success } f
 import { runBlock } from './block'
 import { runCmdArg } from './cmdarg'
 import { runExpr } from './expr'
+import { NativeFn, nativeLibraryFunctions } from './native-lib'
 import { runValue } from './value'
 
 export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp }, ExecValue> = (
   { name, precomp: fnCall },
   ctx
 ) => {
-  let fn: { type: 'block'; body: Token<Block> } | { type: 'expr'; body: Token<Expr> } | null = null
+  let fn:
+    | { type: 'block'; body: Token<Block> }
+    | { type: 'expr'; body: Token<Expr> }
+    | { type: 'native'; exec: NativeFn }
+    | null = null
 
   for (const scope of ctx.scopes.reverse()) {
     const entity = scope.entities.get(name.parsed)
@@ -29,7 +34,13 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
   }
 
   if (fn === null) {
-    return err(name.at, 'internal error: entity not found in scope')
+    const nativeFn = nativeLibraryFunctions.get(name.parsed)
+
+    if (nativeFn) {
+      fn = { type: 'native', exec: nativeFn }
+    } else {
+      return err(name.at, 'internal error: entity not found in scope')
+    }
   }
 
   const fnScope: Scope['entities'] = new Map()
@@ -66,6 +77,7 @@ export const executeFnCall: Runner<{ name: Token<string>; precomp: FnCallPrecomp
   const result: RunnerResult<unknown> = matchUnion(fn, 'type', {
     block: ({ body }) => runBlock(body.parsed, fnCtx),
     expr: ({ body }) => runExpr(body.parsed, fnCtx),
+    native: ({ exec }) => exec(fnCtx, ...fnScope.values()),
   })
 
   if (result.ok === false) return result

@@ -2,7 +2,7 @@ import { CmdDeclSubCommand, FnType, ValueType } from '../shared/ast'
 import { Diagnostic, diagnostic, DiagnosticInput, DiagnosticLevel } from '../shared/diagnostics'
 import { CodeSection, Token } from '../shared/parsed'
 import { PrecompData } from '../shared/precomp'
-import { nativeLibraryScope } from './scope/native-lib'
+import { nativeLibraryScope, nativeLibraryTypeAliasesMap } from './scope/native-lib'
 
 export type Typechecker<T, O> = (input: T, context: TypecheckerContext) => TypecheckerResult<O>
 
@@ -30,7 +30,7 @@ export function createTypecheckerContext(
 ): TypecheckerContext {
   return {
     scopes: [nativeLibraryScope()],
-    typeAliases: new Map(),
+    typeAliases: nativeLibraryTypeAliasesMap(),
     resolvedGenerics: [],
     inLoop: false,
     typeExpectation: null,
