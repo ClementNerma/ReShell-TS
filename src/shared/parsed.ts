@@ -77,17 +77,17 @@ export type PropertyAccess = { nullable: boolean; access: NonNullablePropertyAcc
 
 export type FnType = {
   named: Token<string> | null
-  args: Token<FnArg>[]
-  returnType: Token<ValueType> | null
-  failureType: Token<ValueType> | null
+  args: FnArg[]
+  returnType: ValueType | null
+  failureType: ValueType | null
 }
 
 export type FnArg = {
   // mutable: boolean
-  name: Token<string>
-  optional: Token<boolean>
-  type: Token<ValueType>
-  defaultValue: Token<LiteralValue> | null
+  name: string
+  optional: boolean
+  type: ValueType
+  defaultValue: LiteralValue | null
 }
 
 export type CmdCall = { name: Token<string>; args: Token<CmdArg>[]; redir: Token<CmdRedir> | null }
@@ -122,12 +122,15 @@ export type NonNullableValueType =
   | { type: 'number' }
   | { type: 'string' }
   | { type: 'path' }
-  | { type: 'list'; itemsType: Token<ValueType> }
-  | { type: 'map'; itemsType: Token<ValueType> }
-  | { type: 'struct'; members: Token<{ name: Token<string>; type: Token<ValueType> }[]> }
+  | { type: 'list'; itemsType: ValueType }
+  | { type: 'map'; itemsType: ValueType }
+  | { type: 'struct'; members: Token<{ name: string; type: ValueType }[]> }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
   | { type: 'unknown' }
+  | InternalTypes
+
+export type InternalTypes = { type: 'implicit' }
 
 export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 
@@ -164,8 +167,8 @@ export type Value =
   | { type: 'computedString'; segments: Token<ComputedStringSegment>[] }
   | { type: 'computedPath'; segments: Token<ComputedPathSegment>[] }
   | { type: 'list'; items: Token<Token<Expr>[]> }
-  | { type: 'map'; entries: Token<{ key: Token<string>; expr: Token<Expr> }[]> }
-  | { type: 'struct'; entries: Token<{ member: Token<string>; expr: Token<Expr> }[]> }
+  | { type: 'map'; entries: Token<{ key: Token<string>; value: Token<Expr> }[]> }
+  | { type: 'struct'; entries: Token<{ member: Token<string>; value: Token<Expr> }[]> }
   | { type: 'closure'; fnType: FnType; body: Token<StatementChain>[] }
   | { type: 'fnCall'; name: Token<string>; args: Token<FnCallArg>[] }
   | {

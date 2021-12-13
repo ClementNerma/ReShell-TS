@@ -117,7 +117,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
             ),
-            ([_, key, __, expr]) => ({ key, expr })
+            ([_, key, __, value]) => ({ key, value })
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
@@ -150,7 +150,7 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
             ),
-            ([member, _, expr]) => ({ member, expr })
+            ([member, _, value]) => ({ member, value })
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),

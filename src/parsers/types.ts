@@ -1,6 +1,7 @@
 import { Parser } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, maybe, maybeFlatten } from '../lib/conditions'
+import { never } from '../lib/consumeless'
 import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, s } from '../lib/littles'
 import { takeWhile, takeWhile1 } from '../lib/loops'
@@ -8,7 +9,7 @@ import { exact, word } from '../lib/matchers'
 import { addComplementsIf } from '../lib/raw'
 import { mappedCases, OrErrorStrategy } from '../lib/switches'
 import { map } from '../lib/transform'
-import { flattenMaybeToken, getErrorInput, mapToken, withLatelyDeclared } from '../lib/utils'
+import { flattenMaybeToken, getErrorInput, withLatelyDeclared } from '../lib/utils'
 import { FnArg, FnType, NonNullableValueType, Token, ValueType } from '../shared/parsed'
 import { literalValue } from './literals'
 import { identifier } from './tokens'
@@ -32,7 +33,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
         exact(']'),
         { inter: maybe_s_nl }
       ),
-      ([_, __, itemsType, ___]) => ({
+      ([_, __, { parsed: itemsType }, ___]) => ({
         itemsType,
       })
     ),
@@ -45,7 +46,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
         exact(']'),
         { inter: maybe_s_nl }
       ),
-      ([_, __, itemsType, ___]) => ({
+      ([_, __, { parsed: itemsType }, ___]) => ({
         itemsType,
       })
     ),
@@ -65,7 +66,7 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
                 ),
                 { inter: maybe_s_nl }
               ),
-              ([name, _, type]) => ({ name, type })
+              ([{ parsed: name }, _, { parsed: type }]) => ({ name, type })
             ),
             {
               inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
@@ -90,6 +91,9 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
     })),
 
     unknown: map(exact('unknown'), () => ({})),
+
+    // Internal types
+    implicit: never(),
   },
 
   [
@@ -117,51 +121,52 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
         ([_, { parsed: name }]) => name
       ),
       exact('(', "Expected an open paren '('"),
-      takeWhile(
-        map(
-          combine(
-            // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
-            contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
-            maybe(exact('?')),
-            exact(':', "Expected a semicolon (:) separator for the argument's type"),
-            failure(valueType, 'Expected a type for the argument'),
-            maybeFlatten(
-              map(
-                combine(
-                  exact('='),
-                  failure(
-                    withLatelyDeclared(() => literalValue),
-                    (err) => ({
-                      message: 'Expected a literal value',
-                      complements: [
-                        [
-                          'Tip',
-                          getErrorInput(err).startsWith('"')
-                            ? "Literal strings must be single-quoted (')"
-                            : 'Lists, maps and structures are not literal values',
+      extract(
+        takeWhile(
+          map(
+            combine(
+              // maybe(map(combine(exact('mut'), s), ([_, mut]) => !!mut)),
+              contextualFailure(identifier, (ctx) => !ctx.loopData!.firstIter, 'Expected an argument name'),
+              maybe(exact('?')),
+              exact(':', "Expected a semicolon (:) separator for the argument's type"),
+              failure(valueType, 'Expected a type for the argument'),
+              maybe(
+                map(
+                  combine(
+                    exact('='),
+                    failure(
+                      withLatelyDeclared(() => literalValue),
+                      (err) => ({
+                        message: 'Expected a literal value',
+                        complements: [
+                          [
+                            'Tip',
+                            getErrorInput(err).startsWith('"')
+                              ? "Literal strings must be single-quoted (')"
+                              : 'Lists, maps and structures are not literal values',
+                          ],
                         ],
-                      ],
-                    })
+                      })
+                    ),
+                    { inter: maybe_s_nl }
                   ),
-                  { inter: maybe_s_nl }
-                ),
-                ([_, defaultValue]) => defaultValue
-              )
+                  ([_, { parsed: defaultValue }]) => defaultValue
+                )
+              ),
+              { inter: maybe_s_nl }
             ),
-            { inter: maybe_s_nl }
+            ([{ parsed: name }, { parsed: optional }, _, { parsed: type }, { parsed: defaultValue }]): FnArg => ({
+              name,
+              optional: !!optional,
+              type,
+              defaultValue,
+            })
           ),
-          ([/* mutable, */ name, optional, _, type, defaultValue]): FnArg => ({
-            // mutable: false,
-            name,
-            optional: mapToken(optional, (str) => !!str),
-            type,
-            defaultValue: flattenMaybeToken(defaultValue),
-          })
-        ),
-        {
-          inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
-          interMatchingMakesExpectation: true,
-        }
+          {
+            inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
+            interMatchingMakesExpectation: true,
+          }
+        )
       ),
       exact(')', "Expected a closing paren ')'"),
       maybeFlatten(
@@ -178,11 +183,11 @@ const _fnRightPartParser: (requireName: boolean) => Parser<FnType> = (requireNam
       ),
       { inter: maybe_s_nl }
     ),
-    ([named, _, { parsed: args }, __, returnType, failureType]) => ({
+    ([named, _, { parsed: args }, __, { parsed: returnType }, { parsed: failureType }]) => ({
       named: flattenMaybeToken(named),
       args,
-      returnType: flattenMaybeToken(returnType),
-      failureType: flattenMaybeToken(failureType),
+      returnType,
+      failureType,
     })
   )
 
