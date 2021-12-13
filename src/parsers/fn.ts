@@ -44,10 +44,7 @@ export const fnArg: Parser<FnArg> = map(
       ),
       ([_, optional, __, ___]) => !!optional.parsed
     ),
-    failure(
-      withLatelyDeclared(() => valueType),
-      'expected a type for the argument'
-    ),
+    withLatelyDeclared(() => valueType),
     maybe(
       map(
         combine(
