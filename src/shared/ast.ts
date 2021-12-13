@@ -55,7 +55,7 @@ export type ElIfBlock = { cond: Token<ExprOrTypeAssertion>; body: Token<Statemen
 // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Types ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ //
 
 export type ValueType =
-  | PrimitiveTypes
+  | PrimitiveValueType
   | { type: 'list'; itemsType: ValueType }
   | { type: 'map'; itemsType: ValueType }
   | { type: 'struct'; members: StructTypeMember[] }
@@ -65,7 +65,7 @@ export type ValueType =
   | { type: 'unknown' }
   | InternalTypes
 
-export type PrimitiveTypes = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
+export type PrimitiveValueType = { type: 'bool' } | { type: 'number' } | { type: 'string' } | { type: 'path' }
 
 export type InternalTypes = { type: 'void' }
 

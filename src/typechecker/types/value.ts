@@ -1,4 +1,4 @@
-import { FnType, PrimitiveTypes, StructTypeMember, Value, ValueType } from '../../shared/ast'
+import { FnType, PrimitiveValueType, StructTypeMember, Value, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { matchUnion } from '../../shared/utils'
 import { ensureCoverage, err, success, Typechecker, TypecheckerContext, TypecheckerResult } from '../base'
@@ -23,7 +23,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
     typeExpectation = { from: typeExpectation.from, type: alias.data.content }
   }
 
-  const assertExpectedType = (type: PrimitiveTypes['type']): TypecheckerResult<ValueType> => {
+  const assertExpectedType = (type: PrimitiveValueType['type']): TypecheckerResult<ValueType> => {
     if (!typeExpectation) return success({ type })
 
     let expected: ValueType = typeExpectation.type
@@ -42,7 +42,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
         })
   }
 
-  const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['type'], PrimitiveTypes['type']>>(
+  const assertExpectedNonPrimitiveType = <T extends Exclude<ValueType['type'], PrimitiveValueType['type']>>(
     type: T
   ): TypecheckerResult<Extract<ValueType, { type: T }> | void> => {
     if (!typeExpectation) return success(void 0)
