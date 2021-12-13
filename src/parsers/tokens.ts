@@ -24,6 +24,7 @@ export const keyword: Parser<string> = oneOfWords([
   'void',
   'struct',
   'enum',
+  '_',
 ])
 
 export const identifier: Parser<string> = map(
