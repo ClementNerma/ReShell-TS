@@ -190,6 +190,7 @@ export const doubleArithOp: Parser<DoubleArithOp> = map(
       ['*', DoubleArithOp.Mul],
       ['/', DoubleArithOp.Div],
       ['%', DoubleArithOp.Rem],
+      ['??', DoubleArithOp.Null],
     ]),
     failure(not(_opSym), 'Syntax error: unknown operator')
   ),

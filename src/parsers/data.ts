@@ -163,6 +163,7 @@ export enum DoubleArithOp {
   Mul,
   Div,
   Rem,
+  Null,
 }
 
 export enum DoubleLogicOp {
