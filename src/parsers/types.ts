@@ -87,6 +87,8 @@ export const nonNullableValueType: Parser<NonNullableValueType> = mappedCases<No
       combine(exact('@'), failure(identifier, 'Syntax error: expected a type alias name')),
       ([_, typeAliasName]) => ({ typeAliasName })
     ),
+
+    unknown: map(exact('unknown'), () => ({})),
   },
 
   [

@@ -97,6 +97,7 @@ export type NonNullableValueType =
   | { type: 'struct'; members: Token<[Token<string>, Token<ValueType>][]> }
   | { type: 'fn'; fnType: FnType }
   | { type: 'aliasRef'; typeAliasName: Token<string> }
+  | { type: 'unknown' }
 
 export type ValueType = { nullable: boolean; inner: NonNullableValueType }
 
