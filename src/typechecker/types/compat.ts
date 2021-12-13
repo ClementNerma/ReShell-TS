@@ -91,7 +91,7 @@ export const isTypeCompatible: Typechecker<
     return expectationErr()
   }
 
-  if (candidate.type === 'aliasRef') {
+  while (candidate.type === 'aliasRef') {
     const alias = getTypeAliasInScope(candidate.typeAliasName, ctx)
 
     if (!alias.ok) {
@@ -103,7 +103,7 @@ export const isTypeCompatible: Typechecker<
     candidate = alias.data.content
   }
 
-  if (referent.type === 'aliasRef') {
+  while (referent.type === 'aliasRef') {
     const alias = getTypeAliasInScope(referent.typeAliasName, ctx)
 
     if (!alias.ok) {

@@ -13,7 +13,7 @@ import { rebuildType } from './rebuilder'
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
   let { typeExpectation } = ctx
 
-  if (typeExpectation?.type?.type === 'aliasRef') {
+  while (typeExpectation?.type?.type === 'aliasRef') {
     const alias = getTypeAliasInScope(typeExpectation.type.typeAliasName, ctx)
 
     if (!alias.ok) {

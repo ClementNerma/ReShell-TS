@@ -13,28 +13,32 @@ export const resolvePropAccessType: Typechecker<
   let upToPrevPropAccessSection: CodeSection = leftAt
 
   for (const propAccess of propAccesses) {
-    if (previousIterType.type === 'aliasRef') {
-      const alias = getTypeAliasInScope(previousIterType.typeAliasName, ctx)
+    while (true) {
+      if (previousIterType.type === 'aliasRef') {
+        const alias = getTypeAliasInScope(previousIterType.typeAliasName, ctx)
 
-      if (!alias.ok) {
-        return err(
-          leftAt,
-          'internal error: candidate type alias reference not found in scope while checking for type compatibility'
-        )
+        if (!alias.ok) {
+          return err(
+            leftAt,
+            'internal error: candidate type alias reference not found in scope while checking for type compatibility'
+          )
+        }
+
+        previousIterType = alias.data.content
+      } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
+        const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
+
+        if (!alias.ok) {
+          return err(
+            leftAt,
+            'internal error: candidate type alias reference not found in scope while checking for type compatibility'
+          )
+        }
+
+        previousIterType = { type: 'nullable', inner: alias.data.content }
+      } else {
+        break
       }
-
-      previousIterType = alias.data.content
-    } else if (previousIterType.type === 'nullable' && previousIterType.inner.type === 'aliasRef') {
-      const alias = getTypeAliasInScope(previousIterType.inner.typeAliasName, ctx)
-
-      if (!alias.ok) {
-        return err(
-          leftAt,
-          'internal error: candidate type alias reference not found in scope while checking for type compatibility'
-        )
-      }
-
-      previousIterType = { type: 'nullable', inner: alias.data.content }
     }
 
     switch (propAccess.parsed.access.type) {
