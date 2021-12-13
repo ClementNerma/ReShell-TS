@@ -90,12 +90,10 @@ export const nativeLibraryFnTypes = ensureValueTypes<FnType>()({
   }),
 
   // Lists
-  listAt: _buildNativeLibraryFn({
+  at: _buildNativeLibraryFn({
     generics: ['T'],
-    args: ({ T }) => [
-      { name: 'list', type: { type: 'list', itemsType: T } },
-      { name: 'index', type: 'number' },
-    ],
+    methodFor: ({ T }) => ({ type: 'list', itemsType: T }),
+    args: () => [{ name: 'index', type: 'number' }],
     returnType: ({ T }) => ({ type: 'nullable', inner: T }),
   }),
 

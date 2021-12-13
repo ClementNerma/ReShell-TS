@@ -127,9 +127,9 @@ export const nativeLibraryFunctions = makeMap<typeof nativeLibraryFnTypes, Nativ
     ),
 
   // Lists
-  listAt: ({ at }, args) =>
-    withArguments(at, args, { list: 'list', index: 'number' }, ({ list, index }) => {
-      const item = list.items.at(index.value)
+  at: ({ at }, args) =>
+    withArguments(at, args, { self: 'list', index: 'number' }, ({ self, index }) => {
+      const item = self.items.at(index.value)
       return success(item ?? { type: 'null' })
     }),
 
