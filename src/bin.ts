@@ -17,7 +17,7 @@ import { programChecker } from './typechecker/program'
 import path = require('path/posix')
 
 install()
-Error.stackTraceLimit = Infinity
+Error.stackTraceLimit = 100
 
 function fail(message: string): never {
   console.error(message)
