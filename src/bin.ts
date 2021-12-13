@@ -62,7 +62,7 @@ const infos = [
   `Parsed (in ${iter} repeats) ${((source.length * iter) / 1024).toFixed(2)} kB in ${elapsed} ms`,
 ]
 
-if (argv[1] === '--ast') {
+if (argv[1] === '--ast' || argv[2] === '--ast') {
   console.dir(parsed.data, { depth: null })
   infos.forEach((info) => console.log(info))
   process.exit(0)
