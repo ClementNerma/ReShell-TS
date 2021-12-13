@@ -4,7 +4,7 @@ import { matchUnion } from '../shared/utils'
 import { err, located, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
-import { getVariableInScope } from './scope/search'
+import { getFunctionInScope, getVariableInScope } from './scope/search'
 import { buildExprDoubleOp, resolveDoubleOpType } from './types/double-op'
 import { resolveExprOrTypeAssertionType, resolveExprType } from './types/expr'
 import { validateFnBody } from './types/fn'
@@ -53,8 +53,19 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
     for (const sub of [stmt.parsed.start].concat(stmt.parsed.sequence.map((c) => c.parsed.chainedStatement))) {
       const stmtMetadata: TypecheckerResult<StatementMetadata> = matchUnion(sub.parsed, 'type', {
         variableDecl: ({ varname, vartype, mutable, expr }): TypecheckerResult<StatementMetadata> => {
-          // const unicity = ensureScopeUnicity({ name: varname }, ctx)
-          // if (!unicity.ok) return unicity
+          const fn = getFunctionInScope(varname, ctx)
+
+          if (fn.ok) {
+            return err(varname.at, {
+              message: 'a function already exists with this name',
+              also: [
+                {
+                  at: fn.data.at,
+                  message: 'original declaration occurs here'
+                }
+              ]
+            })
+          }
 
           let expectedType: ValueType | null = null
 
