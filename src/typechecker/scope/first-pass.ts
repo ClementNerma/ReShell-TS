@@ -31,7 +31,7 @@ export const scopeFirstPass: TypecheckerArr<StatementChain, void, ScopeFirstPass
           const fnName = sub.parsed.name.parsed
 
           if (scope.functions.has(fnName)) {
-            return err('A type with this name was already declared in this scope', sub.parsed.name.start)
+            return err('A function with this name was already declared in this scope', sub.parsed.name.start)
           }
 
           scope.functions.set(fnName, located(sub.start, sub.parsed.fnType))
