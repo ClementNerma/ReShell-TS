@@ -1,7 +1,7 @@
 import { Expr, ExprElement, ExprElementContent, ExprOrNever, ExprOrTypeAssertion, ValueType } from '../../shared/ast'
 import { Token } from '../../shared/parsed'
 import { matchStr, matchUnion } from '../../shared/utils'
-import { ensureCoverage, err, Scope, success, Typechecker } from '../base'
+import { ensureCoverage, err, Scope, success, Typechecker, TypecheckerResult } from '../base'
 import { getTypedEntityInScope } from '../scope/search'
 import { isTypeCompatible } from './compat'
 import { resolveDoubleOpSequenceType } from './double-op'
@@ -62,7 +62,8 @@ export const resolveExprOrNeverType: Typechecker<Token<ExprOrNever>, ValueType> 
 
 export const resolveExprOrTypeAssertionType: Typechecker<
   Token<ExprOrTypeAssertion>,
-  { type: 'expr'; resolved: ValueType } | { type: 'assertion'; assertionScope: Scope; inverted: boolean }
+  | { type: 'expr'; resolved: ValueType }
+  | { type: 'assertion'; normalAssertionScope: Scope; oppositeAssertionScope: Scope; inverted: boolean }
 > = (expr, ctx) => {
   switch (expr.parsed.type) {
     case 'expr': {
@@ -70,54 +71,96 @@ export const resolveExprOrTypeAssertionType: Typechecker<
       return resolved.ok ? success({ type: 'expr', resolved: resolved.data }) : resolved
     }
 
-    case 'assertion':
-    case 'invertedAssertion': {
+    case 'assertion': {
       const subject = getTypedEntityInScope(expr.parsed.varname, 'var', ctx)
       if (!subject.ok) return subject
 
       const subjectType = subject.data.varType
 
-      let assertionType: ValueType
+      const assertionType: TypecheckerResult<{ normal: ValueType | null; inverted: ValueType | null }> = matchUnion(
+        expr.parsed.minimum.parsed,
+        'against',
+        {
+          null: () => {
+            if (subjectType.type !== 'nullable') {
+              return err(
+                expr.at,
+                `"null" type assertions are only allowed for nullable values, found \`${rebuildType(
+                  subjectType,
+                  true
+                )}\``
+              )
+            }
 
-      if (expr.parsed.minimum) {
-        if (subjectType.type !== 'unknown') {
-          return err(
-            expr.at,
-            `type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
-              subjectType,
-              true
-            )}\``
-          )
-        }
-
-        const validated = typeValidator(expr.parsed.minimum.parsed, ctx)
-        if (!validated.ok) return validated
-
-        assertionType = expr.parsed.minimum.parsed
-      } else {
-        if (subjectType.type !== 'nullable') {
-          return err(
-            expr.at,
-            `"not null" type assertion only works for nullable values, but found \`${rebuildType(subjectType, true)}\``
-          )
-        }
-
-        assertionType = subjectType.inner
-      }
-
-      const assertionScope: Scope = new Map([
-        [
-          expr.parsed.varname.parsed,
-          {
-            type: 'var',
-            at: expr.at,
-            mutable: subject.data.mutable,
-            varType: assertionType,
+            return success({ normal: null, inverted: subjectType.inner })
           },
-        ],
-      ])
 
-      return success({ type: 'assertion', assertionScope, inverted: expr.parsed.type === 'invertedAssertion' })
+          ok: () => {
+            if (subjectType.type !== 'failable') {
+              return err(
+                expr.at,
+                `"ok" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, true)}\``
+              )
+            }
+
+            return success({ normal: subjectType.successType.parsed, inverted: subjectType.failureType.parsed })
+          },
+
+          err: () => {
+            if (subjectType.type !== 'failable') {
+              return err(
+                expr.at,
+                `"err" type assertions are only allowed for failable types, found \`${rebuildType(subjectType, true)}\``
+              )
+            }
+
+            return success({ normal: subjectType.failureType.parsed, inverted: subjectType.successType.parsed })
+          },
+
+          custom: ({ type }) => {
+            if (subjectType.type !== 'unknown') {
+              return err(
+                expr.at,
+                `type assertions are only allowed for variables of type \`unknown\`, found \`${rebuildType(
+                  subjectType,
+                  true
+                )}\``
+              )
+            }
+
+            const validated = typeValidator(type.parsed, ctx)
+            if (!validated.ok) return validated
+
+            return success({ normal: type.parsed, inverted: null })
+          },
+        }
+      )
+
+      if (!assertionType.ok) return assertionType
+
+      const normal = expr.parsed.inverted ? assertionType.data.inverted : assertionType.data.normal
+      const opposite = expr.parsed.inverted ? assertionType.data.normal : assertionType.data.inverted
+
+      return success({
+        type: 'assertion',
+        normalAssertionScope: normal
+          ? new Map([
+              [
+                expr.parsed.varname.parsed,
+                { type: 'var', at: expr.at, mutable: subject.data.mutable, varType: normal },
+              ],
+            ])
+          : new Map(),
+        oppositeAssertionScope: opposite
+          ? new Map([
+              [
+                expr.parsed.varname.parsed,
+                { type: 'var', at: expr.at, mutable: subject.data.mutable, varType: opposite },
+              ],
+            ])
+          : new Map(),
+        inverted: expr.parsed.inverted,
+      })
     }
 
     default:
@@ -178,7 +221,9 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
       const thenType = resolveExprOrNeverType(
         then,
-        condType.data.type === 'assertion' ? { ...ctx, scopes: ctx.scopes.concat([condType.data.assertionScope]) } : ctx
+        condType.data.type === 'assertion'
+          ? { ...ctx, scopes: ctx.scopes.concat([condType.data.normalAssertionScope]) }
+          : ctx
       )
 
       if (!thenType.ok) return thenType
@@ -193,7 +238,8 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
         const elifType = resolveExprOrNeverType(expr, {
           ...ctx,
-          scopes: condType.data.type === 'assertion' ? ctx.scopes.concat([condType.data.assertionScope]) : ctx.scopes,
+          scopes:
+            condType.data.type === 'assertion' ? ctx.scopes.concat([condType.data.normalAssertionScope]) : ctx.scopes,
           typeExpectation: { type: thenType.data, from: then.at },
         })
 
@@ -202,6 +248,8 @@ export const resolveExprElementContentType: Typechecker<Token<ExprElementContent
 
       const elseType = resolveExprOrNeverType(els, {
         ...ctx,
+        scopes:
+          condType.data.type === 'assertion' ? ctx.scopes.concat([condType.data.oppositeAssertionScope]) : ctx.scopes,
         typeExpectation: { type: thenType.data, from: then.at },
       })
 

@@ -5,19 +5,19 @@ import {
   ExprElementContent,
   ExprOrNever,
   ExprOrTypeAssertion,
-  ValueType,
+  TypeAssertionAgainst,
 } from '../shared/ast'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
-import { extract, failIfMatches } from './lib/conditions'
+import { extract } from './lib/conditions'
 import { never } from './lib/consumeless'
 import { failure } from './lib/errors'
 import { maybe_s, maybe_s_nl, s } from './lib/littles'
 import { takeWhile } from './lib/loops'
-import { exact } from './lib/matchers'
-import { mappedCases, or } from './lib/switches'
+import { exact, oneOfMap } from './lib/matchers'
+import { mappedCases } from './lib/switches'
 import { map, toOneProp } from './lib/transform'
-import { flattenMaybeToken, selfRef, withLatelyDeclared } from './lib/utils'
+import { selfRef, withLatelyDeclared } from './lib/utils'
 import { doubleOp, singleOp } from './operators'
 import { propertyAccess } from './propaccess'
 import { identifier } from './tokens'
@@ -142,40 +142,26 @@ export const expr: Parser<Expr> = map(
   })
 )
 
-export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<ExprOrTypeAssertion>()('type', {
-  invertedAssertion: map(
-    combine(
-      identifier,
-      s,
-      or<ValueType | null>([
-        map(combine(exact('is'), s, exact('null')), (_) => null),
-        map(
-          combine(
-            exact('isnt'),
-            s,
-            failIfMatches(exact('null')),
-            failure(valueType, 'expected a type after the "isnt" type assertion operator')
-          ),
-          ([_, __, ___, { parsed: type }]) => type
-        ),
-      ])
-    ),
-    ([varname, _, minimum]) => ({ varname, minimum: flattenMaybeToken(minimum) })
-  ),
+export const typeAssertionAgainst: Parser<TypeAssertionAgainst> = mappedCases<TypeAssertionAgainst>()('against', {
+  null: map(exact('null'), () => ({})),
+  ok: map(exact('ok'), () => ({})),
+  err: map(exact('err'), () => ({})),
+  custom: map(valueType, (_, type) => ({ type })),
+})
 
+export const exprOrTypeAssertion: Parser<ExprOrTypeAssertion> = mappedCases<ExprOrTypeAssertion>()('type', {
   assertion: map(
     combine(
       identifier,
       s,
-      or<ValueType | null>([
-        map(combine(exact('isnt'), s, exact('null', 'expected `not null` type assertion')), (_) => null),
-        map(
-          combine(exact('is'), s, failure(valueType, 'expected a type after the "is" type assertion operator')),
-          ([_, __, { parsed: type }]) => type
-        ),
-      ])
+      oneOfMap([
+        ['isnt', true],
+        ['is', false],
+      ]),
+      s,
+      typeAssertionAgainst
     ),
-    ([varname, _, minimum]) => ({ varname, minimum: flattenMaybeToken(minimum) })
+    ([varname, _, { parsed: inverted }, __, minimum]) => ({ varname, inverted, minimum })
   ),
 
   expr: toOneProp('inner', expr),

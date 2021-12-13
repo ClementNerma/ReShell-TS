@@ -178,8 +178,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
 
         const thenCheck = statementChainChecker(
           body,
-          condCheck.data.type === 'assertion' && !condCheck.data.inverted
-            ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.assertionScope]) }
+          condCheck.data.type === 'assertion'
+            ? { ...ctx, scopes: ctx.scopes.concat([condCheck.data.normalAssertionScope]) }
             : ctx
         )
 
@@ -198,7 +198,9 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           const elifCheck = statementChainChecker(body, {
             ...ctx,
             scopes:
-              condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.assertionScope]) : ctx.scopes,
+              condCheck.data.type === 'assertion'
+                ? ctx.scopes.concat([condCheck.data.normalAssertionScope])
+                : ctx.scopes,
           })
 
           if (!elifCheck.ok) return elifCheck
@@ -210,10 +212,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           const elseCheck = statementChainChecker(
             els,
             condCheck.data.type === 'assertion' && condCheck.data.inverted
-              ? {
-                  ...ctx,
-                  scopes: ctx.scopes.concat(condCheck.data.assertionScope),
-                }
+              ? { ...ctx, scopes: ctx.scopes.concat(condCheck.data.normalAssertionScope) }
               : ctx
           )
 
@@ -228,7 +227,11 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           condCheck.data.type === 'assertion' &&
           ((condCheck.data.inverted && thenCheck.data.neverEnds) || (!condCheck.data.inverted && neverEnds))
         ) {
-          for (const [varname, scopedVar] of condCheck.data.assertionScope.entries()) {
+          const assertionScope = condCheck.data.inverted
+            ? condCheck.data.oppositeAssertionScope
+            : condCheck.data.normalAssertionScope
+
+          for (const [varname, scopedVar] of assertionScope) {
             currentScope.set(varname, scopedVar)
           }
         }
@@ -329,7 +332,8 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
         const check = statementChainChecker(body, {
           ...ctx,
           inLoop: true,
-          scopes: condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.assertionScope]) : ctx.scopes,
+          scopes:
+            condCheck.data.type === 'assertion' ? ctx.scopes.concat([condCheck.data.normalAssertionScope]) : ctx.scopes,
         })
 
         if (!check.ok) return check

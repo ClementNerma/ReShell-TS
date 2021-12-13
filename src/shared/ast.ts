@@ -95,8 +95,13 @@ export type ExprOrNever = { type: 'expr'; content: Token<Expr> } | Extract<State
 
 export type ExprOrTypeAssertion =
   | { type: 'expr'; inner: Token<Expr> }
-  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> | null }
-  | { type: 'invertedAssertion'; varname: Token<string>; minimum: Token<ValueType> | null }
+  | { type: 'assertion'; varname: Token<string>; inverted: boolean; minimum: Token<TypeAssertionAgainst> }
+
+export type TypeAssertionAgainst =
+  | { against: 'null' }
+  | { against: 'ok' }
+  | { against: 'err' }
+  | { against: 'custom'; type: Token<ValueType> }
 
 export type ExprElement = { content: Token<ExprElementContent>; propAccess: Token<PropertyAccess>[] }
 
