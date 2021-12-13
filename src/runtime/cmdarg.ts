@@ -50,6 +50,10 @@ export const runCmdArg: Runner<CmdArg, string> = (cmdArg, ctx) =>
     },
   })
 
+/**
+ * Convert a command-line argument to a string
+ * Used to pass arguments to external commands who will only accept string values due to compatibility
+ */
 function stringifyExecValue(at: CodeSection, value: ExecValue, ctx: RunnerContext): RunnerResult<string> {
   switch (value.type) {
     case 'int':
@@ -68,8 +72,4 @@ function stringifyExecValue(at: CodeSection, value: ExecValue, ctx: RunnerContex
         `internal error: expected command argument to be either "number", "string" or "path", found internal type "${value.type}`
       )
   }
-}
-
-export function escapeCmdArg(content: string): string {
-  return content.replace(/[^a-zA-Z0-9_]/g, (c) => '\\' + c)
 }

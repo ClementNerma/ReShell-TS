@@ -9,10 +9,9 @@ import { maybe_s_nl } from './lib/littles'
 import { exact } from './lib/matchers'
 import { or } from './lib/switches'
 
-export type StatementClosingChar = '}' | ']' | ')'
-
-type CtxAction<T> = ($custom: CustomContext) => Parser<T>
-
+/**
+ * Custom context passed in parsers' context
+ */
 export type CustomContext = {
   statementClose: StatementClosingChar | null
   continuationKeywords: string[]
@@ -20,6 +19,8 @@ export type CustomContext = {
   inFnCallAt: CodeLoc | null
   inTypeAliasDefinition: boolean
 }
+
+export type StatementClosingChar = '}' | ']' | ')'
 
 export const initContext: () => CustomContext = () => ({
   statementClose: null,
@@ -35,9 +36,15 @@ export const mapContextProp = <P extends keyof CustomContext>(
   mapper: (value: CustomContext[P]) => CustomContext[P]
 ): CustomContext => ({ ...context, [prop]: mapper(context[prop]) })
 
+/**
+ * Add a list of generics definition to the context
+ */
 export const addGenericsDefinition = (context: CustomContext, generics: Token<string>[]): CustomContext =>
   mapContextProp(context, 'genericsDefinitions', (def) => def.concat([new Map(generics.map((g) => [g.parsed, g.at]))]))
 
+/**
+ * Get the definition of a generic from its name
+ */
 export const completeGenericsDefinition = (
   name: Token<string>,
   context: CustomContext
@@ -67,6 +74,8 @@ export const withinTypeAliasDefinition = <T>(parser: Parser<T>): Parser<T> =>
 
 export const withinFnCall = <T>(parser: Parser<T>): Parser<T> =>
   withTypedCtx<T, CustomContext>(($custom, start) => ({ ...$custom, inFnCallAt: start }), parser)
+
+type CtxAction<T> = ($custom: CustomContext) => Parser<T>
 
 export const getStatementClose: <T>(action: (char: string | null) => Parser<T>) => CtxAction<T> =
   (action) => ($custom) =>

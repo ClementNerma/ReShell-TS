@@ -7,23 +7,41 @@ import { PrecompData } from '../shared/precomp'
 export type Runner<T, RetType = void> = (token: T, ctx: RunnerContext) => RunnerResult<RetType>
 
 export type RunnerResult<T> =
+  // Success
   | { ok: true; data: T }
+  // Critical error
   | { ok: false; diag: Diagnostic }
+  // Loop breaking or continue
   | { ok: null; breaking: 'continue' | 'break' }
+  // A value needs to be returned from the current function
   | { ok: null; breaking: 'return'; value: ExecValue | null }
 
+/**
+ * Global runner context
+ */
 export type RunnerContext = {
+  /** Hierarchical scopes */
   scopes: Scope[]
+
+  /** Pipes output needs to be written to */
   pipeTo: null | {
     stdout: Writable
     stderr: Writable
   }
+
+  // Pre-computed data
   typeAliases: PrecompData['typeAliases']
   callbackTypes: PrecompData['callbackTypes']
   fnOrCmdCalls: PrecompData['fnOrCmdCalls']
   closuresArgsMapping: PrecompData['closuresArgsMapping']
+
+  // Platform path separator (usually "/" or "\")
   platformPathSeparator: string
+
+  // Command-line arguments
   argv: string[]
+
+  // Emit a diagnostic (notice, warning or non-critical error)
   emitDiagnostic: (diagnostic: Diagnostic) => void
 }
 
@@ -52,6 +70,9 @@ export type Scope = {
 
 export type ScopedMethod = { infos: MethodInfos; body: Token<Block> }
 
+/**
+ * Value generated during execution
+ */
 export type ExecValue =
   | { type: 'null' }
   | { type: 'bool'; value: boolean }

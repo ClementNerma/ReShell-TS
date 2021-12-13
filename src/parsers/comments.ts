@@ -1,6 +1,14 @@
 import { StrView } from '../shared/strview'
 import { Parser, success } from './lib/base'
 
+/**
+ * Comments are very hard to handle with parser combinators
+ * Example: how to parse `2 + 3 + # comment \n 5`?
+ * There can be comments inside expressions, commands, etc.
+ * So the most simple solution is to strip them *before* the program is actually parsed
+ *
+ * This function removes all comments from a source program and returns its stripped version
+ */
 export const commentStripper: Parser<StrView> = (start, input) => {
   const lines = input.toFullStringSlow().split(/\n/) // SLOW
 

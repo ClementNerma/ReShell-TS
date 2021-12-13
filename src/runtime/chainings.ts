@@ -8,16 +8,22 @@ import { runExpr } from './expr'
 import { executePrecompFnBody, RunnableFnContent } from './fncall'
 import { nativeLibraryMethods } from './native-lib'
 
+/**
+ * Evaluate the result of a value associated to a list of chainings
+ */
 export const runValueChainings: Runner<{ value: ExecValue; chainings: Token<ValueChaining>[] }, ExecValue> = (
   { value, chainings },
   ctx
 ) => {
+  // Optimization: nothing to do if there is no chaining
   if (chainings.length === 0) return success(value)
 
+  // Optimization: nested pre-computed calls (see the related function for more infos.)
   const optimized = optimizeValueChainings(chainings, ctx)
   if (optimized.ok !== true) return optimized
   if (optimized.data) return success(optimized.data)
 
+  // Otherwise, treat all chainings, one by one
   for (const chaining of chainings) {
     const result = runValueChaining({ value, chaining }, ctx)
     if (result.ok !== true) return result
@@ -43,22 +49,28 @@ export const runValueChainings: Runner<{ value: ExecValue; chainings: Token<Valu
  * Otherwise, it performs the method call and returns its result as an execution value
  */
 const optimizeValueChainings: Runner<Token<ValueChaining>[], ExecValue | null> = (chainings, ctx) => {
+  // Find the last usage of a method in the chainings
   const methodUsage = [...chainings].reverse().findIndex((chaining) => chaining.parsed.type === 'method')
 
+  // If there is none, there is no optimization to perform here
   if (methodUsage === -1) return success(null)
 
+  // Get the method usage in the chainings list
   const index = chainings.length - 1 - methodUsage
-
   const method = chainings[index]
   if (method.parsed.type !== 'method') throw new Error('Method type assertion failed')
 
+  // Run the said method
   const methodResult = runMethod(method.parsed.call, ctx)
-
   if (methodResult.ok !== true) return methodResult
 
+  // Run the remaining chainings (if any)
   return runValueChainings({ value: methodResult.data, chainings: chainings.slice(index + 1) }, ctx)
 }
 
+/**
+ * Run a chaining on a value
+ */
 const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining> }, ExecValue> = (
   { value, chaining },
   ctx
@@ -89,12 +101,20 @@ const runValueChaining: Runner<{ value: ExecValue; chaining: Token<ValueChaining
     },
   })
 
+/**
+ * Evaluate a property access on a value
+ */
 export const runPropertyAccess: Runner<
   {
+    /** Value to access a property of */
     value: ExecValue
+    /** Where the property access happens */
     propAccessAt: CodeSection
+    /** The property access to evaluate */
     propAccess: PropertyAccess
+    /** Should a value be written to this property? */
     write?: Runner<ExecValue | undefined, ExecValue>
+    /** Should writing be allowed for non-existent map keys? */
     writeAllowNonExistentMapKeys?: boolean
   },
   ExecValue
@@ -189,6 +209,9 @@ export const runPropertyAccess: Runner<
     },
   })
 
+/**
+ * Run a method call on a value
+ */
 export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, call.name.at)
 
@@ -207,6 +230,7 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   const ref = precomp.methodTypeRef
   let method: ScopedMethod | null = null
 
+  // Find the declared method's content
   for (let s = ctx.scopes.length - 1; s >= 0; s--) {
     const candidate = ctx.scopes[s].methods.find((method) => isLocEq(method.infos.forType.at.start, ref.at.start))
 
@@ -221,6 +245,7 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
   if (method) {
     fn = { type: 'block', body: method.body }
   } else {
+    // If not found, look for it in the native library
     const method = nativeLibraryMethods.get(call.name.parsed)
 
     if (!method) {
@@ -230,5 +255,6 @@ export const runMethod: Runner<FnCall, ExecValue> = (call, ctx) => {
     fn = { type: 'native', exec: method }
   }
 
+  // Execute the method's body
   return executePrecompFnBody({ nameAt: call.name.at, fn, precomp, scopeMapping: null }, ctx)
 }

@@ -8,8 +8,11 @@ export const runBlock: Runner<Block> = (block, ctx) => {
 
   ctx = { ...ctx, scopes: ctx.scopes.concat([blockScope]) }
 
+  // Flatten blocks to avoid having a sub-scope for included files
   const flattened = flattenBlock(block)
 
+  // Register functions and methods first, so they can be used before their
+  // declaration statement is reached.
   for (const { parsed: stmt } of flattened) {
     if (stmt.type === 'fnDecl') {
       blockScope.entities.set(stmt.name.parsed, {
@@ -23,6 +26,7 @@ export const runBlock: Runner<Block> = (block, ctx) => {
     }
   }
 
+  // Treat all statements in order
   for (const stmt of flattened) {
     const result = runStatement(stmt, ctx)
     if (result.ok !== true) return result
@@ -31,6 +35,9 @@ export const runBlock: Runner<Block> = (block, ctx) => {
   return success(void 0)
 }
 
+/**
+ * Flatten file inclusions to make them use the same scope as the caller block
+ */
 function flattenBlock(block: Block): Token<Statement>[] {
   return block.map((stmt) => (stmt.parsed.type === 'fileInclusion' ? flattenBlock(stmt.parsed.content) : [stmt])).flat()
 }

@@ -5,9 +5,12 @@ import { Token } from '../shared/parsed'
 import { getLocatedPrecomp } from '../shared/precomp'
 import { matchStr } from '../shared/utils'
 import { err, ExecValue, Runner, success } from './base'
-import { escapeCmdArg, runCmdArg } from './cmdarg'
+import { runCmdArg } from './cmdarg'
 import { runPrecompFnCall } from './fncall'
 
+/**
+ * Run a command call (potentially with combination operators, e.g. && or ||)
+ */
 export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
   let result = runSingleCmdCall(base, ctx)
 
@@ -21,6 +24,9 @@ export const runCmdCall: Runner<CmdCall> = ({ base, chain }, ctx) => {
   return result
 }
 
+/**
+ * Run a single command call (= without && or || operators)
+ */
 export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { base, pipes /* redir */ } }, ctx) => {
   if (!base.parsed.unaliased) {
     const precomp = getLocatedPrecomp(ctx.fnOrCmdCalls, base.parsed.name.at)
@@ -53,7 +59,7 @@ export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { b
   // Find another way to perform piping as the current pseudo-TTY libs are not
   // good enough for extended usage.
   const generated = commands
-    .map(([name, args]) => `${name} ${args.map((arg) => escapeCmdArg(arg)).join(' ')}`)
+    .map(([name, args]) => `${name} ${args.map((arg) => arg.replace(/[^a-zA-Z0-9_]/g, (c) => '\\' + c)).join(' ')}`)
     .join(' | ')
 
   const cmd = spawnSync('sh', ['-c', generated], { stdio: ctx.pipeTo ? 'pipe' : 'inherit' })
@@ -71,6 +77,9 @@ export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { b
     : success(void 0)
 }
 
+/**
+ * Run an inline command call (e.g. `$(command --arg1 --arg2)`)
+ */
 export const runInlineCmdCall: Runner<InlineCmdCall, ExecValue> = ({ content, capture }, ctx) => {
   const outputPieces: Buffer[] = []
 
