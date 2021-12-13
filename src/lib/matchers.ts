@@ -103,12 +103,12 @@ export function bol(error?: string): Parser<void> {
   return (start, _, context) => (start.col === 0 ? neutralError(start) : err(start, context, error))
 }
 
-export function eol(error?: string): Parser<void> {
+export function eol(error?: string): Parser<string> {
   return (start, input, context) =>
     input.length === 0
-      ? neutralError(start)
+      ? success(start, start, '', '')
       : input.charAt(0) === '\n'
-      ? success(start, addLoc(start, { line: 1, col: 0 }), void 0, '\n')
+      ? success(start, addLoc(start, { line: 1, col: 0 }), '\n', '\n')
       : err(start, context, error)
 }
 
