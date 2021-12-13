@@ -48,10 +48,10 @@ export function or<T>(parsers: Parser<T>[], error?: OrErrorStrategyData): Parser
         return mostRelevant ?? err(start, start, context)
 
       case OrErrorStrategy.Const:
-        return err(start, start, context, error[1])
+        return mostRelevant ?? err(start, start, context, error[1])
 
       case OrErrorStrategy.Fn:
-        return err(start, start, context, error[1](input, errors, context, start))
+        return mostRelevant ?? err(start, start, context, error[1](input, errors, context, start))
 
       case OrErrorStrategy.FallbackConst:
         return withErr(mostRelevant ?? err(start, start, context), error[1])
