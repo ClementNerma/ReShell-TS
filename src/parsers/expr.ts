@@ -2,7 +2,7 @@ import { Parser, Token } from '../lib/base'
 import { combine } from '../lib/combinations'
 import { extract, failIf } from '../lib/conditions'
 import { lookahead, not } from '../lib/consumeless'
-import { failure } from '../lib/errors'
+import { contextualFailure, failure } from '../lib/errors'
 import { maybe_s, maybe_s_nl, unicodeAlphanumericUnderscore } from '../lib/littles'
 import { takeWhile } from '../lib/loops'
 import { exact, oneOf, oneOfMap } from '../lib/matchers'
@@ -49,25 +49,27 @@ export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literal
         takeWhile(
           map(
             combine(
-              literalString,
+              failIf(lookahead(unicodeAlphanumericUnderscore), {
+                message: "Syntax error: expected either an identifier or the end of the map's content",
+                tip: 'Key names in map values must be written between quotes',
+              }),
+              contextualFailure(
+                literalString,
+                (ctx) => ctx.loopData?.iter !== 0,
+                'Syntax error: expected a map key name'
+              ),
               exact(':'),
               withLatelyDeclared(() => expr),
               { inter: maybe_s_nl }
             ),
-            ([key, _, expr]) => ({ key, expr })
+            ([_, key, __, expr]) => ({ key, expr })
           ),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl),
           }
         )
       ),
-      or([
-        failIf(lookahead(unicodeAlphanumericUnderscore), {
-          message: "Syntax error: expected either an identifier or the end of the map's content",
-          tip: 'Key names in map values must be written between quotes',
-        }),
-        exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
-      ]),
+      exact(')', "Syntax error: expected a closing parenthesis ')' to close the map's content"),
       {
         inter: maybe_s_nl,
       }
