@@ -1,18 +1,15 @@
 // 1. Find all declared functions and type alias
 // 2. Discover scope sequentially using the items above
 
-import { FnType, StatementChain, Token, ValueType } from '../../shared/parsed'
-import { located, Located, success, Typechecker } from '../base'
+import { StatementChain, Token } from '../../shared/parsed'
+import { located, Scope, success, Typechecker } from '../base'
 import { fnTypeValidator } from '../types/fn'
 import { ensureScopeUnicity } from './search'
 
-export type ScopeFirstPass = {
-  typeAliases: Map<string, Located<ValueType>>
-  functions: Map<string, Located<FnType>>
-}
+export const scopeFirstPass: Typechecker<Token<StatementChain>[], Scope> = (chain, ctx) => {
+  const firstPass: Scope = { typeAliases: new Map(), functions: new Map(), variables: new Map() }
 
-export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass> = (chain, ctx) => {
-  const firstPass: ScopeFirstPass = { typeAliases: new Map(), functions: new Map() }
+  ctx = { ...ctx, scopes: ctx.scopes.concat([firstPass]) }
 
   for (const stmt of chain) {
     if (stmt.parsed.type === 'empty') continue
@@ -64,7 +61,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
           // is provided to the type resolver, which will use it to type the underlying value.
           // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-          const typeUnicity = ensureScopeUnicity({ name: typename, firstPass }, ctx)
+          const typeUnicity = ensureScopeUnicity(typename, ctx)
           if (!typeUnicity.ok) return typeUnicity
 
           firstPass.typeAliases.set(typename.parsed, located(typename.at, sub.parsed.content.parsed))
@@ -73,7 +70,7 @@ export const scopeFirstPass: Typechecker<Token<StatementChain>[], ScopeFirstPass
         case 'fnDecl':
           const fnName = sub.parsed.name
 
-          const fnUnicity = ensureScopeUnicity({ name: fnName, firstPass }, ctx)
+          const fnUnicity = ensureScopeUnicity(fnName, ctx)
           if (!fnUnicity.ok) return fnUnicity
 
           const fnTypeChecker = fnTypeValidator(sub.parsed.fnType, ctx)

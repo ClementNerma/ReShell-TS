@@ -1,6 +1,5 @@
 import { Token } from '../../shared/parsed'
 import { err, Located, Scope, ScopeFn, ScopeTypeAlias, ScopeVar, success, Typechecker, TypecheckerErr } from '../base'
-import { ScopeFirstPass } from './first-pass'
 
 export const categoryMapping: { [key in keyof Scope]: string } = {
   typeAliases: 'type',
@@ -8,22 +7,10 @@ export const categoryMapping: { [key in keyof Scope]: string } = {
   variables: 'variable',
 }
 
-export const ensureScopeUnicity: Typechecker<{ name: Token<string>; firstPass?: ScopeFirstPass }, void> = (
-  { name, firstPass },
-  { scopes }
-) => {
-  if (firstPass) {
-    for (const [category, map] of Object.entries(firstPass)) {
-      const orig = map.get(name.parsed)
-      if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
-    }
-  }
-
-  if (scopes.length > 0) {
-    for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
-      const orig = map.get(name.parsed)
-      if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
-    }
+export const ensureScopeUnicity: Typechecker<Token<string>, void> = (name, { scopes }) => {
+  for (const [category, map] of Object.entries(scopes[scopes.length - 1])) {
+    const orig = map.get(name.parsed)
+    if (orig) return generateDuplicateDeclError(orig, categoryMapping[category as keyof Scope], name)
   }
 
   return success(void 0)

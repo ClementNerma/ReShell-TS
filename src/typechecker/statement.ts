@@ -1,6 +1,6 @@
 import { StatementChain, Token, ValueType } from '../shared/parsed'
 import { matchUnion } from '../shared/utils'
-import { err, located, Scope, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
+import { err, located, success, Typechecker, TypecheckerContext, TypecheckerResult } from './base'
 import { cmdCallTypechecker } from './cmdcall'
 import { scopeFirstPass } from './scope/first-pass'
 import { getVariableInScope } from './scope/search'
@@ -18,7 +18,7 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], void> =
   // 1. Find all declared functions and type alias
   // 2. Discover scope sequentially using the items above
 
-  const scope: Scope = { ...firstPass.data, variables: new Map() }
+  const scope = firstPass.data
   const scopes = ctx.scopes.concat(scope)
 
   ctx = { ...ctx, scopes }
