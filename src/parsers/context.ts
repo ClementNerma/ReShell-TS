@@ -16,12 +16,14 @@ export type CustomContext = {
   statementClose: StatementClosingChar | null
   continuationKeywords: string[]
   genericsDefinitions: Map<string, CodeSection>[]
+  inTypeAliasDefinition: boolean
 }
 
 export const initContext: () => CustomContext = () => ({
   statementClose: null,
   continuationKeywords: [],
   genericsDefinitions: [],
+  inTypeAliasDefinition: false,
 })
 
 export const mapContextProp = <P extends keyof CustomContext>(
@@ -41,6 +43,10 @@ export const completeGenericsDefinition = (
   name: Token<string>,
   context: CustomContext
 ): FailableMapped<{ name: Token<string>; orig: CodeSection }> => {
+  if (context.inTypeAliasDefinition) {
+    return { ok: false, err: 'usage of generics is not allowed inside type aliases' }
+  }
+
   for (const defs of context.genericsDefinitions.reverse()) {
     const orig = defs.get(name.parsed)
     if (orig) return { ok: true, data: { name, orig } }
@@ -60,6 +66,9 @@ export const withContinuationKeyword = <T>(continuationKeywords: string[], parse
     }),
     parser
   )
+
+export const withinTypeAliasDefinition = <T>(parser: Parser<T>): Parser<T> =>
+  withTypedCtx<T, CustomContext>(($custom) => ({ ...$custom, inTypeAliasDefinition: true }), parser)
 
 export const getStatementClose: <T>(action: (char: string | null) => Parser<T>) => CtxAction<T> =
   (action) => ($custom) =>

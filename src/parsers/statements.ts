@@ -7,6 +7,7 @@ import {
   matchContinuationKeyword,
   matchStatementClose,
   withContinuationKeyword,
+  withinTypeAliasDefinition,
   withStatementClosingChar,
 } from './context'
 import { condOrTypeAssertion, expr } from './expr'
@@ -170,7 +171,7 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
         maybe_s,
         failure(exact('='), 'expected an assignment (=) operator'),
         maybe_s_nl,
-        failure(valueType, 'expected a type')
+        failure(withinTypeAliasDefinition(valueType), 'expected a type')
       ),
       ([_, __, typename, ___, ____, _____, content]) => ({ typename, content })
     ),
