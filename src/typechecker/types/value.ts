@@ -7,7 +7,7 @@ import { getFunctionInScope, getTypeAliasInScope, getVariableInScope } from '../
 import { statementChainChecker } from '../statement'
 import { isTypeCompatible } from './compat'
 import { resolveExprType } from './expr'
-import { fnTypeValidator, validateFnCallArgs } from './fn'
+import { fnScopeCreator, fnTypeValidator, validateFnCallArgs } from './fn'
 import { rebuildType } from './rebuilder'
 
 export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ctx) => {
@@ -340,6 +340,7 @@ export const resolveValueType: Typechecker<Token<Value>, ValueType> = (value, ct
 
       const stmtCheck = statementChainChecker(body, {
         ...ctx,
+        scopes: ctx.scopes.concat([fnScopeCreator(fnType)]),
         fnExpectation: {
           failureType: fnType.failureType ? { type: fnType.failureType.parsed, from: fnType.failureType.at } : null,
           returnType: fnType.returnType ? { type: fnType.returnType.parsed, from: fnType.returnType.at } : null,
