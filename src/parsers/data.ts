@@ -156,6 +156,7 @@ export type ExprElement =
   | { type: 'value'; content: Token<Value> }
   | { type: 'paren'; inner: Token<Expr> }
   | { type: 'ternary'; cond: Token<Expr>; then: Token<Expr>; els: Token<Expr> }
+  | { type: 'assertion'; varname: Token<string>; minimum: Token<ValueType> }
   | { type: 'singleOp'; op: Token<SingleOp>; right: Token<ExprElement> }
 
 export type Expr = { from: Token<ExprElement>; sequence: Token<ExprSequenceAction>[] }

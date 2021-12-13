@@ -54,29 +54,6 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
       })
     ),
 
-    assignment: map(
-      combine(
-        identifier,
-        takeWhile(propertyAccess),
-        combine(maybe(doubleArithOp), exact('=', 'Expected an assignment')),
-        failure(expr, 'Expected an expression'),
-        { inter: maybe_s }
-      ),
-      ([
-        varname,
-        { parsed: propAccess },
-        {
-          parsed: [prefixOp],
-        },
-        expr,
-      ]) => ({
-        varname,
-        propAccess,
-        prefixOp: flattenMaybeToken(prefixOp),
-        expr,
-      })
-    ),
-
     ifBlock: map(combine(exact('if'), failure(expr, 'Expected a condition'), { inter: s }), ([_, cond]) => ({
       cond,
     })),
@@ -114,6 +91,29 @@ export const statement: Parser<Statement> = mappedCases<Statement>()(
     ),
 
     fnOpen: map(fnDecl, (fn) => fn),
+
+    assignment: map(
+      combine(
+        identifier,
+        takeWhile(propertyAccess),
+        combine(maybe(doubleArithOp), exact('=')),
+        failure(expr, 'Expected an expression'),
+        { inter: maybe_s }
+      ),
+      ([
+        varname,
+        { parsed: propAccess },
+        {
+          parsed: [prefixOp],
+        },
+        expr,
+      ]) => ({
+        varname,
+        propAccess,
+        prefixOp: flattenMaybeToken(prefixOp),
+        expr,
+      })
+    ),
 
     cmdCall: cmdCall(endOfCmdCallStatement),
   },

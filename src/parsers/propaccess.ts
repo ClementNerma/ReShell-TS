@@ -5,7 +5,7 @@ import { contextualFailure } from '../lib/errors'
 import { exact } from '../lib/matchers'
 import { mappedCases } from '../lib/switches'
 import { map } from '../lib/transform'
-import { logUsage, withLatelyDeclared } from '../lib/utils'
+import { withLatelyDeclared } from '../lib/utils'
 import { NonNullablePropertyAccess, PropertyAccess } from './data'
 import { expr } from './expr'
 import { identifier } from './tokens'
@@ -27,7 +27,7 @@ export const nonNullablePropertyAccess: Parser<NonNullablePropertyAccess> = mapp
 
 export const propertyAccess: Parser<PropertyAccess> = map(
   combine(
-    logUsage(maybe)(exact('?')),
+    maybe(exact('?')),
     contextualFailure(
       nonNullablePropertyAccess,
       (ctx) => !ctx.combinationData!.lastWasNeutralError,

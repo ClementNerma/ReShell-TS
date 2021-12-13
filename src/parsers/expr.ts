@@ -30,6 +30,7 @@ import { literalString, literalValue } from './literals'
 import { propertyAccess } from './propaccess'
 import { endOfInlineCmdCall, statementChainOp } from './stmtend'
 import { identifier } from './tokens'
+import { valueType } from './types'
 
 export const value: Parser<Value> = mappedCasesComposed<Value>()('type', literalValue, {
   list: map(
@@ -285,6 +286,13 @@ export const exprElement: Parser<ExprElement> = selfRef((simpleExpr) =>
           { inter: maybe_s_nl }
         ),
         ([_, cond, __, then, ___, ____, _____, els, ______]) => ({ cond, then, els })
+      ),
+
+      assertion: map(
+        combine(identifier, exact('is'), failure(valueType, 'Expected a type after the "is" type assertion operator'), {
+          inter: maybe_s,
+        }),
+        ([varname, _, minimum]) => ({ varname, minimum })
       ),
 
       // value
