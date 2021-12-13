@@ -467,6 +467,10 @@ export const statementChainChecker: Typechecker<Token<StatementChain>[], Stateme
           })
         }
 
+        if (!ctx.checkIfCommandExists(name.parsed)) {
+          return err(name.at, 'this command was not found in PATH')
+        }
+
         const check = cmdDeclSubCommandTypechecker(body, ctx)
         if (!check.ok) return check
 
