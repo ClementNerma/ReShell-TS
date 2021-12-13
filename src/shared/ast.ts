@@ -201,12 +201,12 @@ export type InlineCmdCallCapture = 'Stdout' | 'Stderr' | 'Both'
 
 export type FnType = {
   generics: Token<string>[]
-  args: Token<FnArg>[]
+  args: Token<FnDeclArg>[]
   restArg: Token<string> | null
   returnType: Token<ValueType> | null
 }
 
-export type FnArg = {
+export type FnDeclArg = {
   flag: Token<string> | null
   name: Token<string>
   optional: boolean
@@ -262,5 +262,5 @@ export type CmdVariantContent = {
 }
 
 export type CmdVariantSignature =
-  | { type: 'direct'; args: Token<FnArg>[]; rest: Token<string> | null }
+  | { type: 'direct'; args: Token<FnDeclArg>[]; rest: Token<string> | null }
   | { type: 'subCmd'; content: CmdDeclSubCommand }

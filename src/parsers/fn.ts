@@ -1,4 +1,4 @@
-import { FnArg, FnType } from '../shared/ast'
+import { FnDeclArg, FnType } from '../shared/ast'
 import { CodeSection, Token } from '../shared/parsed'
 import { addGenericsDefinition, CustomContext } from './context'
 import { Parser } from './lib/base'
@@ -17,9 +17,9 @@ import { literalValue } from './literals'
 import { identifier } from './tokens'
 import { valueType } from './types'
 
-export const fnArg: Parser<FnArg> = map(
+export const fnDeclArg: Parser<FnDeclArg> = map(
   combine(
-    or<Pick<FnArg, 'flag' | 'name'>>([
+    or<Pick<FnDeclArg, 'flag' | 'name'>>([
       map(
         combine(
           exact('-'),
@@ -67,7 +67,7 @@ export const fnArg: Parser<FnArg> = map(
     { parsed: optional },
     type,
     { parsed: defaultValue },
-  ]): FnArg => ({
+  ]): FnDeclArg => ({
     name,
     flag,
     optional,
@@ -117,7 +117,7 @@ const fn: <T>(nameParser: Parser<T>) => Parser<FnType & { name: Token<T>; generi
             maybe_s_nl
           ),
           useSeparatorIf(
-            takeWhile(fnArg, {
+            takeWhile(fnDeclArg, {
               inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
               interExpect: 'expected an argument name',
             }),

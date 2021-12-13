@@ -1,5 +1,5 @@
 import { CmdDeclSubCommand, CmdVariant, CmdVariantContent, CmdVariantSignature } from '../shared/ast'
-import { fnArg } from './fn'
+import { fnDeclArg } from './fn'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches, maybe, useSeparatorIf } from './lib/conditions'
@@ -32,7 +32,7 @@ const cmdDeclSubCommandVariantSignature: Parser<CmdVariantSignature> = mappedCas
       maybe_s_nl,
       useSeparatorIf(
         takeWhile(
-          withLatelyDeclared(() => fnArg),
+          withLatelyDeclared(() => fnDeclArg),
           {
             inter: combine(maybe_s_nl, exact(','), maybe_s_nl, failIfMatches(exact('...'))),
             interExpect: 'expected another argument',

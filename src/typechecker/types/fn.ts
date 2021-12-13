@@ -1,5 +1,5 @@
 import { UNICODE_LETTER } from '../../parsers/lib/littles'
-import { Block, ClosureArg, ClosureBody, CmdArg, FnArg, FnType, ValueType } from '../../shared/ast'
+import { Block, ClosureArg, ClosureBody, CmdArg, FnDeclArg, FnType, ValueType } from '../../shared/ast'
 import { CodeSection, Token } from '../../shared/parsed'
 import { FnCallGeneric, FnCallPrecompArg } from '../../shared/precomp'
 import { matchUnion } from '../../shared/utils'
@@ -61,14 +61,14 @@ export const fnTypeValidator: Typechecker<FnType, void> = (fnType, ctx) => {
   return success(void 0)
 }
 
-export const fnTypeArgsValidator: Typechecker<Token<FnArg>[], Map<string, { at: CodeSection; type: ValueType }>> = (
-  fnArgs,
+export const fnTypeArgsValidator: Typechecker<Token<FnDeclArg>[], Map<string, { at: CodeSection; type: ValueType }>> = (
+  fnDeclArgs,
   ctx
 ) => {
-  let hadOptionalPos: Token<FnArg> | null = null
+  let hadOptionalPos: Token<FnDeclArg> | null = null
   const args = new Map<string, { at: CodeSection; type: ValueType }>()
 
-  for (const arg of fnArgs) {
+  for (const arg of fnDeclArgs) {
     const argType = arg.parsed.type.parsed
 
     if (arg.parsed.flag !== null) {
@@ -164,7 +164,7 @@ export const closureCallValidator: Typechecker<
   void
 > = ({ at, args, restArg, body, expected }, ctx) => {
   const candidateArgs = [...args]
-  const aliasedArgs: Token<FnArg>[] = []
+  const aliasedArgs: Token<FnDeclArg>[] = []
 
   for (const arg of expected.args) {
     const c = candidateArgs.shift()
@@ -485,10 +485,10 @@ export const validateAndRegisterFnCall: Typechecker<
   ])
 }
 
-export function getFnArgType(fnArg: FnArg): ValueType {
-  return fnArg.optional && fnArg.defaultValue === null
-    ? { type: 'nullable', inner: fnArg.type.parsed }
-    : fnArg.type.parsed
+export function getFnDeclArgType(fnDeclArg: FnDeclArg): ValueType {
+  return fnDeclArg.optional && fnDeclArg.defaultValue === null
+    ? { type: 'nullable', inner: fnDeclArg.type.parsed }
+    : fnDeclArg.type.parsed
 }
 
 export function withFnScope(fnType: FnType, ctx: TypecheckerContext): TypecheckerContext {
@@ -505,7 +505,7 @@ export function withFnScope(fnType: FnType, ctx: TypecheckerContext): Typechecke
                 type: 'var',
                 at: arg.at,
                 mutable: false,
-                varType: getFnArgType(arg.parsed),
+                varType: getFnDeclArgType(arg.parsed),
               },
             ])
           )
