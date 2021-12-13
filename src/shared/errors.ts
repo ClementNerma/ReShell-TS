@@ -110,12 +110,7 @@ export function formatErr(err: FormatableError, source: string, f?: ErrorParsing
       }
 
       for (const [name, text] of complements ?? []) {
-        upToError.push(
-          `${paddingGutter}${' '.repeat(componentsAlignmentCol)} ${format(
-            'complement',
-            `${format('complementName', name)} : ${text}`
-          )}`
-        )
+        upToError.push(`${linePad}${format('complement', `-> ${format('complementName', name)} : ${text}`)}`)
       }
 
       return upToError.join('\n')

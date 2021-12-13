@@ -43,7 +43,6 @@ const errorFormatters: ErrorParsingFormatters = {
   gutter: chalk.cyanBright,
   locationPointer: chalk.redBright,
   errorMessage: chalk.redBright,
-  complement: chalk.cyanBright,
 }
 
 const kb = (bytes: number) => (bytes / 1024).toFixed(2).padStart(8, ' ') + ' kB'
