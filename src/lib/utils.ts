@@ -85,5 +85,5 @@ export function mapToken<T, U>(token: Token<T>, mapper: (value: T, token: Token<
 }
 
 export function flattenMaybeToken<T>(token: Token<T | null>): Token<T> | null {
-  return token.parsed ? { ...token, parsed: token.parsed } : null
+  return token.parsed !== null ? { ...token, parsed: token.parsed } : null
 }
