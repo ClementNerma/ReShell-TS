@@ -192,14 +192,16 @@ export type ExprDoubleOp = { op: Token<DoubleOp>; right: Token<ExprElement> }
 
 export type Expr = { from: Token<ExprElement>; doubleOps: Token<ExprDoubleOp>[] }
 
-export type DoubleOp = { type: 'arith'; op: Token<DoubleArithOp> } | { type: 'logic'; op: Token<DoubleLogicOp> }
+export type DoubleOp =
+  | { type: 'arith'; op: Token<DoubleArithOp> }
+  | { type: 'logic'; op: Token<DoubleLogicOp> }
+  | { type: 'comparison'; op: Token<DoubleComparisonOp> }
 
 export type DoubleArithOp = 'Add' | 'Sub' | 'Mul' | 'Div' | 'Rem' | 'Null'
 
-export type DoubleLogicOp =
-  | 'And'
-  | 'Or'
-  | 'Xor'
+export type DoubleLogicOp = 'And' | 'Or' | 'Xor'
+
+export type DoubleComparisonOp =
   | 'Eq'
   | 'NotEq'
   | 'GreaterThanOrEqualTo'

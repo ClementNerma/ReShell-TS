@@ -74,8 +74,6 @@ export const resolveDoubleOpType: Typechecker<
         case 'And':
         case 'Or':
         case 'Xor':
-        case 'Eq':
-        case 'NotEq':
           if (leftExprType.nullable || leftExprType.inner.type !== 'bool') {
             return errCannotApplyOperator(op.parsed.op, 'bool', leftExprType, leftExprAt)
           }
@@ -83,7 +81,14 @@ export const resolveDoubleOpType: Typechecker<
           checkRightOperandType = leftExprType
           producedType = leftExprType
           break
+      }
 
+      break
+
+    case 'comparison':
+      switch (op.parsed.op.parsed) {
+        case 'Eq':
+        case 'NotEq':
         case 'GreaterThan':
         case 'GreaterThanOrEqualTo':
         case 'LessThan':

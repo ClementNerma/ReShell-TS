@@ -1,4 +1,4 @@
-import { DoubleArithOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from '../shared/parsed'
+import { DoubleArithOp, DoubleComparisonOp, DoubleLogicOp, DoubleOp, SingleLogicOp, SingleOp } from '../shared/parsed'
 import { Parser } from './lib/base'
 import { combine } from './lib/combinations'
 import { failIfMatches } from './lib/conditions'
@@ -32,6 +32,15 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
       ['&&', 'And'],
       ['||', 'Or'],
       ['^', 'Xor'],
+    ]),
+    failIfMatches(_catchUnknownOperator, 'Unknown operator')
+  ),
+  ([{ parsed: sym }]) => sym
+)
+
+export const doubleComparisonLogicOp: Parser<DoubleComparisonOp> = map(
+  combine(
+    oneOfMap<DoubleComparisonOp>([
       ['==', 'Eq'],
       ['!=', 'NotEq'],
       ['>=', 'GreaterThanOrEqualTo'],
@@ -47,6 +56,7 @@ export const doubleLogicOp: Parser<DoubleLogicOp> = map(
 export const doubleOp: Parser<DoubleOp> = mappedCases<DoubleOp>()('type', {
   arith: toOneProp(doubleArithOp, 'op'),
   logic: toOneProp(doubleLogicOp, 'op'),
+  comparison: toOneProp(doubleComparisonLogicOp, 'op'),
 })
 
 export const singleLogicOp: Parser<SingleLogicOp> = map(
