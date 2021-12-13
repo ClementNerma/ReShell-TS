@@ -170,6 +170,13 @@ export const nativeLibraryMethodsTypes = ensureArrayValuesType<FnType>()({
     returnType: ({ T }) => ({ type: 'nullable', inner: T }),
   }),
 
+  rev: _buildNativeLibraryFn({
+    generics: ['T'],
+    methodFor: ({ T }) => [[T.name], { type: 'list', itemsType: T }],
+    args: () => [],
+    returnType: ({ T }) => ({ type: 'list', itemsType: T }),
+  }),
+
   join: _buildNativeLibraryFn({
     methodFor: () => ({ type: 'list', itemsType: { type: 'string' } }),
     args: () => [{ name: 'glue', type: 'string' }],

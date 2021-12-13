@@ -228,6 +228,8 @@ export const nativeLibraryMethods = makeMap<typeof nativeLibraryMethodsTypes, Na
     return success(item ?? { type: 'null' })
   }),
 
+  rev: withArguments({ self: 'list' }, ({ self }) => success({ type: 'list', items: [...self.items].reverse() })),
+
   join: withArguments({ self: 'list', glue: 'string' }, ({ self, glue }, { at }) => {
     const pieces: string[] = []
 
