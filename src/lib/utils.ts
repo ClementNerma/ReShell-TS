@@ -66,6 +66,7 @@ export type ErrorParsingFormatters = {
   noErrorMessageFallback?: (text: string) => string
   wrapper?: (error: string) => string
   header?: (header: string) => string
+  location?: (col: string) => string
   gutter?: (text: string) => string
   paddingChar?: (char: string) => string
   locationPointer?: (char: string) => string
@@ -95,7 +96,8 @@ export function formatErr(err: ParserErr, f?: ErrorParsingFormatters): string {
       const lineLen = line.toString().length
       const linePad = ' '.repeat(lineLen)
 
-      const header = `--> At line ${line + 1}, column ${col + 1}:`
+      const header = `--> At ${format('location', `${line + 1}:${col + 1}`)}:`
+
       const failedLine = err.context.source.ref.split(/\n/)[line]
 
       const locPtr = format('locationPointer', '^'.repeat(length ?? 1))
