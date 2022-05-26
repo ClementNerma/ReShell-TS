@@ -58,6 +58,11 @@ export const runSingleCmdCall: Runner<Token<SingleCmdCall>> = ({ at, parsed: { b
   // HACK: This code is neither multi-platform nor properly escaping arguments
   // Find another way to perform piping as the current pseudo-TTY libs are not
   // good enough for extended usage.
+  //
+  // IDEA: external Rust module? Not ideal because it forces to rely on an external
+  // dependency which changes on each architecture, but it could be a good
+  // compromise.
+  //
   const generated = commands
     .map(([name, args]) => `${name} ${args.map((arg) => arg.replace(/[^a-zA-Z0-9_]/g, (c) => '\\' + c)).join(' ')}`)
     .join(' | ')
