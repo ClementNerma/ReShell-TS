@@ -48,7 +48,7 @@ export const cmdCallSub: Parser<CmdCallSub> = map(
         combine(
           failIfMatches(keyword, 'cannot use reserved keyword here'),
           cmdName,
-          or([stmtEnd, silence(exact('|'))])
+          or([stmtEnd, silence(exact('|')), silence(cmdRedirOp)])
         ),
         ([_, name]) => ({
           name,
@@ -62,7 +62,7 @@ export const cmdCallSub: Parser<CmdCallSub> = map(
           filterNullables(
             takeWhile<CmdArg | null>(
               failIfMatchesElse(
-                or([stmtEnd, silence(chainedCmdCallOp), silence(exact('|'))]),
+                or([stmtEnd, silence(chainedCmdCallOp), silence(exact('|')), silence(cmdRedirOp)]),
                 failure(
                   or([map(combine(exact('\\'), maybe_s, eol()), () => null), withLatelyDeclared(() => cmdArg)]),
                   'invalid argument provided'
